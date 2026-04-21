@@ -1,0 +1,813 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Moona v2 — Content Planner</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f8f7f4;--card:#fff;--border:#e5e3dc;--border2:#d0cec7;
+  --text:#1a1a18;--text2:#6b6a64;--text3:#9d9b94;
+  --coral:#993C1D;--coral-mid:#D85A30;--coral-bg:#FAECE7;
+  --purple:#534AB7;--purple-bg:#EEEDFE;
+  --teal:#0F6E56;--teal-bg:#E1F5EE;
+  --amber:#854F0B;--amber-bg:#FAEEDA;
+  --red:#A32D2D;--red-bg:#FCEBEB;
+  --green:#3B6D11;--green-bg:#EAF3DE;
+  --blue:#185FA5;--blue-bg:#E6F1FB;
+  --gray:#5F5E5A;--gray-bg:#F1EFE8;
+  --radius:10px;--radius-sm:6px;
+}
+body{background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:var(--text);font-size:14px;min-height:100vh}
+.app{display:flex;min-height:100vh}
+.sidebar{width:220px;min-width:220px;background:var(--card);border-right:0.5px solid var(--border);display:flex;flex-direction:column;position:fixed;top:0;left:0;height:100vh;z-index:10;overflow-y:auto}
+.logo{padding:18px 16px 14px;border-bottom:0.5px solid var(--border)}
+.logo-name{font-size:15px;font-weight:600}
+.logo-sub{font-size:10px;color:var(--text3);margin-top:2px}
+.logo-ver{display:inline-block;font-size:9px;font-weight:600;background:var(--coral-bg);color:var(--coral);padding:1px 5px;border-radius:4px;margin-top:3px}
+.nav-section{padding:10px 8px 3px;font-size:9px;font-weight:600;color:var(--text3);letter-spacing:.06em;text-transform:uppercase}
+.nav-item{display:flex;align-items:center;gap:8px;padding:7px 12px;margin:1px 4px;border-radius:var(--radius-sm);cursor:pointer;font-size:12px;color:var(--text2)}
+.nav-item:hover{background:var(--bg)}
+.nav-item.active{background:var(--coral-bg);color:var(--coral);font-weight:500}
+.nav-dot{width:6px;height:6px;border-radius:50%}
+.sidebar-footer{margin-top:auto;padding:12px 16px;border-top:0.5px solid var(--border)}
+.sf-label{font-size:10px;color:var(--text3)}
+.sf-name{font-size:11px;font-weight:500;margin-top:2px}
+.sf-logout{font-size:10px;color:var(--gray);margin-top:4px;cursor:pointer}
+
+.main{margin-left:220px;flex:1;padding:22px;max-width:1120px}
+.topbar{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:18px;gap:10px;flex-wrap:wrap}
+.page-title{font-size:19px;font-weight:600}
+.page-sub{font-size:11px;color:var(--text3);margin-top:2px}
+
+.btn{padding:7px 14px;border-radius:var(--radius-sm);border:0.5px solid var(--border2);background:var(--card);color:var(--text);font-size:12px;font-weight:500;cursor:pointer;white-space:nowrap}
+.btn:hover{background:var(--bg)}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn-primary{background:var(--coral-mid);color:#fff;border-color:var(--coral-mid)}
+.btn-primary:hover{opacity:.9}
+.btn-sm{padding:4px 10px;font-size:11px}
+.btn-ghost{background:none;border:none;color:var(--text3);font-size:11px;cursor:pointer;padding:2px 6px}
+.btn-ghost:hover{color:var(--red)}
+
+.stats{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:18px}
+.stat{background:var(--bg);border-radius:var(--radius-sm);padding:10px 12px}
+.stat-label{font-size:10px;color:var(--text3);margin-bottom:3px}
+.stat-val{font-size:17px;font-weight:600}
+
+.filter-bar{display:flex;gap:5px;margin-bottom:14px;flex-wrap:wrap;align-items:center}
+.fpill{padding:4px 11px;border-radius:20px;font-size:11px;font-weight:500;cursor:pointer;border:0.5px solid var(--border2);color:var(--text2);background:var(--card)}
+.fpill.active{background:var(--text);color:#fff;border-color:var(--text)}
+.fsep{width:1px;height:16px;background:var(--border2);margin:0 4px}
+
+.tabs{display:flex;border-bottom:0.5px solid var(--border);margin-bottom:14px}
+.tab{padding:8px 16px;font-size:12px;color:var(--text2);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-0.5px}
+.tab.active{color:var(--coral-mid);border-bottom-color:var(--coral-mid);font-weight:500}
+
+/* BOARD */
+.board{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:12px}
+.col{background:var(--card);border:0.5px solid var(--border);border-radius:var(--radius);overflow:hidden}
+.col-head{padding:10px 12px;border-bottom:0.5px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:var(--bg)}
+.col-title{font-size:11px;font-weight:600;color:var(--text)}
+.col-count{font-size:10px;color:var(--text3);background:var(--card);padding:1px 6px;border-radius:8px;min-width:20px;text-align:center}
+.col-body{padding:6px;min-height:120px;max-height:600px;overflow-y:auto}
+.cn-card{background:var(--bg);border:0.5px solid var(--border);border-radius:var(--radius-sm);padding:8px 10px;margin-bottom:5px;cursor:pointer;transition:border-color .1s}
+.cn-card:hover{border-color:var(--border2);background:var(--card)}
+.cn-title{font-size:11px;font-weight:500;line-height:1.3;margin-bottom:4px;color:var(--text)}
+.cn-meta{display:flex;gap:4px;flex-wrap:wrap;font-size:9px;color:var(--text3)}
+.cn-pill{display:inline-block;padding:1px 5px;border-radius:5px;font-size:9px;font-weight:500}
+
+/* PLATFORM COLORS */
+.p-instagram{background:#E4405F20;color:#E4405F}
+.p-tiktok{background:#00000015;color:#333}
+.p-facebook{background:#1877F220;color:#1877F2}
+.p-threads{background:#00000015;color:#000}
+
+/* STATUS COLORS in col header */
+.c-idea{color:var(--gray)}
+.c-onprogress{color:var(--blue)}
+.c-review{color:var(--amber)}
+.c-approved{color:var(--teal)}
+.c-posted{color:var(--green)}
+
+/* CALENDAR */
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:1px;background:var(--border);border:0.5px solid var(--border);border-radius:var(--radius);overflow:hidden}
+.cal-dayhead{background:var(--bg);padding:6px 8px;font-size:10px;font-weight:600;color:var(--text3);text-align:center;text-transform:uppercase;letter-spacing:.04em}
+.cal-day{background:var(--card);min-height:70px;padding:5px 6px;font-size:10px;position:relative;cursor:pointer}
+.cal-day:hover{background:var(--bg)}
+.cal-day.faded{opacity:.4}
+.cal-day.today{background:var(--coral-bg)}
+.cal-day-num{font-size:10px;font-weight:600;color:var(--text2);margin-bottom:3px}
+.cal-day.today .cal-day-num{color:var(--coral)}
+.cal-event{display:block;font-size:9px;padding:2px 4px;margin-bottom:2px;border-radius:3px;background:var(--coral-bg);color:var(--coral);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer}
+.cal-more{font-size:9px;color:var(--text3);text-align:center;margin-top:2px}
+
+.cal-nav{display:flex;align-items:center;justify-content:center;gap:12px;margin-bottom:10px}
+.cal-month{font-size:13px;font-weight:600;min-width:140px;text-align:center}
+.cal-btn{width:26px;height:26px;border-radius:4px;border:0.5px solid var(--border2);background:var(--card);cursor:pointer;font-size:12px;color:var(--text2);display:flex;align-items:center;justify-content:center}
+
+/* METRICS TAB */
+.metric-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px}
+.metric-card{background:var(--card);border:0.5px solid var(--border);border-radius:var(--radius);padding:14px}
+.metric-plat{font-size:11px;font-weight:600;margin-bottom:5px;display:flex;align-items:center;gap:6px}
+.metric-dot{width:8px;height:8px;border-radius:50%}
+.metric-val{font-size:20px;font-weight:700;margin:4px 0 2px}
+.metric-detail{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px;font-size:10px}
+.metric-detail-label{color:var(--text3)}
+.metric-detail-val{font-weight:600;color:var(--text)}
+
+.card{background:var(--card);border:0.5px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:10px}
+.card-header{padding:10px 14px;border-bottom:0.5px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.card-title{font-size:12px;font-weight:500}
+
+table{width:100%;border-collapse:collapse;font-size:11px}
+th{padding:8px 12px;text-align:left;font-size:10px;font-weight:600;color:var(--text3);background:var(--bg);text-transform:uppercase;letter-spacing:.04em;border-bottom:0.5px solid var(--border)}
+td{padding:9px 12px;border-bottom:0.5px solid var(--border);vertical-align:middle}
+tr:last-child td{border-bottom:none}
+.td-right{text-align:right}
+
+/* MODAL */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:100;align-items:flex-start;justify-content:center;padding:28px 14px;overflow-y:auto}
+.modal-overlay.open{display:flex}
+.modal{background:var(--card);border-radius:var(--radius);width:100%;max-width:560px}
+.modal-lg{max-width:640px}
+.modal-header{padding:13px 18px;border-bottom:0.5px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.modal-title{font-size:13px;font-weight:600}
+.modal-close{width:24px;height:24px;border-radius:4px;border:0.5px solid var(--border);background:none;cursor:pointer;font-size:14px;color:var(--text2)}
+.modal-body{padding:16px 18px}
+.modal-footer{padding:10px 18px;border-top:0.5px solid var(--border);display:flex;gap:7px;justify-content:flex-end;flex-wrap:wrap}
+.form-group{margin-bottom:12px}
+.form-label{font-size:11px;font-weight:500;color:var(--text2);margin-bottom:4px;display:block}
+.req{color:var(--red);margin-left:2px}
+.form-input{width:100%;padding:7px 9px;border:0.5px solid var(--border2);border-radius:var(--radius-sm);font-size:12px;background:var(--card);outline:none;font-family:inherit}
+.form-input:focus{border-color:var(--coral-mid)}
+textarea.form-input{resize:vertical;min-height:50px;line-height:1.5}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.form-row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.form-hint{font-size:10px;color:var(--text3);margin-top:2px}
+
+.status-picker{display:flex;gap:5px;flex-wrap:wrap;margin-top:4px}
+.sp-btn{padding:4px 10px;border-radius:20px;font-size:11px;font-weight:500;border:0.5px solid var(--border2);background:var(--card);color:var(--text2);cursor:pointer}
+.sp-btn.active{background:var(--coral-mid);color:#fff;border-color:var(--coral-mid)}
+
+.detail-row{display:grid;grid-template-columns:90px 1fr;gap:10px;padding:7px 0;border-bottom:0.5px solid var(--border);font-size:11px}
+.detail-row:last-child{border-bottom:none}
+.detail-label{color:var(--text3);font-size:10px}
+.detail-val{color:var(--text);white-space:pre-wrap;line-height:1.5}
+
+.empty{text-align:center;padding:24px;color:var(--text3);font-size:11px}
+.loading{text-align:center;padding:20px;color:var(--text3);font-size:11px}
+.toast{position:fixed;bottom:20px;right:20px;background:var(--text);color:#fff;padding:9px 14px;border-radius:var(--radius-sm);font-size:12px;z-index:200;opacity:0;transition:opacity .2s;pointer-events:none}
+.toast.show{opacity:1}
+
+@media(max-width:1024px){
+  .board{grid-template-columns:repeat(3,1fr)}
+  .metric-grid{grid-template-columns:1fr 1fr}
+}
+@media(max-width:768px){
+  .sidebar{display:none}.main{margin-left:0;padding:12px}
+  .stats{grid-template-columns:1fr 1fr}.board{grid-template-columns:1fr}
+  .form-row,.form-row3{grid-template-columns:1fr}
+  .metric-grid{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+<div class="app">
+<div class="sidebar">
+  <div class="logo"><div class="logo-name">Moona</div><div class="logo-sub">Architect System</div><div class="logo-ver">v2</div></div>
+  <div class="nav-section">Utama</div>
+  <div class="nav-item" onclick="go('moona-v2-dashboard.html')"><span class="nav-dot" style="background:#888780"></span>Dashboard</div>
+  <div class="nav-section">Sales</div>
+  <div class="nav-item" onclick="go('moona-v2-crm.html')"><span class="nav-dot" style="background:var(--coral-mid)"></span>CRM &amp; Sales</div>
+  <div class="nav-item" onclick="go('moona-v2-client-portal.html')"><span class="nav-dot" style="background:var(--blue)"></span>Client Portal</div>
+  <div class="nav-section">Operasional</div>
+  <div class="nav-item" onclick="go('moona-v2-projects.html')"><span class="nav-dot" style="background:var(--teal)"></span>Project Management</div>
+  <div class="nav-item" onclick="go('moona-v2-laporan-design-v4.html')"><span class="nav-dot" style="background:var(--purple)"></span>Laporan Design</div>
+  <div class="nav-item" onclick="go('moona-v2-laporan-build-v4.html')"><span class="nav-dot" style="background:var(--teal)"></span>Laporan Build</div>
+  <div class="nav-section">Lainnya</div>
+  <div class="nav-item" onclick="go('moona-v2-meetings.html')"><span class="nav-dot" style="background:var(--purple)"></span>Meeting Tracker</div>
+  <div class="nav-item" onclick="go('moona-v2-finance.html')"><span class="nav-dot" style="background:var(--amber)"></span>Finance</div>
+  <div class="nav-item active"><span class="nav-dot" style="background:var(--coral-mid)"></span>Content Planner</div>
+  <div class="nav-item" onclick="go('moona-v2-sop.html')"><span class="nav-dot" style="background:#888780"></span>SOP &amp; Dokumen</div>
+  <div class="sidebar-footer">
+    <div class="sf-label">Login sebagai</div>
+    <div class="sf-name" id="sf-name">–</div>
+    <div class="sf-logout" onclick="logout()">Keluar</div>
+  </div>
+</div>
+
+<div class="main">
+  <div class="topbar">
+    <div><div class="page-title">Content Planner</div><div class="page-sub">Jadwal konten &middot; KPI sosmed</div></div>
+    <div style="display:flex;gap:6px">
+      <button class="btn" onclick="openMetricsForm()">+ Input Metrik</button>
+      <button class="btn btn-primary" onclick="openContentForm()">+ Konten Baru</button>
+    </div>
+  </div>
+
+  <div class="stats">
+    <div class="stat"><div class="stat-label">Ide</div><div class="stat-val" id="s-idea" style="color:var(--gray)">–</div></div>
+    <div class="stat"><div class="stat-label">On Progress</div><div class="stat-val" id="s-progress" style="color:var(--blue)">–</div></div>
+    <div class="stat"><div class="stat-label">Review</div><div class="stat-val" id="s-review" style="color:var(--amber)">–</div></div>
+    <div class="stat"><div class="stat-label">Siap posting</div><div class="stat-val" id="s-approved" style="color:var(--teal)">–</div></div>
+    <div class="stat"><div class="stat-label">Posted bulan ini</div><div class="stat-val" id="s-posted" style="color:var(--green)">–</div></div>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" onclick="switchTab('board',this)">Pipeline Board</div>
+    <div class="tab" onclick="switchTab('calendar',this)">Calendar</div>
+    <div class="tab" onclick="switchTab('metrics',this)">KPI Sosmed</div>
+  </div>
+
+  <!-- BOARD TAB -->
+  <div id="tab-board">
+    <div class="filter-bar">
+      <div class="fpill active" onclick="setPlat('',this)">Semua platform</div>
+      <div class="fpill" onclick="setPlat('Instagram',this)">Instagram</div>
+      <div class="fpill" onclick="setPlat('TikTok',this)">TikTok</div>
+      <div class="fpill" onclick="setPlat('Facebook',this)">Facebook</div>
+      <div class="fpill" onclick="setPlat('Threads',this)">Threads</div>
+    </div>
+    <div class="board" id="board"></div>
+  </div>
+
+  <!-- CALENDAR TAB -->
+  <div id="tab-calendar" style="display:none">
+    <div class="cal-nav">
+      <button class="cal-btn" onclick="changeMonth(-1)">‹</button>
+      <div class="cal-month" id="cal-month-label"></div>
+      <button class="cal-btn" onclick="changeMonth(1)">›</button>
+      <button class="btn btn-sm" onclick="goToToday()" style="margin-left:6px">Hari ini</button>
+    </div>
+    <div id="calendar-grid"></div>
+  </div>
+
+  <!-- METRICS TAB -->
+  <div id="tab-metrics" style="display:none">
+    <div class="filter-bar">
+      <span style="font-size:11px;color:var(--text3);margin-right:6px">Periode:</span>
+      <div class="fpill active" onclick="setMetricPeriod('30',this)">30 hari</div>
+      <div class="fpill" onclick="setMetricPeriod('90',this)">90 hari</div>
+      <div class="fpill" onclick="setMetricPeriod('all',this)">Semua</div>
+    </div>
+    <div class="metric-grid" id="metric-grid"></div>
+    <div class="card">
+      <div class="card-header"><span class="card-title">Riwayat input metrik</span></div>
+      <div style="overflow-x:auto">
+        <table>
+          <thead><tr><th>Tanggal</th><th>Platform</th><th class="td-right">Followers</th><th class="td-right">Reach</th><th class="td-right">Impression</th><th class="td-right">Engagement</th><th>Catatan</th></tr></thead>
+          <tbody id="metric-history"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- MODAL KONTEN -->
+<div class="modal-overlay" id="modal-content">
+  <div class="modal modal-lg">
+    <div class="modal-header"><span class="modal-title" id="ct-modal-title">Konten Baru</span><button class="modal-close" onclick="closeModal('modal-content')">✕</button></div>
+    <div class="modal-body">
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Judul / topik <span class="req">*</span></label>
+          <input id="cf-judul" class="form-input" placeholder="Contoh: Tour Villa Pak Andi"></div>
+        <div class="form-group"><label class="form-label">Tanggal rencana posting <span class="req">*</span></label>
+          <input id="cf-tanggal" class="form-input" type="date"></div>
+      </div>
+      <div class="form-row3">
+        <div class="form-group"><label class="form-label">Platform <span class="req">*</span></label>
+          <select id="cf-platform" class="form-input">
+            <option value="">Pilih</option>
+            <option>Instagram</option><option>TikTok</option><option>Facebook</option><option>Threads</option>
+          </select></div>
+        <div class="form-group"><label class="form-label">Jenis konten</label>
+          <select id="cf-jenis" class="form-input">
+            <option value="">Pilih</option>
+            <option>Feeds</option><option>Reels</option><option>Story</option>
+            <option>Carousel</option><option>Video</option><option>Live</option>
+          </select></div>
+        <div class="form-group"><label class="form-label">Tipe konten</label>
+          <select id="cf-tipe" class="form-input">
+            <option value="">Pilih</option>
+            <option>Portfolio</option><option>Edukasi</option><option>Behind the Scene</option>
+            <option>Testimoni</option><option>Promosi</option><option>Tips &amp; Trik</option>
+            <option>Trending</option><option>Engagement</option>
+          </select></div>
+      </div>
+      <div class="form-group"><label class="form-label">Brief / konsep</label>
+        <textarea id="cf-brief" class="form-input" placeholder="Konsep singkat apa yang mau dikomunikasikan"></textarea></div>
+      <div class="form-group"><label class="form-label">Copywriting / script</label>
+        <textarea id="cf-copy" class="form-input" placeholder="Script untuk voice-over, atau teks di video"></textarea></div>
+      <div class="form-group"><label class="form-label">Caption</label>
+        <textarea id="cf-caption" class="form-input" placeholder="Caption yang akan dipost"></textarea></div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Link referensi</label>
+          <input id="cf-ref" class="form-input" placeholder="Link inspirasi konten"></div>
+        <div class="form-group"><label class="form-label">Link file / aset</label>
+          <input id="cf-file" class="form-input" placeholder="Link Drive/Figma aset"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">PIC</label>
+          <select id="cf-pic" class="form-input"><option value="">Pilih PIC</option></select></div>
+        <div class="form-group"><label class="form-label">Link post (setelah posted)</label>
+          <input id="cf-linkpost" class="form-input" placeholder="Link post live (isi setelah post)"></div>
+      </div>
+      <div class="form-group"><label class="form-label">Status <span class="req">*</span></label>
+        <div class="status-picker" id="cf-status-picker">
+          <div class="sp-btn active" onclick="setStatus('Idea',this)">Idea</div>
+          <div class="sp-btn" onclick="setStatus('On Progress',this)">On Progress</div>
+          <div class="sp-btn" onclick="setStatus('Review',this)">Review</div>
+          <div class="sp-btn" onclick="setStatus('Approved',this)">Approved</div>
+          <div class="sp-btn" onclick="setStatus('Posted',this)">Posted</div>
+        </div>
+      </div>
+      <div class="form-group"><label class="form-label">Catatan tambahan</label>
+        <textarea id="cf-catatan" class="form-input" style="min-height:40px"></textarea></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" id="del-content-btn" onclick="deleteContent()" style="margin-right:auto;display:none">Hapus</button>
+      <button class="btn" onclick="closeModal('modal-content')">Batal</button>
+      <button class="btn btn-primary" id="save-content-btn" onclick="saveContent()">Simpan</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL DETAIL -->
+<div class="modal-overlay" id="modal-detail">
+  <div class="modal modal-lg">
+    <div class="modal-header"><span class="modal-title" id="det-title">–</span><button class="modal-close" onclick="closeModal('modal-detail')">✕</button></div>
+    <div class="modal-body" id="det-body"></div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('modal-detail')">Tutup</button>
+      <button class="btn btn-primary" onclick="editCurrentContent()">Edit</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL METRICS -->
+<div class="modal-overlay" id="modal-metrics">
+  <div class="modal">
+    <div class="modal-header"><span class="modal-title">Input Metrik Sosmed</span><button class="modal-close" onclick="closeModal('modal-metrics')">✕</button></div>
+    <div class="modal-body">
+      <div class="form-hint" style="background:var(--bg);padding:8px 10px;border-radius:var(--radius-sm);margin-bottom:12px;font-size:11px;color:var(--text2);line-height:1.5">
+        <strong>Input manual</strong> karena API Instagram/TikTok banyak batasan. Rekomendasi: input seminggu sekali dari insights asli.
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Tanggal <span class="req">*</span></label>
+          <input id="mf-tanggal" class="form-input" type="date"></div>
+        <div class="form-group"><label class="form-label">Platform <span class="req">*</span></label>
+          <select id="mf-platform" class="form-input">
+            <option value="">Pilih</option>
+            <option>Instagram</option><option>TikTok</option><option>Facebook</option><option>Threads</option>
+          </select></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Followers</label>
+          <input id="mf-followers" class="form-input" type="number" placeholder="Jumlah followers"></div>
+        <div class="form-group"><label class="form-label">Reach</label>
+          <input id="mf-reach" class="form-input" type="number" placeholder="Total reach periode"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Impressions</label>
+          <input id="mf-impressions" class="form-input" type="number" placeholder="Total impressions"></div>
+        <div class="form-group"><label class="form-label">Engagement</label>
+          <input id="mf-engagement" class="form-input" type="number" placeholder="Total likes+comment+share"></div>
+      </div>
+      <div class="form-group"><label class="form-label">Catatan</label>
+        <textarea id="mf-catatan" class="form-input" placeholder="Opsional, misal periode, highlight, dll"></textarea></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('modal-metrics')">Batal</button>
+      <button class="btn btn-primary" id="save-metric-btn" onclick="saveMetric()">Simpan Metrik</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+<script>
+var API = 'https://script.google.com/macros/s/AKfycbwkjBr_opT5V05KY6fQG3Aa2i7URgxpzX7a1ga3mBFKS3CeMbCvyLzdkNpHIhgg4Xxncw/exec';
+var contents = [], metrics = [], users = [];
+var filterPlat = '', editingId = null, currentStatus = 'Idea', metricPeriod = '30';
+var calYear = new Date().getFullYear(), calMonth = new Date().getMonth();
+
+function getSession() { try { return JSON.parse(localStorage.getItem('moona_v2_session')); } catch(e) { return null; } }
+function logout() { localStorage.removeItem('moona_v2_session'); location.href = 'moona-v2-login.html'; }
+function go(u) { location.href = u; }
+var S = getSession();
+if (!S) { location.href = 'moona-v2-login.html'; }
+else { document.getElementById('sf-name').textContent = S.nama + ' - ' + S.role; }
+
+function p(o) {
+  for (var i = 1; i < arguments.length; i++) {
+    var k = arguments[i];
+    if (o[k] !== undefined && o[k] !== null && String(o[k]).trim() !== '') return String(o[k]);
+  }
+  return '';
+}
+function showToast(m) { var t = document.getElementById('toast'); t.textContent = m; t.classList.add('show'); setTimeout(function(){t.classList.remove('show');}, 2800); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+function fmtDate(s) { if (!s) return '-'; try { return new Date(s).toLocaleDateString('id-ID',{day:'numeric',month:'short',year:'numeric'}); } catch(e) { return s; } }
+function fmtShort(s) { if (!s) return '-'; try { return new Date(s).toLocaleDateString('id-ID',{day:'numeric',month:'short'}); } catch(e) { return s; } }
+function fmtNum(n) { if (!n || isNaN(n)) return '0'; return parseFloat(n).toLocaleString('id-ID'); }
+function slug(s) { return (s || '').toLowerCase().replace(/[^a-z0-9]/g,''); }
+function toDate(s) { try { return new Date(s); } catch(e) { return null; } }
+
+function switchTab(t, el) {
+  var tabs = document.querySelectorAll('.tab');
+  for (var i = 0; i < tabs.length; i++) tabs[i].classList.remove('active');
+  el.classList.add('active');
+  ['board','calendar','metrics'].forEach(function(id){
+    document.getElementById('tab-' + id).style.display = (id === t) ? 'block' : 'none';
+  });
+  if (t === 'calendar') renderCalendar();
+  if (t === 'metrics') renderMetrics();
+}
+
+function setPlat(v, el) { filterPlat = v; var pills = el.parentNode.querySelectorAll('.fpill'); for (var i = 0; i < pills.length; i++) pills[i].classList.remove('active'); el.classList.add('active'); renderBoard(); }
+function setMetricPeriod(v, el) { metricPeriod = v; var pills = el.parentNode.querySelectorAll('.fpill'); for (var i = 0; i < pills.length; i++) pills[i].classList.remove('active'); el.classList.add('active'); renderMetrics(); }
+
+window.onload = function() {
+  document.getElementById('cf-tanggal').value = new Date().toISOString().split('T')[0];
+  document.getElementById('mf-tanggal').value = new Date().toISOString().split('T')[0];
+  Promise.all([loadContents(), loadMetrics(), loadUsers()]);
+};
+
+function loadContents() {
+  return fetch(API + '?action=getContentPlan').then(function(r){return r.json();}).then(function(d){
+    if (d.status === 'ok') { contents = d.data; renderBoard(); updateStats(); }
+  });
+}
+function loadMetrics() {
+  return fetch(API + '?action=getSosmedMetrics').then(function(r){return r.json();}).then(function(d){
+    if (d.status === 'ok') metrics = d.data;
+  });
+}
+function loadUsers() {
+  return fetch(API + '?action=getUsers').then(function(r){return r.json();}).then(function(d){
+    if (d.status === 'ok') {
+      users = d.data;
+      var html = '<option value="">Pilih PIC</option>';
+      for (var i = 0; i < d.data.length; i++) html += '<option value="' + d.data[i].nama + '">' + d.data[i].nama + '</option>';
+      document.getElementById('cf-pic').innerHTML = html;
+    }
+  });
+}
+
+function updateStats() {
+  var thisMonth = new Date().getMonth(), thisYear = new Date().getFullYear();
+  var counts = { Idea: 0, 'On Progress': 0, Review: 0, Approved: 0, Posted: 0 };
+  var postedMonth = 0;
+  for (var i = 0; i < contents.length; i++) {
+    var st = p(contents[i],'StatusKonten') || 'Idea';
+    if (counts[st] !== undefined) counts[st]++;
+    if (st === 'Posted') {
+      try {
+        var d = new Date(p(contents[i],'Tanggal'));
+        if (d.getMonth() === thisMonth && d.getFullYear() === thisYear) postedMonth++;
+      } catch(e){}
+    }
+  }
+  document.getElementById('s-idea').textContent = counts['Idea'];
+  document.getElementById('s-progress').textContent = counts['On Progress'];
+  document.getElementById('s-review').textContent = counts['Review'];
+  document.getElementById('s-approved').textContent = counts['Approved'];
+  document.getElementById('s-posted').textContent = postedMonth;
+}
+
+function renderBoard() {
+  var stages = ['Idea','On Progress','Review','Approved','Posted'];
+  var classes = ['c-idea','c-onprogress','c-review','c-approved','c-posted'];
+  var grouped = { 'Idea':[], 'On Progress':[], 'Review':[], 'Approved':[], 'Posted':[] };
+  for (var i = 0; i < contents.length; i++) {
+    if (filterPlat && p(contents[i],'Platform') !== filterPlat) continue;
+    var st = p(contents[i],'StatusKonten') || 'Idea';
+    if (grouped[st]) grouped[st].push(contents[i]);
+  }
+  // Sort each group by date
+  for (var s in grouped) {
+    grouped[s].sort(function(a,b){
+      var da = toDate(p(a,'Tanggal')) || new Date(0);
+      var db = toDate(p(b,'Tanggal')) || new Date(0);
+      return da - db;
+    });
+  }
+  var html = '';
+  for (var j = 0; j < stages.length; j++) {
+    var stage = stages[j];
+    html += '<div class="col"><div class="col-head">';
+    html += '<span class="col-title ' + classes[j] + '">' + stage + '</span>';
+    html += '<span class="col-count">' + grouped[stage].length + '</span>';
+    html += '</div><div class="col-body">';
+    if (!grouped[stage].length) {
+      html += '<div style="text-align:center;padding:16px 8px;color:var(--text3);font-size:10px">Kosong</div>';
+    } else {
+      for (var k = 0; k < grouped[stage].length; k++) {
+        var c = grouped[stage][k];
+        var plat = p(c,'Platform') || '';
+        html += '<div class="cn-card" onclick="openDetail(\'' + p(c,'ID') + '\')">';
+        html += '<div class="cn-title">' + (p(c,'Judul') || '-') + '</div>';
+        html += '<div class="cn-meta">';
+        if (plat) html += '<span class="cn-pill p-' + slug(plat) + '">' + plat + '</span>';
+        if (p(c,'JenisKonten')) html += '<span>' + p(c,'JenisKonten') + '</span>';
+        html += '<span>' + fmtShort(p(c,'Tanggal')) + '</span>';
+        html += '</div></div>';
+      }
+    }
+    html += '</div></div>';
+  }
+  document.getElementById('board').innerHTML = html;
+}
+
+// CALENDAR
+var MONTHS_ID = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+var DAYS_ID = ['Min','Sen','Sel','Rab','Kam','Jum','Sab'];
+
+function changeMonth(delta) {
+  calMonth += delta;
+  if (calMonth > 11) { calMonth = 0; calYear++; }
+  if (calMonth < 0) { calMonth = 11; calYear--; }
+  renderCalendar();
+}
+function goToToday() { calYear = new Date().getFullYear(); calMonth = new Date().getMonth(); renderCalendar(); }
+
+function renderCalendar() {
+  document.getElementById('cal-month-label').textContent = MONTHS_ID[calMonth] + ' ' + calYear;
+  var first = new Date(calYear, calMonth, 1);
+  var last = new Date(calYear, calMonth + 1, 0);
+  var startWeekday = first.getDay();
+  var daysInMonth = last.getDate();
+  var prevLast = new Date(calYear, calMonth, 0).getDate();
+  var today = new Date();
+  today.setHours(0,0,0,0);
+
+  // Group contents by date key 'YYYY-MM-DD'
+  var byDate = {};
+  for (var i = 0; i < contents.length; i++) {
+    var d = toDate(p(contents[i],'Tanggal'));
+    if (!d) continue;
+    var key = d.getFullYear() + '-' + (d.getMonth()+1) + '-' + d.getDate();
+    if (!byDate[key]) byDate[key] = [];
+    byDate[key].push(contents[i]);
+  }
+
+  var html = '<div class="cal-grid">';
+  for (var di = 0; di < 7; di++) html += '<div class="cal-dayhead">' + DAYS_ID[di] + '</div>';
+  // Prev month faded
+  for (var p1 = startWeekday - 1; p1 >= 0; p1--) {
+    html += '<div class="cal-day faded"><div class="cal-day-num">' + (prevLast - p1) + '</div></div>';
+  }
+  // Current month
+  for (var d = 1; d <= daysInMonth; d++) {
+    var dateObj = new Date(calYear, calMonth, d);
+    var isToday = dateObj.getTime() === today.getTime();
+    var key = calYear + '-' + (calMonth+1) + '-' + d;
+    var events = byDate[key] || [];
+    html += '<div class="cal-day' + (isToday ? ' today' : '') + '">';
+    html += '<div class="cal-day-num">' + d + '</div>';
+    for (var ev = 0; ev < Math.min(events.length, 3); ev++) {
+      var plat = p(events[ev],'Platform') || '';
+      html += '<span class="cal-event p-' + slug(plat) + '" onclick="openDetail(\'' + p(events[ev],'ID') + '\')" title="' + p(events[ev],'Judul') + '">' + (p(events[ev],'Judul').substring(0, 22)) + '</span>';
+    }
+    if (events.length > 3) html += '<div class="cal-more">+' + (events.length - 3) + ' lainnya</div>';
+    html += '</div>';
+  }
+  // Next month faded fill
+  var totalCells = startWeekday + daysInMonth;
+  var remaining = (7 - totalCells % 7) % 7;
+  for (var n = 1; n <= remaining; n++) {
+    html += '<div class="cal-day faded"><div class="cal-day-num">' + n + '</div></div>';
+  }
+  html += '</div>';
+  document.getElementById('calendar-grid').innerHTML = html;
+}
+
+// METRICS TAB
+function renderMetrics() {
+  var platforms = ['Instagram','TikTok','Facebook','Threads'];
+  var colors = ['#E4405F','#333','#1877F2','#000'];
+  var now = new Date();
+  var cutoff = null;
+  if (metricPeriod === '30') { cutoff = new Date(now); cutoff.setDate(cutoff.getDate() - 30); }
+  else if (metricPeriod === '90') { cutoff = new Date(now); cutoff.setDate(cutoff.getDate() - 90); }
+
+  // Filter metrics in period
+  var inPeriod = [];
+  for (var i = 0; i < metrics.length; i++) {
+    var d = toDate(p(metrics[i],'Tanggal'));
+    if (!d) continue;
+    if (!cutoff || d >= cutoff) inPeriod.push(metrics[i]);
+  }
+
+  // Latest per platform (newest in period) + totals
+  var gridHtml = '';
+  for (var pi = 0; pi < platforms.length; pi++) {
+    var plat = platforms[pi];
+    var platRows = [];
+    for (var r = 0; r < inPeriod.length; r++) { if (p(inPeriod[r],'Platform') === plat) platRows.push(inPeriod[r]); }
+    platRows.sort(function(a,b){ return toDate(p(b,'Tanggal')) - toDate(p(a,'Tanggal')); });
+    var latest = platRows[0];
+    var totalReach = 0, totalImp = 0, totalEng = 0;
+    for (var rr = 0; rr < platRows.length; rr++) {
+      totalReach += parseFloat(p(platRows[rr],'Reach') || 0);
+      totalImp += parseFloat(p(platRows[rr],'Impressions') || 0);
+      totalEng += parseFloat(p(platRows[rr],'Engagement') || 0);
+    }
+    gridHtml += '<div class="metric-card">';
+    gridHtml += '<div class="metric-plat"><span class="metric-dot" style="background:' + colors[pi] + '"></span>' + plat + '</div>';
+    gridHtml += '<div style="font-size:10px;color:var(--text3)">Followers terbaru</div>';
+    gridHtml += '<div class="metric-val">' + (latest ? fmtNum(p(latest,'Followers')) : '–') + '</div>';
+    gridHtml += '<div class="metric-detail">';
+    gridHtml += '<div><div class="metric-detail-label">Reach</div><div class="metric-detail-val">' + fmtNum(totalReach) + '</div></div>';
+    gridHtml += '<div><div class="metric-detail-label">Impressions</div><div class="metric-detail-val">' + fmtNum(totalImp) + '</div></div>';
+    gridHtml += '<div><div class="metric-detail-label">Engagement</div><div class="metric-detail-val">' + fmtNum(totalEng) + '</div></div>';
+    gridHtml += '<div><div class="metric-detail-label">Input count</div><div class="metric-detail-val">' + platRows.length + '</div></div>';
+    gridHtml += '</div></div>';
+  }
+  document.getElementById('metric-grid').innerHTML = gridHtml;
+
+  // History table
+  var histHtml = '';
+  if (!inPeriod.length) {
+    histHtml = '<tr><td colspan="7" class="empty">Belum ada input metrik.</td></tr>';
+  } else {
+    var sorted = inPeriod.slice().sort(function(a,b){ return toDate(p(b,'Tanggal')) - toDate(p(a,'Tanggal')); });
+    for (var h = 0; h < sorted.length; h++) {
+      var m = sorted[h];
+      var plat = p(m,'Platform');
+      histHtml += '<tr>';
+      histHtml += '<td>' + fmtDate(p(m,'Tanggal')) + '</td>';
+      histHtml += '<td><span class="cn-pill p-' + slug(plat) + '">' + plat + '</span></td>';
+      histHtml += '<td class="td-right">' + fmtNum(p(m,'Followers')) + '</td>';
+      histHtml += '<td class="td-right">' + fmtNum(p(m,'Reach')) + '</td>';
+      histHtml += '<td class="td-right">' + fmtNum(p(m,'Impressions')) + '</td>';
+      histHtml += '<td class="td-right">' + fmtNum(p(m,'Engagement')) + '</td>';
+      histHtml += '<td style="color:var(--text3);font-size:10px">' + (p(m,'Catatan') || '-') + '</td>';
+      histHtml += '</tr>';
+    }
+  }
+  document.getElementById('metric-history').innerHTML = histHtml;
+}
+
+// DETAIL
+function openDetail(id) {
+  var c = null;
+  for (var i = 0; i < contents.length; i++) { if (p(contents[i],'ID') === id) { c = contents[i]; break; } }
+  if (!c) return;
+  editingId = id;
+  document.getElementById('det-title').textContent = p(c,'Judul') || '-';
+  var html = '';
+  var rows = [
+    ['Platform', p(c,'Platform') ? '<span class="cn-pill p-' + slug(p(c,'Platform')) + '">' + p(c,'Platform') + '</span>' : '-'],
+    ['Status', '<strong>' + (p(c,'StatusKonten') || 'Idea') + '</strong>'],
+    ['Tanggal', fmtDate(p(c,'Tanggal'))],
+    ['Jenis', p(c,'JenisKonten') || '-'],
+    ['Tipe', p(c,'TipeKonten') || '-'],
+    ['PIC', p(c,'PIC') || '-'],
+  ];
+  for (var r = 0; r < rows.length; r++) {
+    html += '<div class="detail-row"><div class="detail-label">' + rows[r][0] + '</div><div class="detail-val">' + rows[r][1] + '</div></div>';
+  }
+  if (p(c,'Brief')) html += '<div class="detail-row"><div class="detail-label">Brief</div><div class="detail-val">' + p(c,'Brief') + '</div></div>';
+  if (p(c,'Copywriting')) html += '<div class="detail-row"><div class="detail-label">Script</div><div class="detail-val">' + p(c,'Copywriting') + '</div></div>';
+  if (p(c,'Caption')) html += '<div class="detail-row"><div class="detail-label">Caption</div><div class="detail-val">' + p(c,'Caption') + '</div></div>';
+  if (p(c,'Referensi')) html += '<div class="detail-row"><div class="detail-label">Referensi</div><div class="detail-val"><a href="' + p(c,'Referensi') + '" target="_blank" style="color:var(--blue)">' + p(c,'Referensi') + '</a></div></div>';
+  if (p(c,'LinkFile')) html += '<div class="detail-row"><div class="detail-label">File aset</div><div class="detail-val"><a href="' + p(c,'LinkFile') + '" target="_blank" style="color:var(--blue)">' + p(c,'LinkFile') + '</a></div></div>';
+  if (p(c,'LinkPost')) html += '<div class="detail-row"><div class="detail-label">Link post</div><div class="detail-val"><a href="' + p(c,'LinkPost') + '" target="_blank" style="color:var(--blue)">' + p(c,'LinkPost') + '</a></div></div>';
+  if (p(c,'Catatan')) html += '<div class="detail-row"><div class="detail-label">Catatan</div><div class="detail-val">' + p(c,'Catatan') + '</div></div>';
+  document.getElementById('det-body').innerHTML = html;
+  document.getElementById('modal-detail').classList.add('open');
+}
+
+function editCurrentContent() {
+  closeModal('modal-detail');
+  openContentForm(editingId);
+}
+
+// FORM
+function setStatus(status, el) {
+  currentStatus = status;
+  var btns = el.parentNode.querySelectorAll('.sp-btn');
+  for (var i = 0; i < btns.length; i++) btns[i].classList.remove('active');
+  el.classList.add('active');
+}
+
+function openContentForm(id) {
+  editingId = id || null;
+  var ids = ['cf-judul','cf-platform','cf-jenis','cf-tipe','cf-brief','cf-copy','cf-caption','cf-ref','cf-file','cf-linkpost','cf-pic','cf-catatan'];
+  for (var i = 0; i < ids.length; i++) document.getElementById(ids[i]).value = '';
+  document.getElementById('cf-tanggal').value = new Date().toISOString().split('T')[0];
+  currentStatus = 'Idea';
+  var spBtns = document.querySelectorAll('.sp-btn');
+  for (var s = 0; s < spBtns.length; s++) spBtns[s].classList.remove('active');
+  spBtns[0].classList.add('active');
+  document.getElementById('del-content-btn').style.display = 'none';
+  document.getElementById('ct-modal-title').textContent = 'Konten Baru';
+
+  if (id) {
+    var c = null;
+    for (var j = 0; j < contents.length; j++) { if (p(contents[j],'ID') === id) { c = contents[j]; break; } }
+    if (c) {
+      document.getElementById('ct-modal-title').textContent = 'Edit Konten';
+      document.getElementById('cf-judul').value = p(c,'Judul');
+      document.getElementById('cf-platform').value = p(c,'Platform');
+      document.getElementById('cf-jenis').value = p(c,'JenisKonten');
+      document.getElementById('cf-tipe').value = p(c,'TipeKonten');
+      document.getElementById('cf-brief').value = p(c,'Brief');
+      document.getElementById('cf-copy').value = p(c,'Copywriting');
+      document.getElementById('cf-caption').value = p(c,'Caption');
+      document.getElementById('cf-ref').value = p(c,'Referensi');
+      document.getElementById('cf-file').value = p(c,'LinkFile');
+      document.getElementById('cf-linkpost').value = p(c,'LinkPost');
+      document.getElementById('cf-pic').value = p(c,'PIC');
+      document.getElementById('cf-catatan').value = p(c,'Catatan');
+      try { document.getElementById('cf-tanggal').value = new Date(p(c,'Tanggal')).toISOString().split('T')[0]; } catch(e){}
+      currentStatus = p(c,'StatusKonten') || 'Idea';
+      for (var sp = 0; sp < spBtns.length; sp++) spBtns[sp].classList.remove('active');
+      var statusIdx = ['Idea','On Progress','Review','Approved','Posted'].indexOf(currentStatus);
+      if (statusIdx >= 0) spBtns[statusIdx].classList.add('active');
+      document.getElementById('del-content-btn').style.display = 'inline-block';
+    }
+  }
+  document.getElementById('modal-content').classList.add('open');
+}
+
+function saveContent() {
+  var judul = document.getElementById('cf-judul').value.trim();
+  var tanggal = document.getElementById('cf-tanggal').value;
+  var platform = document.getElementById('cf-platform').value;
+  if (!judul || !tanggal || !platform) { showToast('Lengkapi field wajib'); return; }
+  var btn = document.getElementById('save-content-btn');
+  btn.textContent = 'Menyimpan...'; btn.disabled = true;
+  var payload = {
+    action: editingId ? 'updateContentStatus' : 'addContentPlan',
+    judul: judul, tanggal: tanggal, platform: platform,
+    jenisKonten: document.getElementById('cf-jenis').value,
+    tipeKonten: document.getElementById('cf-tipe').value,
+    brief: document.getElementById('cf-brief').value.trim(),
+    copywriting: document.getElementById('cf-copy').value.trim(),
+    caption: document.getElementById('cf-caption').value.trim(),
+    referensi: document.getElementById('cf-ref').value.trim(),
+    linkFile: document.getElementById('cf-file').value.trim(),
+    linkPost: document.getElementById('cf-linkpost').value.trim(),
+    pic: document.getElementById('cf-pic').value,
+    catatan: document.getElementById('cf-catatan').value.trim(),
+    status: currentStatus
+  };
+  if (editingId) payload.id = editingId;
+  fetch(API, { method: 'POST', body: JSON.stringify(payload) })
+    .then(function(r){return r.json();})
+    .then(function(d){
+      if (d.status === 'ok') {
+        closeModal('modal-content');
+        showToast(editingId ? 'Konten diperbarui!' : 'Konten disimpan!');
+        loadContents();
+      } else { showToast('Gagal: ' + d.message); }
+    })
+    .catch(function(e){ showToast('Error: ' + e.message); })
+    .then(function(){ btn.textContent = 'Simpan'; btn.disabled = false; });
+}
+
+function deleteContent() {
+  if (!editingId) return;
+  if (!confirm('Hapus konten ini?')) return;
+  fetch(API, { method: 'POST', body: JSON.stringify({ action: 'deleteContent', id: editingId }) })
+    .then(function(r){return r.json();})
+    .then(function(d){
+      if (d.status === 'ok') { closeModal('modal-content'); showToast('Konten dihapus'); loadContents(); }
+      else showToast('Gagal: ' + (d.message || 'unknown'));
+    });
+}
+
+// METRIC
+function openMetricsForm() {
+  ['mf-platform','mf-followers','mf-reach','mf-impressions','mf-engagement','mf-catatan'].forEach(function(id){ document.getElementById(id).value = ''; });
+  document.getElementById('mf-tanggal').value = new Date().toISOString().split('T')[0];
+  document.getElementById('modal-metrics').classList.add('open');
+}
+function saveMetric() {
+  var tanggal = document.getElementById('mf-tanggal').value;
+  var platform = document.getElementById('mf-platform').value;
+  if (!tanggal || !platform) { showToast('Tanggal & platform wajib'); return; }
+  var btn = document.getElementById('save-metric-btn');
+  btn.textContent = 'Menyimpan...'; btn.disabled = true;
+  fetch(API, { method: 'POST', body: JSON.stringify({
+    action: 'addSosmedMetrics', tanggal: tanggal, platform: platform,
+    followers: document.getElementById('mf-followers').value || '0',
+    reach: document.getElementById('mf-reach').value || '0',
+    impressions: document.getElementById('mf-impressions').value || '0',
+    engagement: document.getElementById('mf-engagement').value || '0',
+    catatan: document.getElementById('mf-catatan').value.trim()
+  })})
+  .then(function(r){return r.json();})
+  .then(function(d){
+    if (d.status === 'ok') { closeModal('modal-metrics'); showToast('Metrik tersimpan'); loadMetrics().then(function(){ renderMetrics(); }); }
+    else showToast('Gagal');
+  })
+  .catch(function(){ showToast('Error'); })
+  .then(function(){ btn.textContent = 'Simpan Metrik'; btn.disabled = false; });
+}
+</script>
+</body>
+</html>

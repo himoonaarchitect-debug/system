@@ -1,0 +1,794 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Moona v2 — Project Management</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f8f7f4;--card:#fff;--border:#e5e3dc;--border2:#d0cec7;
+  --text:#1a1a18;--text2:#6b6a64;--text3:#9d9b94;
+  --coral:#993C1D;--coral-mid:#D85A30;--coral-bg:#FAECE7;
+  --purple:#534AB7;--purple-bg:#EEEDFE;
+  --teal:#0F6E56;--teal-bg:#E1F5EE;
+  --amber:#854F0B;--amber-bg:#FAEEDA;
+  --red:#A32D2D;--red-bg:#FCEBEB;
+  --green:#3B6D11;--green-bg:#EAF3DE;
+  --blue:#185FA5;--blue-bg:#E6F1FB;
+  --gray:#5F5E5A;--gray-bg:#F1EFE8;
+  --radius:10px;--radius-sm:6px;
+}
+body{background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:var(--text);font-size:14px;min-height:100vh}
+.app{display:flex;min-height:100vh}
+.sidebar{width:220px;min-width:220px;background:var(--card);border-right:0.5px solid var(--border);display:flex;flex-direction:column;position:fixed;top:0;left:0;height:100vh;z-index:10;overflow-y:auto}
+.logo{padding:18px 16px 14px;border-bottom:0.5px solid var(--border);flex-shrink:0}
+.logo-name{font-size:15px;font-weight:600;color:var(--text)}
+.logo-sub{font-size:10px;color:var(--text3);margin-top:2px}
+.logo-ver{display:inline-block;font-size:9px;font-weight:600;background:var(--coral-bg);color:var(--coral);padding:1px 5px;border-radius:4px;margin-top:3px}
+.nav-section{padding:10px 8px 3px;font-size:9px;font-weight:600;color:var(--text3);letter-spacing:.06em;text-transform:uppercase}
+.nav-item{display:flex;align-items:center;gap:8px;padding:7px 12px;margin:1px 4px;border-radius:var(--radius-sm);cursor:pointer;font-size:12px;color:var(--text2);transition:background .1s}
+.nav-item:hover{background:var(--bg)}
+.nav-item.active{background:var(--teal-bg);color:var(--teal);font-weight:500}
+.nav-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.sidebar-footer{margin-top:auto;padding:12px 16px;border-top:0.5px solid var(--border);flex-shrink:0}
+.sf-label{font-size:10px;color:var(--text3)}
+.sf-name{font-size:11px;font-weight:500;color:var(--text);margin-top:2px}
+.sf-logout{font-size:10px;color:var(--gray);margin-top:4px;cursor:pointer}
+.main{margin-left:220px;flex:1;padding:22px;max-width:1060px}
+.topbar{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:18px;gap:10px;flex-wrap:wrap}
+.page-title{font-size:19px;font-weight:600;color:var(--text)}
+.page-sub{font-size:11px;color:var(--text3);margin-top:2px}
+.btn{padding:7px 14px;border-radius:var(--radius-sm);border:0.5px solid var(--border2);background:var(--card);color:var(--text);font-size:12px;font-weight:500;cursor:pointer;transition:background .1s;white-space:nowrap}
+.btn:hover{background:var(--bg)}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn-primary{background:var(--teal);color:#fff;border-color:var(--teal)}
+.btn-primary:hover{opacity:.9}
+.btn-sm{padding:4px 10px;font-size:11px}
+.btn-coral{background:var(--coral-mid);color:#fff;border-color:var(--coral-mid)}
+.btn-amber{background:var(--amber);color:#fff;border-color:var(--amber)}
+
+/* STATS */
+.stats{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:16px}
+.stat{background:var(--bg);border-radius:var(--radius-sm);padding:10px 12px}
+.stat-label{font-size:10px;color:var(--text3);margin-bottom:3px}
+.stat-val{font-size:18px;font-weight:600;color:var(--text)}
+
+/* FILTER */
+.filter-bar{display:flex;gap:5px;margin-bottom:12px;flex-wrap:wrap}
+.fpill{padding:4px 11px;border-radius:20px;font-size:11px;font-weight:500;cursor:pointer;border:0.5px solid var(--border2);color:var(--text2);background:var(--card)}
+.fpill.active{background:var(--text);color:#fff;border-color:var(--text)}
+.fsep{width:1px;height:18px;background:var(--border2);margin:0 2px;align-self:center}
+
+/* TABS */
+.tabs{display:flex;border-bottom:0.5px solid var(--border);margin-bottom:14px}
+.tab{padding:7px 14px;font-size:12px;color:var(--text2);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-0.5px}
+.tab.active{color:var(--teal);border-bottom-color:var(--teal);font-weight:500}
+
+/* PROJECT GRID */
+.proj-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+.proj-card{background:var(--card);border:0.5px solid var(--border);border-radius:var(--radius);overflow:hidden;cursor:pointer;transition:border-color .15s}
+.proj-card:hover{border-color:var(--border2)}
+.proj-card.selected{border-color:var(--teal);border-width:1.5px}
+.pc-head{padding:11px 14px;border-bottom:0.5px solid var(--border)}
+.pc-name{font-size:13px;font-weight:500;color:var(--text);margin-bottom:4px}
+.pc-meta{display:flex;gap:5px;flex-wrap:wrap}
+.pc-body{padding:11px 14px}
+.pc-tipe{font-size:11px;font-weight:500;color:var(--text2);margin-bottom:6px}
+.prog-wrap{display:flex;align-items:center;gap:8px}
+.prog-bar{flex:1;height:5px;border-radius:3px;background:var(--border)}
+.prog-fill{height:100%;border-radius:3px;transition:width .3s}
+.prog-val{font-size:11px;font-weight:600;min-width:30px;text-align:right}
+.pc-foot{padding:7px 14px;border-top:0.5px solid var(--border);display:flex;align-items:center;justify-content:space-between;font-size:10px;color:var(--text3)}
+
+/* PILLS */
+.pill{display:inline-flex;padding:2px 7px;border-radius:7px;font-size:10px;font-weight:500;white-space:nowrap}
+.p-design{background:var(--purple-bg);color:var(--purple)}
+.p-build{background:var(--amber-bg);color:var(--amber)}
+.p-both{background:var(--teal-bg);color:var(--teal)}
+.p-interior{background:var(--purple-bg);color:var(--purple)}
+.p-eksterior{background:var(--blue-bg);color:var(--blue)}
+.p-residensial{background:var(--teal-bg);color:var(--teal)}
+.p-komersial{background:var(--amber-bg);color:var(--amber)}
+.p-aktif{background:var(--teal-bg);color:var(--teal)}
+.p-hold{background:var(--gray-bg);color:var(--gray)}
+.p-finish{background:var(--green-bg);color:var(--green)}
+.p-cancel{background:var(--red-bg);color:var(--red)}
+
+/* DETAIL */
+.detail-panel{background:var(--card);border:0.5px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:14px}
+.dp-head{padding:13px 16px;border-bottom:0.5px solid var(--border);display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
+.dp-name{font-size:15px;font-weight:600;color:var(--text)}
+.dp-body{padding:0}
+
+/* TABS DALAM DETAIL */
+.dtabs{display:flex;border-bottom:0.5px solid var(--border);padding:0 16px}
+.dtab{padding:8px 12px;font-size:11px;color:var(--text2);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-0.5px}
+.dtab.active{color:var(--teal);border-bottom-color:var(--teal);font-weight:500}
+.dpanel{padding:14px 16px}
+
+/* INFO GRID */
+.info-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:14px}
+.d-label{font-size:9px;font-weight:600;color:var(--text3);letter-spacing:.05em;text-transform:uppercase;margin-bottom:3px}
+.d-val{font-size:12px;color:var(--text)}
+
+/* RAB TABLE */
+.rab-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.rab-table{width:100%;border-collapse:collapse;font-size:11px}
+.rab-table th{padding:7px 10px;text-align:left;font-size:10px;font-weight:600;color:var(--text3);border-bottom:0.5px solid var(--border);background:var(--bg);text-transform:uppercase;letter-spacing:.04em}
+.rab-table td{padding:8px 10px;border-bottom:0.5px solid var(--border);color:var(--text);vertical-align:middle}
+.rab-table tr:last-child td{border-bottom:none}
+.rab-table tr:hover td{background:var(--bg)}
+.rab-group{padding:6px 10px;background:var(--bg);font-size:10px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.04em;border-bottom:0.5px solid var(--border)}
+.rab-total{padding:8px 10px;border-top:1.5px solid var(--border2);font-size:12px;font-weight:600}
+.prog-rab{height:4px;border-radius:2px;background:var(--border);margin-top:3px}
+.prog-rab-fill{height:100%;border-radius:2px;background:var(--teal)}
+.bobot-bar{height:3px;border-radius:2px;background:var(--border);margin-top:2px;min-width:60px}
+.bobot-fill{height:100%;border-radius:2px;background:var(--blue)}
+
+/* LAPORAN LIST */
+.lap-row{display:flex;align-items:flex-start;gap:10px;padding:9px 14px;border-bottom:0.5px solid var(--border);font-size:11px}
+.lap-row:last-child{border-bottom:none}
+.lap-date{min-width:90px;color:var(--text3);flex-shrink:0}
+.lap-body{flex:1}
+.lap-title{font-size:11px;font-weight:500;color:var(--text);margin-bottom:2px}
+.lap-meta{font-size:10px;color:var(--text3)}
+.lap-status{min-width:70px;text-align:right}
+.ap-badge{font-size:9px;font-weight:500;padding:2px 6px;border-radius:5px}
+.ap-pending{background:var(--amber-bg);color:var(--amber)}
+.ap-approved{background:var(--green-bg);color:var(--green)}
+.ap-rejected{background:var(--red-bg);color:var(--red)}
+
+/* CARD */
+.card{background:var(--card);border:0.5px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:10px}
+.card-header{padding:10px 14px;border-bottom:0.5px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:8px}
+.card-title{font-size:12px;font-weight:500;color:var(--text)}
+
+/* FORM */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:100;align-items:flex-start;justify-content:center;padding:28px 14px;overflow-y:auto}
+.modal-overlay.open{display:flex}
+.modal{background:var(--card);border-radius:var(--radius);width:100%;max-width:580px}
+.modal-lg{max-width:680px}
+.modal-header{padding:13px 18px;border-bottom:0.5px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.modal-title{font-size:13px;font-weight:600;color:var(--text)}
+.modal-close{width:24px;height:24px;border-radius:4px;border:0.5px solid var(--border);background:none;cursor:pointer;font-size:14px;color:var(--text2);display:flex;align-items:center;justify-content:center}
+.modal-body{padding:16px 18px}
+.modal-footer{padding:10px 18px;border-top:0.5px solid var(--border);display:flex;gap:7px;justify-content:flex-end}
+.form-group{margin-bottom:12px}
+.form-label{font-size:11px;font-weight:500;color:var(--text2);margin-bottom:4px;display:block}
+.req{color:var(--red);margin-left:2px}
+.form-input{width:100%;padding:7px 9px;border:0.5px solid var(--border2);border-radius:var(--radius-sm);font-size:12px;color:var(--text);background:var(--card);outline:none;transition:border .1s;font-family:inherit}
+.form-input:focus{border-color:var(--teal)}
+select.form-input{cursor:pointer}
+textarea.form-input{resize:vertical;min-height:60px;line-height:1.5}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.form-row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.form-hint{font-size:10px;color:var(--text3);margin-top:2px}
+.section-divider{border:none;border-top:0.5px solid var(--border);margin:12px 0}
+
+/* RAB FORM ROW */
+.rab-form-row{display:grid;grid-template-columns:2fr 1fr 1fr 1fr auto;gap:6px;align-items:end;margin-bottom:6px}
+.rab-form-total{padding:7px 9px;background:var(--bg);border:0.5px solid var(--border);border-radius:var(--radius-sm);font-size:12px;color:var(--text2);font-weight:500}
+.add-row-btn{font-size:11px;color:var(--teal);cursor:pointer;background:none;border:none;font-weight:500;padding:4px 0}
+
+.empty{text-align:center;padding:24px;color:var(--text3);font-size:11px}
+.loading{text-align:center;padding:20px;color:var(--text3);font-size:11px}
+.toast{position:fixed;bottom:20px;right:20px;background:var(--text);color:#fff;padding:9px 14px;border-radius:var(--radius-sm);font-size:12px;z-index:200;opacity:0;transition:opacity .2s;pointer-events:none}
+.toast.show{opacity:1}
+
+@media(max-width:768px){
+  .sidebar{display:none}.main{margin-left:0;padding:12px}
+  .stats{grid-template-columns:1fr 1fr}.proj-grid{grid-template-columns:1fr}
+  .info-grid{grid-template-columns:1fr 1fr}.form-row{grid-template-columns:1fr}
+  .form-row3{grid-template-columns:1fr 1fr}.rab-form-row{grid-template-columns:1fr 1fr}
+}
+</style>
+</head>
+<body>
+<div class="app">
+<div class="sidebar">
+  <div class="logo"><div class="logo-name">Moona</div><div class="logo-sub">Architect System</div><div class="logo-ver">v2</div></div>
+  <div class="nav-section">Utama</div>
+  <div class="nav-item" onclick="go('moona-v2-dashboard.html')"><span class="nav-dot" style="background:#888780"></span>Dashboard</div>
+  <div class="nav-section">Sales</div>
+  <div class="nav-item" onclick="go('moona-v2-crm.html')"><span class="nav-dot" style="background:var(--coral-mid)"></span>CRM &amp; Sales</div>
+  <div class="nav-item" onclick="go('moona-v2-client-portal.html')"><span class="nav-dot" style="background:var(--blue)"></span>Client Portal</div>
+  <div class="nav-section">Operasional</div>
+  <div class="nav-item active"><span class="nav-dot" style="background:var(--teal)"></span>Project Management</div>
+  <div class="nav-item" onclick="go('moona-v2-laporan-design-v4.html')"><span class="nav-dot" style="background:var(--purple)"></span>Laporan Design</div>
+  <div class="nav-item" onclick="go('moona-v2-laporan-build-v4.html')"><span class="nav-dot" style="background:var(--teal)"></span>Laporan Build</div>
+  <div class="nav-section">Lainnya</div>
+  <div class="nav-item" onclick="go('moona-v2-meetings.html')"><span class="nav-dot" style="background:var(--purple)"></span>Meeting Tracker</div>
+  <div class="nav-item" onclick="go('moona-v2-finance.html')"><span class="nav-dot" style="background:var(--amber)"></span>Finance</div>
+  <div class="nav-item" onclick="go('moona-v2-content.html')"><span class="nav-dot" style="background:var(--coral-mid)"></span>Content Planner</div>
+  <div class="nav-item" onclick="go('moona-v2-sop.html')"><span class="nav-dot" style="background:#888780"></span>SOP &amp; Dokumen</div>
+  <div class="sidebar-footer">
+    <div class="sf-label">Login sebagai</div>
+    <div class="sf-name" id="sf-name">–</div>
+    <div class="sf-logout" onclick="logout()">Keluar →</div>
+  </div>
+</div>
+
+<div class="main">
+  <div class="topbar">
+    <div><div class="page-title">Project Management</div><div class="page-sub">Semua proyek · RAB · Progress lapangan</div></div>
+    <button class="btn btn-primary" onclick="openProjForm()">+ Proyek Baru</button>
+  </div>
+
+  <div class="stats">
+    <div class="stat"><div class="stat-label">Proyek aktif</div><div class="stat-val" id="s-aktif">–</div></div>
+    <div class="stat"><div class="stat-label">Design</div><div class="stat-val" id="s-design">–</div></div>
+    <div class="stat"><div class="stat-label">Build</div><div class="stat-val" id="s-build">–</div></div>
+    <div class="stat"><div class="stat-label">On Hold</div><div class="stat-val" id="s-hold" style="color:var(--amber)">–</div></div>
+    <div class="stat"><div class="stat-label">Selesai</div><div class="stat-val" id="s-finish" style="color:var(--green)">–</div></div>
+  </div>
+
+  <!-- FILTER -->
+  <div class="filter-bar">
+    <div class="fpill active" onclick="setF('status','',this)">Semua</div>
+    <div class="fpill" onclick="setF('status','Aktif',this)">Aktif</div>
+    <div class="fpill" onclick="setF('status','Hold',this)">Hold</div>
+    <div class="fpill" onclick="setF('status','Finish',this)">Finish</div>
+    <div class="fpill" onclick="setF('status','Cancel',this)">Cancel</div>
+    <div class="fsep"></div>
+    <div class="fpill active" onclick="setF('tipe','',this)">Semua tipe</div>
+    <div class="fpill" onclick="setF('tipe','Design',this)">Design</div>
+    <div class="fpill" onclick="setF('tipe','Build',this)">Build</div>
+    <div class="fpill" onclick="setF('tipe','Design+Build',this)">Design+Build</div>
+    <div class="fsep"></div>
+    <div class="fpill active" onclick="setF('layanan','',this)">Semua layanan</div>
+    <div class="fpill" onclick="setF('layanan','Interior',this)">Interior</div>
+    <div class="fpill" onclick="setF('layanan','Eksterior',this)">Eksterior</div>
+  </div>
+
+  <!-- TABS -->
+  <div class="tabs">
+    <div class="tab active" onclick="switchTab('board',this)">Board Proyek</div>
+    <div class="tab" onclick="switchTab('list',this)">Daftar</div>
+  </div>
+
+  <div id="tab-board">
+    <div class="proj-grid" id="proj-grid"><div class="loading" style="grid-column:1/-1">Memuat proyek...</div></div>
+  </div>
+  <div id="tab-list" style="display:none">
+    <div class="card">
+      <div class="card-header"><span class="card-title">Semua proyek</span></div>
+      <div id="proj-list-table"></div>
+    </div>
+  </div>
+
+  <!-- DETAIL PANEL -->
+  <div class="detail-panel" id="detail-panel" style="display:none">
+    <div class="dp-head">
+      <div style="flex:1">
+        <div class="dp-name" id="dp-name">–</div>
+        <div style="display:flex;gap:5px;margin-top:5px;flex-wrap:wrap" id="dp-badges"></div>
+      </div>
+      <div style="display:flex;gap:5px;flex-wrap:wrap">
+        <button class="btn btn-sm btn-amber" onclick="openRABForm()">+ RAB Item</button>
+        <button class="btn btn-sm btn-primary" onclick="openStatusForm()">Update status</button>
+        <button class="btn btn-sm" onclick="closeDetail()">✕</button>
+      </div>
+    </div>
+    <div class="dtabs" id="dp-tabs">
+      <div class="dtab active" onclick="switchDTab('info',this)">Info Proyek</div>
+      <div class="dtab" id="dtab-rab" onclick="switchDTab('rab',this)">RAB</div>
+      <div class="dtab" id="dtab-lapdesign" onclick="switchDTab('lapdesign',this)">Laporan Design</div>
+      <div class="dtab" id="dtab-lapbuild" onclick="switchDTab('lapbuild',this)">Laporan Build</div>
+    </div>
+
+    <!-- INFO TAB -->
+    <div class="dpanel" id="dp-info">
+      <div class="info-grid">
+        <div><div class="d-label">Klien</div><div class="d-val" id="dp-klien">–</div></div>
+        <div><div class="d-label">PIC</div><div class="d-val" id="dp-pic">–</div></div>
+        <div><div class="d-label">Nilai kontrak</div><div class="d-val" id="dp-nilai">–</div></div>
+        <div><div class="d-label">Tanggal mulai</div><div class="d-val" id="dp-mulai">–</div></div>
+        <div><div class="d-label">Target selesai</div><div class="d-val" id="dp-target">–</div></div>
+        <div><div class="d-label">Status</div><div class="d-val" id="dp-status">–</div></div>
+      </div>
+      <div><div class="d-label">Catatan</div><div class="d-val" id="dp-catatan" style="line-height:1.6">–</div></div>
+    </div>
+
+    <!-- RAB TAB -->
+    <div class="dpanel" id="dp-rab" style="display:none">
+      <div class="rab-header">
+        <div>
+          <div style="font-size:13px;font-weight:500">Rencana Anggaran Biaya</div>
+          <div style="font-size:11px;color:var(--text3);margin-top:2px">Total: <strong id="rab-total-val">–</strong> · Realisasi: <strong id="rab-realisasi-pct">–</strong></div>
+        </div>
+        <button class="btn btn-sm btn-amber" onclick="openRABForm()">+ Item RAB</button>
+      </div>
+      <div style="overflow-x:auto">
+        <table class="rab-table" id="rab-table-body">
+          <thead><tr><th>Item pekerjaan</th><th>Kelompok</th><th>Vol</th><th>Satuan</th><th style="text-align:right">Harga/sat</th><th style="text-align:right">Total</th><th style="text-align:right">Bobot</th><th>Realisasi</th></tr></thead>
+          <tbody id="rab-rows"><tr><td colspan="8" class="empty">Belum ada item RAB.</td></tr></tbody>
+        </table>
+      </div>
+      <div style="display:flex;justify-content:flex-end;padding:10px 0;gap:20px;font-size:12px;border-top:0.5px solid var(--border);margin-top:6px">
+        <span>Total RAB: <strong id="rab-grand-total">–</strong></span>
+        <span>Total Realisasi: <strong id="rab-grand-real">–</strong></span>
+      </div>
+    </div>
+
+    <!-- LAP DESIGN TAB -->
+    <div class="dpanel" id="dp-lapdesign" style="display:none">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <div style="font-size:12px;font-weight:500">Laporan harian tim design</div>
+        <a class="btn btn-sm btn-primary" href="moona-v2-laporan-design-v4.html">Buka modul laporan →</a>
+      </div>
+      <div id="lapdesign-rows"><div class="loading">Memuat...</div></div>
+    </div>
+
+    <!-- LAP BUILD TAB -->
+    <div class="dpanel" id="dp-lapbuild" style="display:none">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <div style="font-size:12px;font-weight:500">Laporan harian tim build</div>
+        <a class="btn btn-sm btn-primary" href="moona-v2-laporan-build-v4.html">Buka modul laporan →</a>
+      </div>
+      <div id="lapbuild-rows"><div class="loading">Memuat...</div></div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- MODAL PROYEK BARU -->
+<div class="modal-overlay" id="modal-proj">
+  <div class="modal">
+    <div class="modal-header"><span class="modal-title">Proyek Baru</span><button class="modal-close" onclick="closeModal('modal-proj')">✕</button></div>
+    <div class="modal-body">
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Nama proyek <span class="req">*</span></label><input id="pf-nama" class="form-input" placeholder="Contoh: Villa Pak Andi"></div>
+        <div class="form-group"><label class="form-label">Nama klien <span class="req">*</span></label><input id="pf-klien" class="form-input" placeholder="Nama klien"></div>
+      </div>
+      <div class="form-row3">
+        <div class="form-group"><label class="form-label">Tipe proyek <span class="req">*</span></label>
+          <select id="pf-tipe" class="form-input"><option value="">Pilih</option><option>Design</option><option>Build</option><option>Design+Build</option></select>
+        </div>
+        <div class="form-group"><label class="form-label">Layanan <span class="req">*</span></label>
+          <select id="pf-layanan" class="form-input"><option value="">Pilih</option><option>Interior</option><option>Eksterior</option></select>
+        </div>
+        <div class="form-group"><label class="form-label">Segmen <span class="req">*</span></label>
+          <select id="pf-segmen" class="form-input"><option value="">Pilih</option><option>Residensial</option><option>Komersial</option></select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">PIC proyek <span class="req">*</span></label>
+          <select id="pf-pic" class="form-input"><option value="">Pilih PIC</option></select>
+        </div>
+        <div class="form-group"><label class="form-label">Nilai kontrak (Rp)</label><input id="pf-nilai" class="form-input" type="number" placeholder="Opsional"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Tanggal mulai <span class="req">*</span></label><input id="pf-mulai" class="form-input" type="date"></div>
+        <div class="form-group"><label class="form-label">Target selesai <span class="req">*</span></label><input id="pf-target" class="form-input" type="date"></div>
+      </div>
+      <div class="form-group"><label class="form-label">Catatan</label><textarea id="pf-catatan" class="form-input"></textarea></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('modal-proj')">Batal</button>
+      <button class="btn btn-primary" id="save-proj-btn" onclick="saveProj()">Simpan Proyek</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL RAB ITEM -->
+<div class="modal-overlay" id="modal-rab">
+  <div class="modal modal-lg">
+    <div class="modal-header"><span class="modal-title" id="rab-modal-title">Tambah Item RAB</span><button class="modal-close" onclick="closeModal('modal-rab')">✕</button></div>
+    <div class="modal-body">
+      <div class="form-group"><label class="form-label">Kelompok pekerjaan</label><input id="rab-kelompok" class="form-input" placeholder="Contoh: Pekerjaan Lantai, Pekerjaan Dinding, Mekanikal..."></div>
+      <div style="font-size:11px;font-weight:500;color:var(--text2);margin-bottom:8px">Item pekerjaan <span class="req">*</span></div>
+      <div style="display:grid;grid-template-columns:2.5fr 0.8fr 0.8fr 1.2fr auto;gap:6px;margin-bottom:6px;font-size:10px;font-weight:600;color:var(--text3);padding:0 2px">
+        <span>Nama item</span><span>Volume</span><span>Satuan</span><span>Harga/satuan</span><span></span>
+      </div>
+      <div id="rab-items-wrap"></div>
+      <button class="add-row-btn" onclick="addRABRow()">+ Tambah item</button>
+      <div class="form-group" style="margin-top:12px"><label class="form-label">Bobot pekerjaan (%)</label><input id="rab-bobot" class="form-input" type="number" min="0" max="100" placeholder="Bobot % terhadap total proyek"><div class="form-hint">Jumlah semua bobot sebaiknya = 100%</div></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('modal-rab')">Batal</button>
+      <button class="btn btn-amber" id="save-rab-btn" onclick="saveRABItems()">Simpan RAB</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL UPDATE STATUS -->
+<div class="modal-overlay" id="modal-status">
+  <div class="modal" style="max-width:380px">
+    <div class="modal-header"><span class="modal-title">Update Status Proyek</span><button class="modal-close" onclick="closeModal('modal-status')">✕</button></div>
+    <div class="modal-body">
+      <div class="form-group"><label class="form-label">Status <span class="req">*</span></label>
+        <select id="st-status" class="form-input"><option>Aktif</option><option>Hold</option><option>Finish</option><option>Cancel</option></select>
+      </div>
+      <div class="form-group"><label class="form-label">PIC (update)</label>
+        <select id="st-pic" class="form-input"><option value="">Tetap sama</option></select>
+      </div>
+      <div class="form-group"><label class="form-label">Catatan</label><textarea id="st-catatan" class="form-input" style="min-height:50px"></textarea></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('modal-status')">Batal</button>
+      <button class="btn btn-primary" id="save-st-btn" onclick="saveStatus()">Simpan</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+<script>
+const API='https://script.google.com/macros/s/AKfycbwkjBr_opT5V05KY6fQG3Aa2i7URgxpzX7a1ga3mBFKS3CeMbCvyLzdkNpHIhgg4Xxncw/exec';
+let projects=[],rabData=[],lapDesign=[],lapBuild=[],users=[];
+let selectedId=null,filterStatus='',filterTipe='',filterLayanan='',rabRowCount=0;
+
+function getSession(){try{return JSON.parse(localStorage.getItem('moona_v2_session'));}catch(e){return null;}}
+function logout(){localStorage.removeItem('moona_v2_session');location.href='moona-v2-login.html';}
+function go(u){location.href=u;}
+const S=getSession();
+if(!S){location.href='moona-v2-login.html';}
+else document.getElementById('sf-name').textContent=S.nama+' — '+S.role;
+
+function p(o,...ks){for(const k of ks){if(o[k]!==undefined&&o[k]!==null&&String(o[k]).trim()!='')return String(o[k]);}return '';}
+function showToast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2800);}
+function fmtDate(s){if(!s)return'–';try{return new Date(s).toLocaleDateString('id-ID',{day:'numeric',month:'short',year:'numeric'});}catch(e){return s;}}
+function rp(n){if(!n||isNaN(n))return'–';const v=parseFloat(n);if(v>=1e9)return'Rp '+(v/1e9).toFixed(1)+' M';if(v>=1e6)return'Rp '+Math.round(v/1e6)+' jt';if(v>=1e3)return'Rp '+Math.round(v/1e3)+'rb';return'Rp '+v.toLocaleString('id-ID');}
+function closeModal(id){document.getElementById(id).classList.remove('open');}
+function switchTab(t,el){document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));el.classList.add('active');document.getElementById('tab-board').style.display=t==='board'?'block':'none';document.getElementById('tab-list').style.display=t==='list'?'block':'none';if(t==='list')renderList();}
+function switchDTab(t,el){document.querySelectorAll('.dtab').forEach(x=>x.classList.remove('active'));el.classList.add('active');['info','rab','lapdesign','lapbuild'].forEach(id=>document.getElementById('dp-'+id).style.display=id===t?'block':'none');if(t==='rab')renderRAB();if(t==='lapdesign')renderLapDesign();if(t==='lapbuild')renderLapBuild();}
+
+window.onload=async()=>{
+  document.getElementById('pf-mulai').value=new Date().toISOString().split('T')[0];
+  await Promise.all([loadProjects(),loadUsers()]);
+};
+
+async function loadProjects(){
+  try{
+    const [pr,rd,ld,lb]=await Promise.all([
+      fetch(API+'?action=getProjects').then(r=>r.json()),
+      fetch(API+'?action=getRAB').then(r=>r.json()),
+      fetch(API+'?action=getLaporanDesign').then(r=>r.json()),
+      fetch(API+'?action=getLaporanBuild').then(r=>r.json()),
+    ]);
+    if(pr.status==='ok')projects=pr.data;
+    if(rd.status==='ok')rabData=rd.data;
+    if(ld.status==='ok')lapDesign=ld.data;
+    if(lb.status==='ok')lapBuild=lb.data;
+    renderBoard();updateStats();
+  }catch(e){document.getElementById('proj-grid').innerHTML='<div class="empty" style="grid-column:1/-1">Gagal memuat data.</div>';}
+}
+async function loadUsers(){
+  try{const r=await fetch(API+'?action=getUsers');const d=await r.json();
+    if(d.status==='ok'){users=d.data;['pf-pic','st-pic'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML=(id==='st-pic'?'<option value="">Tetap sama</option>':'<option value="">Pilih PIC</option>')+d.data.map(u=>`<option value="${u.nama}">${u.nama} — ${u.role}</option>`).join('');});}
+  }catch(e){}
+}
+
+function setF(type,val,el){
+  if(type==='status'){filterStatus=val;document.querySelectorAll('.fpill').forEach(x=>{if(['Semua','Aktif','Hold','Finish','Cancel'].includes(x.textContent))x.classList.remove('active');});}
+  if(type==='tipe'){filterTipe=val;document.querySelectorAll('.fpill').forEach(x=>{if(['Semua tipe','Design','Build','Design+Build'].includes(x.textContent))x.classList.remove('active');});}
+  if(type==='layanan'){filterLayanan=val;document.querySelectorAll('.fpill').forEach(x=>{if(['Semua layanan','Interior','Eksterior'].includes(x.textContent))x.classList.remove('active');});}
+  el.classList.add('active');renderBoard();
+}
+
+function getFiltered(){
+  let f=[...projects];
+  if(filterStatus)f=f.filter(x=>p(x,'StatusProyek')===filterStatus);
+  if(filterTipe)f=f.filter(x=>p(x,'TipeProyek')===filterTipe);
+  if(filterLayanan)f=f.filter(x=>p(x,'TipeLayanan')===filterLayanan);
+  return f;
+}
+
+function updateStats(){
+  const aktif=projects.filter(x=>p(x,'StatusProyek')==='Aktif'||!p(x,'StatusProyek'));
+  document.getElementById('s-aktif').textContent=aktif.length;
+  document.getElementById('s-design').textContent=aktif.filter(x=>p(x,'TipeProyek')==='Design').length;
+  document.getElementById('s-build').textContent=aktif.filter(x=>['Build','Design+Build'].includes(p(x,'TipeProyek'))).length;
+  document.getElementById('s-hold').textContent=projects.filter(x=>p(x,'StatusProyek')==='Hold').length;
+  document.getElementById('s-finish').textContent=projects.filter(x=>p(x,'StatusProyek')==='Finish').length;
+}
+
+const FASE_DESIGN_ORDER=['Design eksisting','Denah','Moodboard','Design 3D 25%','Design 3D 50%','Design 3D 75%','Design 3D 100%','Revisi 3D','Gambar kerja 25%','Gambar kerja 50%','Gambar kerja 75%','Gambar kerja 100%'];
+
+function calcProjProgress(projId){
+  const pr=projects.find(x=>p(x,'ID')===projId);
+  if(!pr)return{pct:0,totalRAB:0,totalReal:0};
+  const tipe=p(pr,'TipeProyek');
+  if(tipe==='Design'){
+    const lapItems=lapDesign.filter(l=>p(l,'Project_ID')===projId&&p(l,'StatusApproval')==='Approved');
+    if(!lapItems.length)return{pct:0,totalRAB:0,totalReal:0};
+    const faseMap={};
+    lapItems.forEach(l=>{
+      const f=p(l,'FaseDesign');const pct=parseFloat(p(l,'Persentase')||0);
+      if(!faseMap[f]||pct>faseMap[f])faseMap[f]=pct;
+    });
+    const totalFase=FASE_DESIGN_ORDER.length;
+    const achieved=FASE_DESIGN_ORDER.reduce((s,f)=>s+((faseMap[f]||0)/100),0);
+    return{pct:Math.round(achieved/totalFase*100),totalRAB:0,totalReal:0};
+  }
+  const items=rabData.filter(r=>p(r,'Project_ID')===projId);
+  if(!items.length)return{pct:0,totalRAB:0,totalReal:0};
+  const totalBobot=items.reduce((s,r)=>s+parseFloat(p(r,'Bobot')||0),0);
+  const realBobot=items.reduce((s,r)=>s+parseFloat(p(r,'Bobot')||0)*parseFloat(p(r,'Realisasi')||0)/100,0);
+  const pct=totalBobot>0?Math.round(realBobot/totalBobot*100):0;
+  const totalRAB=items.reduce((s,r)=>s+parseFloat(p(r,'Total')||0),0);
+  const totalReal=items.reduce((s,r)=>s+parseFloat(p(r,'Total')||0)*parseFloat(p(r,'Realisasi')||0)/100,0);
+  return{pct,totalRAB,totalReal};
+}
+
+function renderBoard(){
+  const f=getFiltered();
+  const grid=document.getElementById('proj-grid');
+  if(!f.length){grid.innerHTML='<div class="empty" style="grid-column:1/-1">Tidak ada proyek yang sesuai filter.</div>';return;}
+  grid.innerHTML=f.map(pr=>{
+    const id=p(pr,'ID');const tipe=p(pr,'TipeProyek');const status=p(pr,'StatusProyek')||'Aktif';
+    const {pct,totalRAB}=calcProjProgress(id);
+    const color=tipe==='Design'?'var(--purple)':tipe==='Build'?'var(--amber)':'var(--teal)';
+    const hasRAB=rabData.some(r=>p(r,'Project_ID')===id);
+    const lbCount=lapBuild.filter(l=>p(l,'Project_ID')===id).length;
+    const ldCount=lapDesign.filter(l=>p(l,'Project_ID')===id).length;
+    const today=new Date();const target=p(pr,'TargetSelesai');
+    const isLate=target&&new Date(target)<today&&status==='Aktif';
+    return `<div class="proj-card ${selectedId===id?'selected':''}" onclick="selectProj('${id}')">
+      <div class="pc-head">
+        <div class="pc-name">${p(pr,'NamaProyek')}</div>
+        <div class="pc-meta">
+          <span class="pill p-${tipe.toLowerCase().replace('+','-')}">${tipe}</span>
+          <span class="pill p-${p(pr,'TipeLayanan').toLowerCase()}">${p(pr,'TipeLayanan')||'–'}</span>
+          <span class="pill p-${p(pr,'Segmen')||'residensial'.toLowerCase()}">${p(pr,'Segmen')||'–'}</span>
+          <span class="pill p-${status.toLowerCase()}">${status}</span>
+          ${isLate?'<span class="pill" style="background:var(--red-bg);color:var(--red)">Terlambat</span>':''}
+        </div>
+      </div>
+      <div class="pc-body">
+        <div class="pc-tipe">${p(pr,'NamaKlien')||'–'} · PIC: ${p(pr,'PIC')||'–'}</div>
+        <div class="prog-wrap">
+          <div class="prog-bar"><div class="prog-fill" style="width:${pct}%;background:${color}"></div></div>
+          <div class="prog-val" style="color:${color}">${pct}%</div>
+        </div>
+        ${!hasRAB&&(tipe==='Build'||tipe==='Design+Build')?'<div style="font-size:10px;color:var(--amber);margin-top:4px">⚠ Belum ada RAB</div>':''}
+      </div>
+      <div class="pc-foot">
+        <span>${hasRAB?rp(rabData.filter(r=>p(r,'Project_ID')===id).reduce((s,r)=>s+parseFloat(p(r,'Total')||0),0)):'–'}</span>
+        <span style="display:flex;gap:8px">
+          ${ldCount>0?`<span style="color:var(--purple)">${ldCount} lap. design</span>`:''}
+          ${lbCount>0?`<span style="color:var(--teal)">${lbCount} lap. build</span>`:''}
+          <span>${target?fmtDate(target):'–'}</span>
+        </span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderList(){
+  const f=getFiltered();
+  const el=document.getElementById('proj-list-table');
+  if(!f.length){el.innerHTML='<div class="empty">Tidak ada proyek.</div>';return;}
+  el.innerHTML=`<table style="width:100%;border-collapse:collapse;font-size:11px">
+    <thead><tr style="border-bottom:0.5px solid var(--border);background:var(--bg)">
+      <th style="padding:7px 14px;text-align:left;font-size:10px;font-weight:600;color:var(--text3)">NAMA PROYEK</th>
+      <th style="padding:7px 10px;font-size:10px;font-weight:600;color:var(--text3)">TIPE</th>
+      <th style="padding:7px 10px;font-size:10px;font-weight:600;color:var(--text3)">LAYANAN</th>
+      <th style="padding:7px 10px;font-size:10px;font-weight:600;color:var(--text3)">PIC</th>
+      <th style="padding:7px 10px;font-size:10px;font-weight:600;color:var(--text3);text-align:right">PROGRES</th>
+      <th style="padding:7px 10px;font-size:10px;font-weight:600;color:var(--text3)">STATUS</th>
+    </tr></thead>
+    <tbody>${f.map(pr=>{
+      const {pct}=calcProjProgress(p(pr,'ID'));
+      return `<tr style="border-bottom:0.5px solid var(--border);cursor:pointer" onclick="selectProj('${p(pr,'ID')}')">
+        <td style="padding:9px 14px"><div style="font-weight:500">${p(pr,'NamaProyek')}</div><div style="font-size:10px;color:var(--text3)">${p(pr,'NamaKlien')}</div></td>
+        <td style="padding:9px 10px"><span class="pill p-${p(pr,'TipeProyek').toLowerCase().replace('+','-')}">${p(pr,'TipeProyek')}</span></td>
+        <td style="padding:9px 10px"><span class="pill p-${p(pr,'TipeLayanan').toLowerCase()}">${p(pr,'TipeLayanan')}</span></td>
+        <td style="padding:9px 10px;color:var(--text2)">${p(pr,'PIC')||'–'}</td>
+        <td style="padding:9px 10px;text-align:right"><span style="font-weight:600;color:var(--teal)">${pct}%</span></td>
+        <td style="padding:9px 10px"><span class="pill p-${(p(pr,'StatusProyek')||'aktif').toLowerCase()}">${p(pr,'StatusProyek')||'Aktif'}</span></td>
+      </tr>`;
+    }).join('')}</tbody>
+  </table>`;
+}
+
+function selectProj(id){
+  selectedId=id;renderBoard();
+  const pr=projects.find(x=>p(x,'ID')===id);if(!pr)return;
+  document.getElementById('detail-panel').style.display='block';
+  document.getElementById('dp-name').textContent=p(pr,'NamaProyek');
+  const tipe=p(pr,'TipeProyek'),layanan=p(pr,'TipeLayanan'),segmen=p(pr,'Segmen'),status=p(pr,'StatusProyek')||'Aktif';
+  document.getElementById('dp-badges').innerHTML=`
+    <span class="pill p-${tipe.toLowerCase().replace('+','-')}">${tipe}</span>
+    <span class="pill p-${layanan.toLowerCase()}">${layanan}</span>
+    <span class="pill p-${(segmen||'').toLowerCase()}">${segmen||'–'}</span>
+    <span class="pill p-${status.toLowerCase()}">${status}</span>`;
+  document.getElementById('dp-klien').textContent=p(pr,'NamaKlien')||'–';
+  document.getElementById('dp-pic').textContent=p(pr,'PIC')||'–';
+  document.getElementById('dp-nilai').textContent=rp(p(pr,'NilaiKontrak'))||'–';
+  document.getElementById('dp-mulai').textContent=fmtDate(p(pr,'TanggalMulai'));
+  document.getElementById('dp-target').textContent=fmtDate(p(pr,'TargetSelesai'));
+  document.getElementById('dp-status').textContent=status;
+  document.getElementById('dp-catatan').textContent=p(pr,'CatatanProyek')||'–';
+  // Show/hide tabs sesuai tipe proyek
+  const hasRAB=['Build','Design+Build'].includes(tipe);
+  const hasDesign=['Design','Design+Build'].includes(tipe);
+  document.getElementById('dtab-rab').style.display=hasRAB?'block':'none';
+  document.getElementById('dtab-lapdesign').style.display=hasDesign?'block':'none';
+  document.getElementById('dtab-lapbuild').style.display=hasRAB?'block':'none';
+  // Sembunyikan tombol + RAB Item kalau tipe Design
+  document.querySelectorAll('.btn-amber').forEach(b=>{if(b.textContent.includes('RAB'))b.style.display=hasRAB?'inline-block':'none';});
+  // Reset to info tab
+  switchDTab('info',document.querySelector('.dtab'));
+  document.getElementById('detail-panel').scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+function closeDetail(){selectedId=null;document.getElementById('detail-panel').style.display='none';renderBoard();}
+
+function renderRAB(){
+  const items=rabData.filter(r=>p(r,'Project_ID')===selectedId);
+  const tbody=document.getElementById('rab-rows');
+  if(!items.length){tbody.innerHTML='<tr><td colspan="8" class="empty">Belum ada item RAB. Klik "+ Item RAB" untuk mulai.</td></tr>';document.getElementById('rab-total-val').textContent='–';document.getElementById('rab-grand-total').textContent='–';return;}
+  // Group by kelompok
+  const groups={};items.forEach(r=>{const g=p(r,'KelompokPekerjaan')||'Umum';if(!groups[g])groups[g]=[];groups[g].push(r);});
+  let html='';let grandTotal=0;let grandReal=0;
+  Object.entries(groups).forEach(([g,rows])=>{
+    html+=`<tr><td colspan="8" class="rab-group">${g}</td></tr>`;
+    rows.forEach(r=>{
+      const total=parseFloat(p(r,'Total')||0);const real=parseFloat(p(r,'Realisasi')||0);
+      const bobot=parseFloat(p(r,'Bobot')||0);
+      grandTotal+=total;grandReal+=total*real/100;
+      html+=`<tr>
+        <td style="padding:8px 10px;font-weight:500">${p(r,'NamaItem')}</td>
+        <td style="padding:8px 10px;color:var(--text3)">${g}</td>
+        <td style="padding:8px 10px">${p(r,'Volume')}</td>
+        <td style="padding:8px 10px">${p(r,'Satuan')}</td>
+        <td style="padding:8px 10px;text-align:right">${rp(p(r,'HargaSatuan'))}</td>
+        <td style="padding:8px 10px;text-align:right;font-weight:500">${rp(total)}</td>
+        <td style="padding:8px 10px">
+          <div style="font-size:10px;font-weight:500">${bobot}%</div>
+          <div class="bobot-bar"><div class="bobot-fill" style="width:${Math.min(bobot,100)}%"></div></div>
+        </td>
+        <td style="padding:8px 10px;min-width:100px">
+          <div style="display:flex;align-items:center;gap:6px">
+            <div style="flex:1">
+              <div style="font-size:11px;font-weight:600;color:${real>=100?'var(--teal)':real>0?'var(--amber)':'var(--text3)'}">${real}%</div>
+              <div class="prog-rab"><div class="prog-rab-fill" style="width:${real}%"></div></div>
+            </div>
+          </div>
+        </td>
+      </tr>`;
+    });
+  });
+  tbody.innerHTML=html;
+  document.getElementById('rab-total-val').textContent=rp(grandTotal);
+  document.getElementById('rab-realisasi-pct').textContent=grandTotal>0?Math.round(grandReal/grandTotal*100)+'%':'0%';
+  document.getElementById('rab-grand-total').textContent=rp(grandTotal);
+  document.getElementById('rab-grand-real').textContent=rp(grandReal);
+}
+
+function renderLapDesign(){
+  const items=lapDesign.filter(l=>p(l,'Project_ID')===selectedId);
+  const el=document.getElementById('lapdesign-rows');
+  if(!items.length){el.innerHTML='<div class="empty">Belum ada laporan design untuk proyek ini.</div>';return;}
+  el.innerHTML=[...items].reverse().map(l=>`<div class="lap-row">
+    <div class="lap-date">${p(l,'Tanggal')||'–'}</div>
+    <div class="lap-body">
+      <div class="lap-title">${p(l,'FaseDesign')||'–'} — ${p(l,'Persentase')||'0'}%</div>
+      <div class="lap-meta">PIC: ${p(l,'PIC')||'–'} ${p(l,'AssignKe')?'→ '+p(l,'AssignKe'):''}</div>
+      ${p(l,'Deskripsi')?`<div style="font-size:10px;color:var(--text2);margin-top:2px">${p(l,'Deskripsi')}</div>`:''}
+    </div>
+    <div class="lap-status"><span class="ap-badge ap-${(p(l,'StatusApproval')||'pending').toLowerCase()}">${p(l,'StatusApproval')||'Pending'}</span></div>
+  </div>`).join('');
+}
+
+function renderLapBuild(){
+  const items=lapBuild.filter(l=>p(l,'Project_ID')===selectedId);
+  const el=document.getElementById('lapbuild-rows');
+  if(!items.length){el.innerHTML='<div class="empty">Belum ada laporan build untuk proyek ini.</div>';return;}
+  el.innerHTML=[...items].reverse().map(l=>`<div class="lap-row">
+    <div class="lap-date">${p(l,'Tanggal')||'–'}</div>
+    <div class="lap-body">
+      <div class="lap-title">${p(l,'NamaItem')||'–'} — ${p(l,'ProgressItem')||'0'}%</div>
+      <div class="lap-meta">PIC: ${p(l,'PIC')||'–'} · ${p(l,'JumlahTukang')||'0'} tukang</div>
+      ${p(l,'Keterangan')?`<div style="font-size:10px;color:var(--text2);margin-top:2px">${p(l,'Keterangan')}</div>`:''}
+    </div>
+    <div class="lap-status" style="font-size:11px;font-weight:500;color:var(--teal)">${p(l,'ProgressItem')||'0'}%</div>
+  </div>`).join('');
+}
+
+// PROYEK FORM
+function openProjForm(){
+  ['pf-nama','pf-klien','pf-nilai','pf-catatan'].forEach(id=>document.getElementById(id).value='');
+  ['pf-tipe','pf-layanan','pf-segmen'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('pf-mulai').value=new Date().toISOString().split('T')[0];
+  document.getElementById('pf-target').value='';
+  document.getElementById('modal-proj').classList.add('open');
+}
+async function saveProj(){
+  const nama=document.getElementById('pf-nama').value.trim();
+  const klien=document.getElementById('pf-klien').value.trim();
+  const tipe=document.getElementById('pf-tipe').value;
+  const layanan=document.getElementById('pf-layanan').value;
+  const segmen=document.getElementById('pf-segmen').value;
+  const pic=document.getElementById('pf-pic').value;
+  const mulai=document.getElementById('pf-mulai').value;
+  const target=document.getElementById('pf-target').value;
+  if(!nama||!klien||!tipe||!layanan||!segmen||!pic||!mulai||!target){showToast('Lengkapi semua field wajib');return;}
+  const btn=document.getElementById('save-proj-btn');btn.textContent='Menyimpan...';btn.disabled=true;
+  try{
+    const r=await fetch(API,{method:'POST',body:JSON.stringify({action:'addProject',nama,klien,tipeProyek:tipe,tipeLayanan:layanan,segmen,pic,mulai,target,nilai:document.getElementById('pf-nilai').value||'',catatan:document.getElementById('pf-catatan').value.trim()})});
+    const d=await r.json();
+    if(d.status==='ok'){closeModal('modal-proj');showToast('Proyek berhasil disimpan!');await loadProjects();}
+    else showToast('Gagal: '+d.message);
+  }catch(e){showToast('Error: '+e.message);}
+  btn.textContent='Simpan Proyek';btn.disabled=false;
+}
+
+// RAB FORM
+function openRABForm(){
+  document.getElementById('rab-kelompok').value='';
+  document.getElementById('rab-bobot').value='';
+  document.getElementById('rab-items-wrap').innerHTML='';
+  rabRowCount=0;addRABRow();addRABRow();addRABRow();
+  document.getElementById('modal-rab').classList.add('open');
+}
+function addRABRow(){
+  rabRowCount++;const i=rabRowCount;
+  const div=document.createElement('div');
+  div.id='rab-r-'+i;
+  div.style.cssText='display:grid;grid-template-columns:2.5fr 0.8fr 0.8fr 1.2fr auto;gap:6px;margin-bottom:5px;align-items:center';
+  div.innerHTML=`
+    <input class="form-input" placeholder="Nama item pekerjaan" id="ri-nama-${i}">
+    <input class="form-input" placeholder="Vol" type="number" id="ri-vol-${i}" oninput="calcRowTotal(${i})">
+    <input class="form-input" placeholder="Satuan" id="ri-sat-${i}">
+    <input class="form-input" placeholder="Harga/sat" type="number" id="ri-harga-${i}" oninput="calcRowTotal(${i})">
+    <button style="width:24px;height:32px;border-radius:4px;border:0.5px solid var(--border2);background:none;cursor:pointer;color:var(--text3);font-size:13px" onclick="document.getElementById('rab-r-${i}').remove()">✕</button>`;
+  document.getElementById('rab-items-wrap').appendChild(div);
+}
+function calcRowTotal(i){
+  const vol=parseFloat(document.getElementById('ri-vol-'+i)?.value||0);
+  const harga=parseFloat(document.getElementById('ri-harga-'+i)?.value||0);
+}
+async function saveRABItems(){
+  const kelompok=document.getElementById('rab-kelompok').value.trim();
+  const bobot=document.getElementById('rab-bobot').value||'0';
+  const rows=document.querySelectorAll('[id^="rab-r-"]');
+  const items=[];
+  rows.forEach(row=>{
+    const i=row.id.replace('rab-r-','');
+    const nama=document.getElementById('ri-nama-'+i)?.value.trim();
+    const vol=document.getElementById('ri-vol-'+i)?.value;
+    const sat=document.getElementById('ri-sat-'+i)?.value.trim();
+    const harga=document.getElementById('ri-harga-'+i)?.value;
+    if(nama&&vol&&sat&&harga)items.push({nama,vol,sat,harga});
+  });
+  if(!items.length){showToast('Tambahkan minimal 1 item RAB');return;}
+  const btn=document.getElementById('save-rab-btn');btn.textContent='Menyimpan...';btn.disabled=true;
+  let saved=0;
+  for(const item of items){
+    try{
+      const r=await fetch(API,{method:'POST',body:JSON.stringify({action:'addRABItem',projectId:selectedId,kelompok,nama:item.nama,volume:item.vol,satuan:item.sat,harga:item.harga,bobot:items.length>1?Math.round(parseFloat(bobot)/items.length):bobot})});
+      const d=await r.json();if(d.status==='ok')saved++;
+    }catch(e){}
+  }
+  if(saved>0){closeModal('modal-rab');showToast(saved+' item RAB berhasil disimpan!');await loadProjects();switchDTab('rab',document.querySelectorAll('.dtab')[1]);}
+  else showToast('Gagal menyimpan RAB');
+  btn.textContent='Simpan RAB';btn.disabled=false;
+}
+
+// STATUS FORM
+function openStatusForm(){
+  const pr=projects.find(x=>p(x,'ID')===selectedId);if(!pr)return;
+  document.getElementById('st-status').value=p(pr,'StatusProyek')||'Aktif';
+  document.getElementById('st-catatan').value='';
+  document.getElementById('modal-status').classList.add('open');
+}
+async function saveStatus(){
+  const status=document.getElementById('st-status').value;
+  const pic=document.getElementById('st-pic').value;
+  const catatan=document.getElementById('st-catatan').value.trim();
+  const btn=document.getElementById('save-st-btn');btn.textContent='Menyimpan...';btn.disabled=true;
+  try{
+    const payload={action:'updateProject',id:selectedId,StatusProyek:status};
+    if(pic)payload.PIC=pic;
+    if(catatan)payload.CatatanProyek=catatan;
+    const r=await fetch(API,{method:'POST',body:JSON.stringify(payload)});
+    const d=await r.json();
+    if(d.status==='ok'){closeModal('modal-status');showToast('Status diperbarui!');await loadProjects();selectProj(selectedId);}
+    else showToast('Gagal: '+d.message);
+  }catch(e){showToast('Error');}
+  btn.textContent='Simpan';btn.disabled=false;
+}
+</script>
+</body>
+</html>

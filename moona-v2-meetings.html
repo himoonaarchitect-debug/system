@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Moona v2 — Meeting Tracker</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f8f7f4;--card:#fff;--border:#e5e3dc;--border2:#d0cec7;
+  --text:#1a1a18;--text2:#6b6a64;--text3:#9d9b94;
+  --coral:#993C1D;--coral-mid:#D85A30;--coral-bg:#FAECE7;
+  --purple:#534AB7;--purple-bg:#EEEDFE;
+  --teal:#0F6E56;--teal-bg:#E1F5EE;
+  --amber:#854F0B;--amber-bg:#FAEEDA;
+  --red:#A32D2D;--red-bg:#FCEBEB;
+  --green:#3B6D11;--green-bg:#EAF3DE;
+  --blue:#185FA5;--blue-bg:#E6F1FB;
+  --gray:#5F5E5A;--gray-bg:#F1EFE8;
+  --radius:10px;--radius-sm:6px;
+}
+body{background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:var(--text);font-size:14px;min-height:100vh}
+.app{display:flex;min-height:100vh}
+.sidebar{width:220px;min-width:220px;background:var(--card);border-right:0.5px solid var(--border);display:flex;flex-direction:column;position:fixed;top:0;left:0;height:100vh;z-index:10;overflow-y:auto}
+.logo{padding:18px 16px 14px;border-bottom:0.5px solid var(--border)}
+.logo-name{font-size:15px;font-weight:600;color:var(--text)}
+.logo-sub{font-size:10px;color:var(--text3);margin-top:2px}
+.logo-ver{display:inline-block;font-size:9px;font-weight:600;background:var(--coral-bg);color:var(--coral);padding:1px 5px;border-radius:4px;margin-top:3px}
+.nav-section{padding:10px 8px 3px;font-size:9px;font-weight:600;color:var(--text3);letter-spacing:.06em;text-transform:uppercase}
+.nav-item{display:flex;align-items:center;gap:8px;padding:7px 12px;margin:1px 4px;border-radius:var(--radius-sm);cursor:pointer;font-size:12px;color:var(--text2)}
+.nav-item:hover{background:var(--bg)}
+.nav-item.active{background:var(--purple-bg);color:var(--purple);font-weight:500}
+.nav-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.sidebar-footer{margin-top:auto;padding:12px 16px;border-top:0.5px solid var(--border)}
+.sf-label{font-size:10px;color:var(--text3)}
+.sf-name{font-size:11px;font-weight:500;color:var(--text);margin-top:2px}
+.sf-logout{font-size:10px;color:var(--gray);margin-top:4px;cursor:pointer}
+
+.main{margin-left:220px;flex:1;padding:22px;max-width:1100px}
+.topbar{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:18px;gap:10px;flex-wrap:wrap}
+.page-title{font-size:19px;font-weight:600;color:var(--text)}
+.page-sub{font-size:11px;color:var(--text3);margin-top:2px}
+
+.btn{padding:7px 14px;border-radius:var(--radius-sm);border:0.5px solid var(--border2);background:var(--card);color:var(--text);font-size:12px;font-weight:500;cursor:pointer;white-space:nowrap}
+.btn:hover{background:var(--bg)}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn-primary{background:var(--purple);color:#fff;border-color:var(--purple)}
+.btn-primary:hover{opacity:.9}
+.btn-sm{padding:4px 10px;font-size:11px}
+.btn-green{background:var(--teal);color:#fff;border-color:var(--teal)}
+
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:18px}
+.stat{background:var(--bg);border-radius:var(--radius-sm);padding:11px 13px}
+.stat-label{font-size:10px;color:var(--text3);margin-bottom:3px}
+.stat-val{font-size:19px;font-weight:600;color:var(--text)}
+
+.filter-bar{display:flex;gap:5px;margin-bottom:14px;flex-wrap:wrap;align-items:center}
+.fpill{padding:4px 11px;border-radius:20px;font-size:11px;font-weight:500;cursor:pointer;border:0.5px solid var(--border2);color:var(--text2);background:var(--card)}
+.fpill.active{background:var(--text);color:#fff;border-color:var(--text)}
+.fsep{width:1px;height:16px;background:var(--border2);margin:0 2px}
+
+.layout{display:grid;grid-template-columns:1fr 1.3fr;gap:12px;align-items:start}
+
+.card{background:var(--card);border:0.5px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:10px}
+.card-header{padding:10px 14px;border-bottom:0.5px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.card-title{font-size:12px;font-weight:500;color:var(--text)}
+
+.mtg-row{padding:11px 14px;border-bottom:0.5px solid var(--border);cursor:pointer;transition:background .1s}
+.mtg-row:last-child{border-bottom:none}
+.mtg-row:hover{background:var(--bg)}
+.mtg-row.selected{background:var(--purple-bg)}
+.mtg-head{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:4px}
+.mtg-title{font-size:12px;font-weight:500;color:var(--text);line-height:1.3}
+.mtg-meta{font-size:10px;color:var(--text3);margin-top:2px}
+.mtg-tipe{display:inline-block;font-size:9px;font-weight:500;padding:2px 7px;border-radius:6px}
+.t-internal{background:var(--gray-bg);color:var(--gray)}
+.t-klien{background:var(--purple-bg);color:var(--purple)}
+.t-proyek{background:var(--teal-bg);color:var(--teal)}
+.t-vendor{background:var(--amber-bg);color:var(--amber)}
+
+/* DETAIL */
+.detail{position:sticky;top:22px}
+.detail-head{padding:14px 16px;border-bottom:0.5px solid var(--border)}
+.d-title{font-size:15px;font-weight:600;color:var(--text)}
+.d-meta{font-size:11px;color:var(--text3);margin-top:3px;display:flex;gap:8px;flex-wrap:wrap}
+.d-actions{display:flex;gap:6px;margin-top:10px}
+.d-section{padding:12px 16px;border-bottom:0.5px solid var(--border)}
+.d-section:last-child{border-bottom:none}
+.d-label{font-size:9px;font-weight:600;color:var(--text3);letter-spacing:.05em;text-transform:uppercase;margin-bottom:5px}
+.d-val{font-size:12px;color:var(--text);line-height:1.5}
+
+.peserta-list{display:flex;flex-wrap:wrap;gap:5px}
+.peserta-pill{padding:3px 8px;border-radius:10px;font-size:11px;background:var(--gray-bg);color:var(--text2)}
+.peserta-pill.hadir{background:var(--green-bg);color:var(--green)}
+.peserta-pill.absen{background:var(--red-bg);color:var(--red);text-decoration:line-through}
+
+.action-item{display:flex;align-items:flex-start;gap:8px;padding:9px 0;border-bottom:0.5px solid var(--border)}
+.action-item:last-child{border-bottom:none}
+.action-chk{width:15px;height:15px;border-radius:3px;border:1.5px solid var(--border2);flex-shrink:0;cursor:pointer;margin-top:1px;transition:all .1s}
+.action-chk.done{background:var(--teal);border-color:var(--teal);position:relative}
+.action-chk.done::after{content:'✓';color:#fff;font-size:10px;position:absolute;top:-2px;left:2px}
+.action-body{flex:1;min-width:0}
+.action-desc{font-size:12px;color:var(--text);line-height:1.4}
+.action-desc.done{text-decoration:line-through;color:var(--text3)}
+.action-meta{font-size:10px;color:var(--text3);margin-top:2px;display:flex;gap:8px;flex-wrap:wrap}
+.action-late{color:var(--red);font-weight:500}
+.add-action-btn{width:100%;padding:7px;border:1px dashed var(--border2);background:none;color:var(--purple);font-size:11px;font-weight:500;cursor:pointer;border-radius:var(--radius-sm);margin-top:8px}
+.add-action-btn:hover{background:var(--purple-bg)}
+
+.client-visible{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:6px;font-size:10px;font-weight:500;background:var(--blue-bg);color:var(--blue)}
+
+/* MODAL */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:100;align-items:flex-start;justify-content:center;padding:28px 14px;overflow-y:auto}
+.modal-overlay.open{display:flex}
+.modal{background:var(--card);border-radius:var(--radius);width:100%;max-width:560px}
+.modal-header{padding:13px 18px;border-bottom:0.5px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.modal-title{font-size:13px;font-weight:600;color:var(--text)}
+.modal-close{width:24px;height:24px;border-radius:4px;border:0.5px solid var(--border);background:none;cursor:pointer;font-size:14px;color:var(--text2)}
+.modal-body{padding:16px 18px}
+.modal-footer{padding:10px 18px;border-top:0.5px solid var(--border);display:flex;gap:7px;justify-content:flex-end}
+.form-group{margin-bottom:12px}
+.form-label{font-size:11px;font-weight:500;color:var(--text2);margin-bottom:4px;display:block}
+.req{color:var(--red);margin-left:2px}
+.form-input{width:100%;padding:7px 9px;border:0.5px solid var(--border2);border-radius:var(--radius-sm);font-size:12px;color:var(--text);background:var(--card);outline:none;font-family:inherit}
+.form-input:focus{border-color:var(--purple)}
+textarea.form-input{resize:vertical;min-height:60px;line-height:1.5}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.form-hint{font-size:10px;color:var(--text3);margin-top:2px}
+.checkbox-list{display:grid;grid-template-columns:repeat(2,1fr);gap:6px;max-height:200px;overflow-y:auto;padding:8px;background:var(--bg);border-radius:var(--radius-sm)}
+.peserta-check{display:flex;align-items:center;gap:6px;padding:4px 6px;border-radius:4px;font-size:11px;cursor:pointer}
+.peserta-check:hover{background:var(--card)}
+.peserta-check input{cursor:pointer}
+
+.empty{text-align:center;padding:24px;color:var(--text3);font-size:11px}
+.loading{text-align:center;padding:20px;color:var(--text3);font-size:11px}
+.toast{position:fixed;bottom:20px;right:20px;background:var(--text);color:#fff;padding:9px 14px;border-radius:var(--radius-sm);font-size:12px;z-index:200;opacity:0;transition:opacity .2s;pointer-events:none}
+.toast.show{opacity:1}
+
+@media(max-width:900px){
+  .layout{grid-template-columns:1fr}
+  .detail{position:static}
+}
+@media(max-width:768px){
+  .sidebar{display:none}.main{margin-left:0;padding:12px}
+  .stats{grid-template-columns:1fr 1fr}.form-row{grid-template-columns:1fr}
+  .checkbox-list{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+<div class="app">
+<div class="sidebar">
+  <div class="logo"><div class="logo-name">Moona</div><div class="logo-sub">Architect System</div><div class="logo-ver">v2</div></div>
+  <div class="nav-section">Utama</div>
+  <div class="nav-item" onclick="go('moona-v2-dashboard.html')"><span class="nav-dot" style="background:#888780"></span>Dashboard</div>
+  <div class="nav-section">Sales</div>
+  <div class="nav-item" onclick="go('moona-v2-crm.html')"><span class="nav-dot" style="background:var(--coral-mid)"></span>CRM &amp; Sales</div>
+  <div class="nav-item" onclick="go('moona-v2-client-portal.html')"><span class="nav-dot" style="background:var(--blue)"></span>Client Portal</div>
+  <div class="nav-section">Operasional</div>
+  <div class="nav-item" onclick="go('moona-v2-projects.html')"><span class="nav-dot" style="background:var(--teal)"></span>Project Management</div>
+  <div class="nav-item" onclick="go('moona-v2-laporan-design-v4.html')"><span class="nav-dot" style="background:var(--purple)"></span>Laporan Design</div>
+  <div class="nav-item" onclick="go('moona-v2-laporan-build-v4.html')"><span class="nav-dot" style="background:var(--teal)"></span>Laporan Build</div>
+  <div class="nav-section">Lainnya</div>
+  <div class="nav-item active"><span class="nav-dot" style="background:var(--purple)"></span>Meeting Tracker</div>
+  <div class="nav-item" onclick="go('moona-v2-finance.html')"><span class="nav-dot" style="background:var(--amber)"></span>Finance</div>
+  <div class="nav-item" onclick="go('moona-v2-content.html')"><span class="nav-dot" style="background:var(--coral-mid)"></span>Content Planner</div>
+  <div class="nav-item" onclick="go('moona-v2-sop.html')"><span class="nav-dot" style="background:#888780"></span>SOP &amp; Dokumen</div>
+  <div class="sidebar-footer">
+    <div class="sf-label">Login sebagai</div>
+    <div class="sf-name" id="sf-name">–</div>
+    <div class="sf-logout" onclick="logout()">Keluar</div>
+  </div>
+</div>
+
+<div class="main">
+  <div class="topbar">
+    <div><div class="page-title">Meeting Tracker</div><div class="page-sub">Notulen, keputusan, action items tim</div></div>
+    <button class="btn btn-primary" onclick="openMeetingForm()">+ Meeting Baru</button>
+  </div>
+
+  <div class="stats">
+    <div class="stat"><div class="stat-label">Total meeting</div><div class="stat-val" id="s-total">–</div></div>
+    <div class="stat"><div class="stat-label">Bulan ini</div><div class="stat-val" id="s-month">–</div></div>
+    <div class="stat"><div class="stat-label">Action items open</div><div class="stat-val" id="s-open" style="color:var(--amber)">–</div></div>
+    <div class="stat"><div class="stat-label">Terlambat</div><div class="stat-val" id="s-late" style="color:var(--red)">–</div></div>
+  </div>
+
+  <div class="filter-bar">
+    <div class="fpill active" onclick="setTipe('',this)">Semua</div>
+    <div class="fpill" onclick="setTipe('Internal',this)">Internal</div>
+    <div class="fpill" onclick="setTipe('Klien',this)">Klien</div>
+    <div class="fpill" onclick="setTipe('Proyek',this)">Proyek</div>
+    <div class="fpill" onclick="setTipe('Vendor',this)">Vendor</div>
+  </div>
+
+  <div class="layout">
+    <div>
+      <div class="card">
+        <div class="card-header"><span class="card-title">Daftar meeting</span></div>
+        <div id="mtg-list"><div class="loading">Memuat...</div></div>
+      </div>
+    </div>
+    <div>
+      <div id="detail-wrap">
+        <div class="card">
+          <div class="empty" style="padding:40px 20px">Pilih meeting untuk lihat detail</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- MODAL MEETING -->
+<div class="modal-overlay" id="modal-mtg">
+  <div class="modal">
+    <div class="modal-header"><span class="modal-title" id="mtg-modal-title">Meeting Baru</span><button class="modal-close" onclick="closeModal('modal-mtg')">✕</button></div>
+    <div class="modal-body">
+      <div class="form-group"><label class="form-label">Judul meeting <span class="req">*</span></label>
+        <input id="mf-judul" class="form-input" placeholder="Contoh: Koordinasi proyek Villa Pak Andi"></div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Tipe meeting <span class="req">*</span></label>
+          <select id="mf-tipe" class="form-input">
+            <option value="">Pilih tipe</option>
+            <option>Internal</option>
+            <option>Klien</option>
+            <option>Proyek</option>
+            <option>Vendor</option>
+          </select>
+        </div>
+        <div class="form-group"><label class="form-label">Tanggal meeting <span class="req">*</span></label>
+          <input id="mf-tanggal" class="form-input" type="date"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Lokasi</label>
+          <input id="mf-lokasi" class="form-input" placeholder="Kantor, Zoom, On-site, dll"></div>
+        <div class="form-group"><label class="form-label">Terkait proyek (opsional)</label>
+          <select id="mf-project" class="form-input"><option value="">Tidak ada</option></select></div>
+      </div>
+      <div class="form-group"><label class="form-label">Peserta <span class="req">*</span></label>
+        <div class="checkbox-list" id="mf-peserta-list"></div>
+        <div class="form-hint">Peserta undangan. Centang di sini dulu, nanti bisa tandai yang hadir.</div>
+      </div>
+      <div class="form-group" id="mf-hadir-wrap" style="display:none"><label class="form-label">Siapa yang hadir?</label>
+        <div class="checkbox-list" id="mf-hadir-list"></div>
+        <div class="form-hint">Centang hanya yang hadir di meeting.</div>
+      </div>
+      <div class="form-group"><label class="form-label">Keputusan / hasil utama</label>
+        <textarea id="mf-keputusan" class="form-input" placeholder="Poin-poin keputusan dari meeting ini"></textarea></div>
+      <div class="form-group"><label class="form-label">Catatan tambahan</label>
+        <textarea id="mf-catatan" class="form-input" style="min-height:50px" placeholder="Opsional"></textarea></div>
+      <div class="form-group">
+        <label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer">
+          <input id="mf-visible" type="checkbox" style="cursor:pointer">
+          <span>Tampilkan meeting ini di Client Portal</span>
+        </label>
+        <div class="form-hint">Centang jika klien perlu lihat meeting ini (biasanya untuk meeting tipe Klien/Proyek)</div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('modal-mtg')">Batal</button>
+      <button class="btn btn-primary" id="save-mtg-btn" onclick="saveMeeting()">Simpan Meeting</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL ACTION ITEM -->
+<div class="modal-overlay" id="modal-action">
+  <div class="modal" style="max-width:440px">
+    <div class="modal-header"><span class="modal-title">Tambah Action Item</span><button class="modal-close" onclick="closeModal('modal-action')">✕</button></div>
+    <div class="modal-body">
+      <div class="form-group"><label class="form-label">Deskripsi tugas <span class="req">*</span></label>
+        <textarea id="af-desc" class="form-input" placeholder="Apa yang harus dilakukan?"></textarea></div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">PIC <span class="req">*</span></label>
+          <select id="af-pic" class="form-input"><option value="">Pilih PIC</option></select></div>
+        <div class="form-group"><label class="form-label">Deadline <span class="req">*</span></label>
+          <input id="af-deadline" class="form-input" type="date"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('modal-action')">Batal</button>
+      <button class="btn btn-primary" id="save-action-btn" onclick="saveAction()">Simpan</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+<script>
+var API = 'https://script.google.com/macros/s/AKfycbwkjBr_opT5V05KY6fQG3Aa2i7URgxpzX7a1ga3mBFKS3CeMbCvyLzdkNpHIhgg4Xxncw/exec';
+var meetings = [], actions = [], projects = [], users = [];
+var selectedId = null, filterTipe = '', editMode = false;
+
+function getSession() { try { return JSON.parse(localStorage.getItem('moona_v2_session')); } catch(e) { return null; } }
+function logout() { localStorage.removeItem('moona_v2_session'); location.href = 'moona-v2-login.html'; }
+function go(u) { location.href = u; }
+var S = getSession();
+if (!S) { location.href = 'moona-v2-login.html'; }
+else { document.getElementById('sf-name').textContent = S.nama + ' - ' + S.role; }
+
+function p(o) {
+  for (var i = 1; i < arguments.length; i++) {
+    var k = arguments[i];
+    if (o[k] !== undefined && o[k] !== null && String(o[k]).trim() !== '') return String(o[k]);
+  }
+  return '';
+}
+function showToast(m) { var t = document.getElementById('toast'); t.textContent = m; t.classList.add('show'); setTimeout(function(){t.classList.remove('show');}, 2800); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+function fmtDate(s) { if (!s) return '-'; try { return new Date(s).toLocaleDateString('id-ID',{day:'numeric',month:'short',year:'numeric'}); } catch(e) { return s; } }
+function setTipe(t, el) { filterTipe = t; var pills = document.querySelectorAll('.fpill'); for (var i = 0; i < pills.length; i++) pills[i].classList.remove('active'); el.classList.add('active'); renderList(); }
+
+window.onload = function() {
+  Promise.all([loadMeetings(), loadActions(), loadProjects(), loadUsers()]);
+  document.getElementById('mf-tanggal').value = new Date().toISOString().split('T')[0];
+};
+
+function loadMeetings() {
+  return fetch(API + '?action=getMeetings').then(function(r){return r.json();}).then(function(d){
+    if (d.status === 'ok') { meetings = d.data; renderList(); updateStats(); }
+  }).catch(function(){ document.getElementById('mtg-list').innerHTML = '<div class="empty">Gagal memuat.</div>'; });
+}
+function loadActions() {
+  return fetch(API + '?action=getActionItems').then(function(r){return r.json();}).then(function(d){
+    if (d.status === 'ok') { actions = d.data; updateStats(); if (selectedId) selectMtg(selectedId); }
+  });
+}
+function loadProjects() {
+  return fetch(API + '?action=getProjects').then(function(r){return r.json();}).then(function(d){
+    if (d.status === 'ok') {
+      projects = d.data;
+      var html = '<option value="">Tidak ada</option>';
+      for (var i = 0; i < d.data.length; i++) html += '<option value="' + p(d.data[i],'ID') + '">' + p(d.data[i],'NamaProyek') + '</option>';
+      document.getElementById('mf-project').innerHTML = html;
+    }
+  });
+}
+function loadUsers() {
+  return fetch(API + '?action=getUsers').then(function(r){return r.json();}).then(function(d){
+    if (d.status === 'ok') {
+      users = d.data;
+      renderPesertaList();
+      var picHtml = '<option value="">Pilih PIC</option>';
+      for (var i = 0; i < d.data.length; i++) picHtml += '<option value="' + d.data[i].nama + '">' + d.data[i].nama + '</option>';
+      document.getElementById('af-pic').innerHTML = picHtml;
+    }
+  });
+}
+
+function renderPesertaList() {
+  var html = '';
+  for (var i = 0; i < users.length; i++) {
+    html += '<label class="peserta-check"><input type="checkbox" class="peserta-chk" value="' + users[i].nama + '"><span>' + users[i].nama + '</span></label>';
+  }
+  document.getElementById('mf-peserta-list').innerHTML = html || '<div style="font-size:11px;color:var(--text3);padding:8px">Belum ada user.</div>';
+  // Listener update hadir list saat peserta berubah
+  var chks = document.querySelectorAll('.peserta-chk');
+  for (var j = 0; j < chks.length; j++) chks[j].addEventListener('change', updateHadirList);
+}
+
+function updateHadirList() {
+  var selected = [];
+  var chks = document.querySelectorAll('.peserta-chk:checked');
+  for (var i = 0; i < chks.length; i++) selected.push(chks[i].value);
+  var wrap = document.getElementById('mf-hadir-wrap');
+  var list = document.getElementById('mf-hadir-list');
+  if (selected.length === 0) { wrap.style.display = 'none'; return; }
+  wrap.style.display = 'block';
+  var html = '';
+  for (var j = 0; j < selected.length; j++) {
+    html += '<label class="peserta-check"><input type="checkbox" class="hadir-chk" value="' + selected[j] + '" checked><span>' + selected[j] + '</span></label>';
+  }
+  list.innerHTML = html;
+}
+
+function updateStats() {
+  var now = new Date();
+  var thisMonth = now.getMonth();
+  var thisYear = now.getFullYear();
+  var monthCount = 0;
+  for (var i = 0; i < meetings.length; i++) {
+    try {
+      var d = new Date(p(meetings[i],'TanggalMeeting') || p(meetings[i],'Tanggal'));
+      if (d.getMonth() === thisMonth && d.getFullYear() === thisYear) monthCount++;
+    } catch(e){}
+  }
+  var openCount = 0, lateCount = 0;
+  var today = new Date(); today.setHours(0,0,0,0);
+  for (var j = 0; j < actions.length; j++) {
+    if (p(actions[j],'Status') !== 'Done') {
+      openCount++;
+      var dl = p(actions[j],'Deadline');
+      if (dl && new Date(dl) < today) lateCount++;
+    }
+  }
+  document.getElementById('s-total').textContent = meetings.length;
+  document.getElementById('s-month').textContent = monthCount;
+  document.getElementById('s-open').textContent = openCount;
+  document.getElementById('s-late').textContent = lateCount;
+}
+
+function renderList() {
+  var el = document.getElementById('mtg-list');
+  var f = [];
+  for (var i = 0; i < meetings.length; i++) {
+    if (!filterTipe || p(meetings[i],'Tipe') === filterTipe) f.push(meetings[i]);
+  }
+  if (!f.length) { el.innerHTML = '<div class="empty">Belum ada meeting.</div>'; return; }
+  var sorted = f.slice().sort(function(a, b){
+    var da = new Date(p(a,'TanggalMeeting') || p(a,'Tanggal'));
+    var db = new Date(p(b,'TanggalMeeting') || p(b,'Tanggal'));
+    return db - da;
+  });
+  var parts = [];
+  for (var k = 0; k < sorted.length; k++) {
+    var m = sorted[k];
+    var id = p(m,'ID');
+    var tipe = p(m,'Tipe') || 'Internal';
+    var tanggalMtg = p(m,'TanggalMeeting') || p(m,'Tanggal');
+    var proj = null;
+    if (p(m,'Project_ID')) {
+      for (var j = 0; j < projects.length; j++) { if (p(projects[j],'ID') === p(m,'Project_ID')) { proj = projects[j]; break; } }
+    }
+    var actionCount = 0;
+    for (var a = 0; a < actions.length; a++) { if (p(actions[a],'Meeting_ID') === id) actionCount++; }
+    var html = '<div class="mtg-row' + (selectedId === id ? ' selected' : '') + '" onclick="selectMtg(\'' + id + '\')">';
+    html += '<div class="mtg-head">';
+    html += '<div style="flex:1"><div class="mtg-title">' + p(m,'Judul') + '</div>';
+    html += '<div class="mtg-meta">' + fmtDate(tanggalMtg) + (p(m,'Lokasi') ? ' · ' + p(m,'Lokasi') : '') + (proj ? ' · ' + p(proj,'NamaProyek') : '') + '</div></div>';
+    html += '<span class="mtg-tipe t-' + tipe.toLowerCase() + '">' + tipe + '</span>';
+    html += '</div>';
+    html += '<div style="display:flex;gap:8px;font-size:10px;color:var(--text3);margin-top:4px">';
+    if (actionCount > 0) html += '<span>' + actionCount + ' action item</span>';
+    if (p(m,'VisibleToClient') === 'Yes') html += '<span class="client-visible">👥 Klien</span>';
+    html += '</div>';
+    html += '</div>';
+    parts.push(html);
+  }
+  el.innerHTML = parts.join('');
+}
+
+function selectMtg(id) {
+  selectedId = id;
+  renderList();
+  var m = null;
+  for (var i = 0; i < meetings.length; i++) { if (p(meetings[i],'ID') === id) { m = meetings[i]; break; } }
+  if (!m) return;
+  var proj = null;
+  if (p(m,'Project_ID')) {
+    for (var j = 0; j < projects.length; j++) { if (p(projects[j],'ID') === p(m,'Project_ID')) { proj = projects[j]; break; } }
+  }
+  var tipe = p(m,'Tipe') || 'Internal';
+  var tanggalMtg = p(m,'TanggalMeeting') || p(m,'Tanggal');
+  var peserta = (p(m,'Peserta') || '').split(',').map(function(x){return x.trim();}).filter(function(x){return x;});
+  var hadir = (p(m,'PesertaHadir') || '').split(',').map(function(x){return x.trim();}).filter(function(x){return x;});
+  var myActions = [];
+  for (var a = 0; a < actions.length; a++) { if (p(actions[a],'Meeting_ID') === id) myActions.push(actions[a]); }
+
+  var html = '<div class="card"><div class="detail-head">';
+  html += '<div class="d-title">' + p(m,'Judul') + '</div>';
+  html += '<div class="d-meta">';
+  html += '<span class="mtg-tipe t-' + tipe.toLowerCase() + '">' + tipe + '</span>';
+  html += '<span>' + fmtDate(tanggalMtg) + '</span>';
+  if (p(m,'Lokasi')) html += '<span>· ' + p(m,'Lokasi') + '</span>';
+  if (p(m,'VisibleToClient') === 'Yes') html += '<span class="client-visible">Tampil di Client Portal</span>';
+  html += '</div>';
+  html += '<div class="d-actions">';
+  html += '<button class="btn btn-sm" onclick="openMeetingForm(\'' + id + '\')">Edit</button>';
+  html += '<button class="btn btn-sm btn-primary" onclick="openActionForm()">+ Action Item</button>';
+  html += '</div></div>';
+
+  if (proj) {
+    html += '<div class="d-section"><div class="d-label">Proyek terkait</div><div class="d-val"><strong>' + p(proj,'NamaProyek') + '</strong> · ' + p(proj,'NamaKlien') + '</div></div>';
+  }
+
+  html += '<div class="d-section"><div class="d-label">Peserta (' + hadir.length + '/' + peserta.length + ' hadir)</div>';
+  html += '<div class="peserta-list">';
+  for (var pp = 0; pp < peserta.length; pp++) {
+    var isHadir = hadir.indexOf(peserta[pp]) >= 0;
+    html += '<span class="peserta-pill ' + (isHadir ? 'hadir' : 'absen') + '">' + peserta[pp] + '</span>';
+  }
+  html += '</div></div>';
+
+  if (p(m,'Keputusan')) html += '<div class="d-section"><div class="d-label">Keputusan</div><div class="d-val" style="white-space:pre-wrap">' + p(m,'Keputusan') + '</div></div>';
+  if (p(m,'Catatan')) html += '<div class="d-section"><div class="d-label">Catatan</div><div class="d-val" style="white-space:pre-wrap">' + p(m,'Catatan') + '</div></div>';
+
+  html += '<div class="d-section"><div class="d-label">Action Items (' + myActions.length + ')</div>';
+  if (myActions.length === 0) {
+    html += '<div style="font-size:11px;color:var(--text3);padding:5px 0">Belum ada action item.</div>';
+  } else {
+    var today = new Date(); today.setHours(0,0,0,0);
+    for (var n = 0; n < myActions.length; n++) {
+      var act = myActions[n];
+      var isDone = p(act,'Status') === 'Done';
+      var dl = p(act,'Deadline');
+      var isLate = dl && new Date(dl) < today && !isDone;
+      html += '<div class="action-item">';
+      html += '<div class="action-chk ' + (isDone ? 'done' : '') + '" onclick="toggleAction(\'' + p(act,'ID') + '\',' + !isDone + ')"></div>';
+      html += '<div class="action-body">';
+      html += '<div class="action-desc ' + (isDone ? 'done' : '') + '">' + p(act,'Deskripsi') + '</div>';
+      html += '<div class="action-meta">';
+      html += '<span>PIC: ' + p(act,'PIC') + '</span>';
+      html += '<span class="' + (isLate ? 'action-late' : '') + '">' + (isLate ? 'Terlambat · ' : '') + fmtDate(dl) + '</span>';
+      html += '</div></div></div>';
+    }
+  }
+  html += '<button class="add-action-btn" onclick="openActionForm()">+ Tambah action item</button>';
+  html += '</div></div>';
+
+  document.getElementById('detail-wrap').innerHTML = html;
+}
+
+// MEETING FORM
+function openMeetingForm(id) {
+  editMode = !!id;
+  document.getElementById('mtg-modal-title').textContent = editMode ? 'Edit Meeting' : 'Meeting Baru';
+  // Reset semua
+  var ids = ['mf-judul','mf-tipe','mf-tanggal','mf-lokasi','mf-project','mf-keputusan','mf-catatan'];
+  for (var i = 0; i < ids.length; i++) { var el = document.getElementById(ids[i]); if (el) el.value = ''; }
+  document.getElementById('mf-visible').checked = false;
+  document.getElementById('mf-tanggal').value = new Date().toISOString().split('T')[0];
+  renderPesertaList();
+  document.getElementById('mf-hadir-wrap').style.display = 'none';
+  
+  if (editMode) {
+    var m = null;
+    for (var j = 0; j < meetings.length; j++) { if (p(meetings[j],'ID') === id) { m = meetings[j]; break; } }
+    if (m) {
+      document.getElementById('mf-judul').value = p(m,'Judul');
+      document.getElementById('mf-tipe').value = p(m,'Tipe');
+      var tgl = p(m,'TanggalMeeting');
+      if (tgl) try { document.getElementById('mf-tanggal').value = new Date(tgl).toISOString().split('T')[0]; } catch(e){}
+      document.getElementById('mf-lokasi').value = p(m,'Lokasi');
+      document.getElementById('mf-project').value = p(m,'Project_ID');
+      document.getElementById('mf-keputusan').value = p(m,'Keputusan');
+      document.getElementById('mf-catatan').value = p(m,'Catatan');
+      document.getElementById('mf-visible').checked = p(m,'VisibleToClient') === 'Yes';
+      var peserta = (p(m,'Peserta') || '').split(',').map(function(x){return x.trim();});
+      var hadir = (p(m,'PesertaHadir') || '').split(',').map(function(x){return x.trim();});
+      var chks = document.querySelectorAll('.peserta-chk');
+      for (var k = 0; k < chks.length; k++) { if (peserta.indexOf(chks[k].value) >= 0) chks[k].checked = true; }
+      updateHadirList();
+      var hchks = document.querySelectorAll('.hadir-chk');
+      for (var h = 0; h < hchks.length; h++) { hchks[h].checked = hadir.indexOf(hchks[h].value) >= 0; }
+    }
+  }
+  document.getElementById('modal-mtg').classList.add('open');
+}
+
+function saveMeeting() {
+  var judul = document.getElementById('mf-judul').value.trim();
+  var tipe = document.getElementById('mf-tipe').value;
+  var tanggal = document.getElementById('mf-tanggal').value;
+  var peserta = [];
+  var pchks = document.querySelectorAll('.peserta-chk:checked');
+  for (var i = 0; i < pchks.length; i++) peserta.push(pchks[i].value);
+  if (!judul || !tipe || !tanggal || !peserta.length) { showToast('Lengkapi field wajib'); return; }
+  var hadir = [];
+  var hchks = document.querySelectorAll('.hadir-chk:checked');
+  for (var j = 0; j < hchks.length; j++) hadir.push(hchks[j].value);
+  
+  var btn = document.getElementById('save-mtg-btn');
+  btn.textContent = 'Menyimpan...'; btn.disabled = true;
+  var payload = {
+    action: editMode ? 'updateMeeting' : 'addMeeting',
+    judul: judul, tipe: tipe,
+    tanggalMeeting: tanggal,
+    lokasi: document.getElementById('mf-lokasi').value.trim(),
+    projectId: document.getElementById('mf-project').value,
+    peserta: peserta.join(', '),
+    pesertaHadir: hadir.join(', '),
+    keputusan: document.getElementById('mf-keputusan').value.trim(),
+    catatan: document.getElementById('mf-catatan').value.trim(),
+    visibleToClient: document.getElementById('mf-visible').checked ? 'Yes' : 'No'
+  };
+  if (editMode) payload.id = selectedId;
+  
+  fetch(API, { method: 'POST', body: JSON.stringify(payload) })
+    .then(function(r){return r.json();})
+    .then(function(d){
+      if (d.status === 'ok') {
+        closeModal('modal-mtg');
+        showToast(editMode ? 'Meeting diperbarui!' : 'Meeting disimpan!');
+        if (!editMode && d.id) selectedId = d.id;
+        loadMeetings().then(function(){ if (selectedId) selectMtg(selectedId); });
+      } else {
+        showToast('Gagal: ' + d.message);
+      }
+    })
+    .catch(function(e){ showToast('Error: ' + e.message); })
+    .then(function(){ btn.textContent = 'Simpan Meeting'; btn.disabled = false; });
+}
+
+// ACTION ITEM
+function openActionForm() {
+  if (!selectedId) { showToast('Pilih meeting dulu'); return; }
+  document.getElementById('af-desc').value = '';
+  document.getElementById('af-pic').value = '';
+  document.getElementById('af-deadline').value = '';
+  document.getElementById('modal-action').classList.add('open');
+}
+
+function saveAction() {
+  var desc = document.getElementById('af-desc').value.trim();
+  var pic = document.getElementById('af-pic').value;
+  var dl = document.getElementById('af-deadline').value;
+  if (!desc || !pic || !dl) { showToast('Lengkapi semua field'); return; }
+  var btn = document.getElementById('save-action-btn');
+  btn.textContent = 'Menyimpan...'; btn.disabled = true;
+  fetch(API, { method: 'POST', body: JSON.stringify({
+    action: 'addActionItem', meetingId: selectedId,
+    deskripsi: desc, pic: pic, deadline: dl
+  })})
+    .then(function(r){return r.json();})
+    .then(function(d){
+      if (d.status === 'ok') {
+        closeModal('modal-action');
+        showToast('Action item ditambahkan!');
+        loadActions();
+      } else { showToast('Gagal: ' + d.message); }
+    })
+    .catch(function(){ showToast('Error'); })
+    .then(function(){ btn.textContent = 'Simpan'; btn.disabled = false; });
+}
+
+function toggleAction(id, done) {
+  fetch(API, { method: 'POST', body: JSON.stringify({
+    action: 'updateActionStatus', id: id, status: done ? 'Done' : 'Open'
+  })})
+    .then(function(r){return r.json();})
+    .then(function(d){ if (d.status === 'ok') loadActions(); });
+}
+</script>
+</body>
+</html>

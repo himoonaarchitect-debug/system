@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Moona Architect — Portal Klien</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f8f7f4;--card:#fff;--border:#e5e3dc;--border2:#d0cec7;
+  --text:#1a1a18;--text2:#6b6a64;--text3:#9d9b94;
+  --coral:#993C1D;--coral-mid:#D85A30;--coral-bg:#FAECE7;
+  --purple:#534AB7;--purple-bg:#EEEDFE;
+  --teal:#0F6E56;--teal-bg:#E1F5EE;
+  --amber:#854F0B;--amber-bg:#FAEEDA;
+  --red:#A32D2D;--red-bg:#FCEBEB;
+  --green:#3B6D11;--green-bg:#EAF3DE;
+  --blue:#185FA5;--blue-bg:#E6F1FB;
+  --gray:#5F5E5A;--gray-bg:#F1EFE8;
+  --radius:12px;--radius-sm:8px;
+}
+body{background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:var(--text);font-size:14px;min-height:100vh}
+
+.header{background:var(--card);border-bottom:0.5px solid var(--border);padding:16px 24px;position:sticky;top:0;z-index:10}
+.header-inner{max-width:900px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:10px}
+.brand-name{font-size:16px;font-weight:600;color:var(--text)}
+.brand-sub{font-size:10px;color:var(--text3);margin-top:2px}
+.brand-badge{background:var(--coral-bg);color:var(--coral);font-size:9px;font-weight:600;padding:2px 6px;border-radius:4px}
+.user-pill{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text2)}
+.user-avatar{width:28px;height:28px;border-radius:50%;background:var(--coral-mid);color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600}
+
+.container{max-width:900px;margin:0 auto;padding:20px 24px 80px}
+
+.project-switcher{display:flex;gap:6px;margin-bottom:16px;overflow-x:auto;padding-bottom:4px}
+.proj-tab{padding:8px 14px;border-radius:20px;border:0.5px solid var(--border2);background:var(--card);font-size:12px;font-weight:500;color:var(--text2);cursor:pointer;white-space:nowrap}
+.proj-tab.active{background:var(--coral-mid);color:#fff;border-color:var(--coral-mid)}
+
+.hero{background:var(--card);border:0.5px solid var(--border);border-radius:var(--radius);padding:20px 22px;margin-bottom:14px}
+.hero-title{font-size:18px;font-weight:600;margin-bottom:4px}
+.hero-meta{font-size:11px;color:var(--text3);display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+.hero-progress{margin-top:10px}
+.progress-label{display:flex;justify-content:space-between;font-size:11px;margin-bottom:5px}
+.progress-bar{height:8px;background:var(--bg);border-radius:4px;overflow:hidden}
+.progress-fill{height:100%;background:linear-gradient(90deg,var(--coral-mid),var(--coral));transition:width .5s}
+
+.section{margin-bottom:18px}
+.section-title{font-size:13px;font-weight:600;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between}
+.section-count{font-size:10px;color:var(--text3);font-weight:500;background:var(--bg);padding:2px 8px;border-radius:8px}
+
+.card{background:var(--card);border:0.5px solid var(--border);border-radius:var(--radius);overflow:hidden}
+
+.stage-tl{padding:12px 16px;border-bottom:0.5px solid var(--border)}
+.stage-tl:last-child{border-bottom:none}
+.stage-head{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+.stage-icon{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:#fff;flex-shrink:0}
+.stage-icon.done{background:var(--teal)}
+.stage-icon.active{background:var(--coral-mid)}
+.stage-icon.pending{background:var(--border);color:var(--text3)}
+.stage-name{font-size:12px;font-weight:500;flex:1}
+.stage-pct{font-size:11px;font-weight:600;color:var(--text2)}
+.stage-bar{height:4px;background:var(--bg);border-radius:2px;overflow:hidden;margin-left:32px}
+.stage-bar-fill{height:100%;background:var(--coral-mid)}
+
+.meeting-row{padding:11px 16px;border-bottom:0.5px solid var(--border)}
+.meeting-row:last-child{border-bottom:none}
+.mr-title{font-size:12px;font-weight:500;margin-bottom:3px}
+.mr-meta{font-size:10px;color:var(--text3);margin-bottom:5px}
+.mr-content{font-size:11px;color:var(--text2);line-height:1.5;white-space:pre-wrap}
+
+.doc-row{padding:11px 16px;border-bottom:0.5px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:10px}
+.doc-row:last-child{border-bottom:none}
+.doc-info{flex:1;min-width:0}
+.doc-name{font-size:12px;font-weight:500}
+.doc-meta{font-size:10px;color:var(--text3);margin-top:2px;display:flex;gap:6px;align-items:center}
+.doc-tipe{background:var(--bg);padding:2px 7px;border-radius:6px;font-size:9px}
+.btn{padding:6px 12px;border-radius:var(--radius-sm);border:0.5px solid var(--border2);background:var(--card);color:var(--text);font-size:11px;font-weight:500;cursor:pointer;text-decoration:none;display:inline-block}
+.btn:hover{background:var(--bg)}
+.btn-primary{background:var(--coral-mid);color:#fff;border-color:var(--coral-mid)}
+.btn-primary:hover{opacity:.9}
+
+.inv-row{padding:11px 16px;border-bottom:0.5px solid var(--border);display:flex;justify-content:space-between;align-items:center;gap:10px}
+.inv-row:last-child{border-bottom:none}
+.inv-info{flex:1}
+.inv-termin{font-size:12px;font-weight:500}
+.inv-meta{font-size:10px;color:var(--text3);margin-top:2px}
+.inv-amount{font-size:13px;font-weight:600;font-variant-numeric:tabular-nums}
+.pill{display:inline-flex;padding:2px 8px;border-radius:7px;font-size:10px;font-weight:500;white-space:nowrap}
+.s-lunas{background:var(--green-bg);color:var(--green)}
+.s-menunggu{background:var(--amber-bg);color:var(--amber)}
+.s-late{background:var(--red-bg);color:var(--red)}
+
+.gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:6px;padding:12px}
+.gallery-item{aspect-ratio:1;background:var(--bg);border-radius:var(--radius-sm);overflow:hidden;position:relative;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.gallery-item:hover{opacity:.85}
+.gallery-link{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--text2);padding:10px;text-align:center;line-height:1.4;text-decoration:none}
+.gallery-label{position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,.5);color:#fff;padding:4px 6px;font-size:9px}
+
+.chat-box{background:var(--card);border:0.5px solid var(--border);border-radius:var(--radius);overflow:hidden}
+.chat-msgs{max-height:320px;overflow-y:auto;padding:12px 14px}
+.msg{margin-bottom:10px;display:flex;flex-direction:column;max-width:80%}
+.msg.klien{align-self:flex-end;margin-left:auto;align-items:flex-end}
+.msg-bubble{padding:8px 11px;border-radius:var(--radius-sm);font-size:12px;line-height:1.4;white-space:pre-wrap;word-break:break-word}
+.msg.klien .msg-bubble{background:var(--coral-mid);color:#fff;border-bottom-right-radius:3px}
+.msg.tim .msg-bubble{background:var(--bg);color:var(--text);border-bottom-left-radius:3px}
+.msg-name{font-size:10px;color:var(--text3);margin-bottom:2px}
+.msg.klien .msg-name{text-align:right}
+.msg-time{font-size:9px;color:var(--text3);margin-top:3px}
+.msg.klien .msg-time{text-align:right}
+
+.chat-input{border-top:0.5px solid var(--border);padding:10px 12px;display:flex;gap:6px}
+.chat-field{flex:1;padding:8px 10px;border:0.5px solid var(--border2);border-radius:var(--radius-sm);font-size:12px;outline:none;font-family:inherit;resize:none;min-height:36px;max-height:80px}
+.chat-field:focus{border-color:var(--coral-mid)}
+.chat-send{padding:8px 14px;background:var(--coral-mid);color:#fff;border:none;border-radius:var(--radius-sm);cursor:pointer;font-size:12px;font-weight:500}
+
+.chat-name-ask{padding:14px;background:var(--bg);border-radius:var(--radius-sm);text-align:center;font-size:12px;color:var(--text2)}
+
+.empty{text-align:center;padding:30px 20px;color:var(--text3);font-size:11px}
+.loading-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:10px}
+.error-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:10px;text-align:center;padding:40px}
+
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--text);color:#fff;padding:9px 16px;border-radius:var(--radius-sm);font-size:12px;z-index:200;opacity:0;transition:opacity .2s;pointer-events:none}
+.toast.show{opacity:1}
+
+@media(max-width:640px){
+  .container{padding:14px}
+  .header{padding:12px 14px}
+  .hero{padding:16px}
+  .gallery{grid-template-columns:repeat(auto-fill,minmax(110px,1fr))}
+}
+</style>
+</head>
+<body>
+
+<div id="loading-view" class="loading-screen">
+  <div style="font-size:16px;font-weight:600;color:var(--coral)">Moona Architect</div>
+  <div style="font-size:12px;color:var(--text3)">Memuat portal...</div>
+</div>
+
+<div id="error-view" class="error-screen" style="display:none">
+  <div style="font-size:32px">🔒</div>
+  <div style="font-size:16px;font-weight:600" id="error-title">Akses tidak valid</div>
+  <div style="font-size:12px;color:var(--text3);max-width:300px" id="error-msg">Link yang Anda gunakan tidak ditemukan atau sudah dinonaktifkan. Hubungi tim Moona untuk link baru.</div>
+</div>
+
+<div id="main-view" style="display:none">
+  <div class="header">
+    <div class="header-inner">
+      <div class="brand">
+        <div>
+          <div class="brand-name">Moona Architect <span class="brand-badge">Portal Klien</span></div>
+          <div class="brand-sub">Design-build residential &amp; commercial</div>
+        </div>
+      </div>
+      <div class="user-pill">
+        <div class="user-avatar" id="avatar-letter">–</div>
+        <div>
+          <div style="font-weight:500;color:var(--text);font-size:12px" id="klien-name">–</div>
+          <div style="font-size:10px" id="project-count">–</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="container">
+    <div id="project-switcher" class="project-switcher"></div>
+    <div id="content-area"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+var API = 'https://script.google.com/macros/s/AKfycbwkjBr_opT5V05KY6fQG3Aa2i7URgxpzX7a1ga3mBFKS3CeMbCvyLzdkNpHIhgg4Xxncw/exec';
+var TOKEN = new URLSearchParams(window.location.search).get('token');
+var data = null;
+var currentProjectId = null;
+var clientName = localStorage.getItem('moona_client_name_' + TOKEN) || '';
+
+var DESIGN_FASES = ['Design eksisting', 'Denah', 'Moodboard', 'Design 3D', 'Gambar kerja'];
+
+function p(o) {
+  for (var i = 1; i < arguments.length; i++) {
+    var k = arguments[i];
+    if (o[k] !== undefined && o[k] !== null && String(o[k]).trim() !== '') return String(o[k]);
+  }
+  return '';
+}
+function showToast(m) { var t = document.getElementById('toast'); t.textContent = m; t.classList.add('show'); setTimeout(function(){t.classList.remove('show');}, 2500); }
+function fmtDate(s) { if (!s) return '-'; try { return new Date(s).toLocaleDateString('id-ID',{day:'numeric',month:'short',year:'numeric'}); } catch(e) { return s; } }
+function fmtDT(s) { if (!s) return '-'; try { return new Date(s).toLocaleString('id-ID',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}); } catch(e) { return s; } }
+function rp(n) { return 'Rp ' + (parseFloat(n)||0).toLocaleString('id-ID'); }
+
+function showError(msg) {
+  document.getElementById('loading-view').style.display = 'none';
+  document.getElementById('error-view').style.display = 'flex';
+  document.getElementById('error-msg').textContent = msg;
+}
+
+window.onload = function() {
+  if (!TOKEN) { showError('Link tidak memiliki token. Minta link baru ke tim Moona.'); return; }
+  loadAll();
+};
+
+function loadAll() {
+  fetch(API + '?action=getClientData&token=' + encodeURIComponent(TOKEN))
+    .then(function(r){return r.json();})
+    .then(function(d){
+      if (d.status !== 'ok') { showError(d.message || 'Gagal memuat data'); return; }
+      data = d.data;
+      document.getElementById('loading-view').style.display = 'none';
+      document.getElementById('main-view').style.display = 'block';
+      renderHeader();
+      renderProjectSwitcher();
+      if (data.projects.length > 0) {
+        currentProjectId = p(data.projects[0],'ID');
+        renderContent();
+      } else {
+        document.getElementById('content-area').innerHTML = '<div class="empty" style="padding:60px">Belum ada proyek untuk Anda. Tim Moona sedang menyiapkan.</div>';
+      }
+    })
+    .catch(function(){ showError('Tidak bisa terhubung ke server. Coba refresh halaman.'); });
+}
+
+function renderHeader() {
+  var klien = p(data.access,'NamaKlien');
+  document.getElementById('klien-name').textContent = klien;
+  document.getElementById('avatar-letter').textContent = klien.charAt(0).toUpperCase();
+  document.getElementById('project-count').textContent = data.projects.length + ' proyek aktif';
+}
+
+function renderProjectSwitcher() {
+  if (data.projects.length <= 1) { document.getElementById('project-switcher').style.display = 'none'; return; }
+  var html = '';
+  for (var i = 0; i < data.projects.length; i++) {
+    var pr = data.projects[i];
+    html += '<div class="proj-tab' + (p(pr,'ID') === currentProjectId ? ' active' : '') + '" onclick="switchProject(\'' + p(pr,'ID') + '\')">' + p(pr,'NamaProyek') + '</div>';
+  }
+  document.getElementById('project-switcher').innerHTML = html;
+}
+
+function switchProject(pid) {
+  currentProjectId = pid;
+  renderProjectSwitcher();
+  renderContent();
+}
+
+function renderContent() {
+  var proj = null;
+  for (var i = 0; i < data.projects.length; i++) { if (p(data.projects[i],'ID') === currentProjectId) { proj = data.projects[i]; break; } }
+  if (!proj) return;
+
+  var projRab = data.rab.filter(function(r){ return p(r,'Project_ID') === currentProjectId; });
+  var projLapD = data.lapDesign.filter(function(r){ return p(r,'Project_ID') === currentProjectId; });
+  var projLapB = data.lapBuild.filter(function(r){ return p(r,'Project_ID') === currentProjectId; });
+  var projMtg = data.meetings.filter(function(r){ return p(r,'Project_ID') === currentProjectId; });
+  var projInv = data.invoices.filter(function(r){ return p(r,'Project_ID') === currentProjectId; });
+  var projFiles = data.files.filter(function(r){ return p(r,'Project_ID') === currentProjectId; });
+
+  // Calculate overall progress
+  var tipe = p(proj,'TipeProyek');
+  var progressTotal = 0;
+  var stageProgress = {};
+  if (tipe === 'Design' || tipe === 'Design+Build') {
+    // Average per fase
+    for (var f = 0; f < DESIGN_FASES.length; f++) {
+      var fase = DESIGN_FASES[f];
+      var faseReports = projLapD.filter(function(r){ return p(r,'FaseDesign') === fase; });
+      var maxPct = 0;
+      for (var fr = 0; fr < faseReports.length; fr++) {
+        var pct = parseFloat(p(faseReports[fr],'Persentase') || 0);
+        if (pct > maxPct) maxPct = pct;
+      }
+      stageProgress[fase] = maxPct;
+      progressTotal += maxPct;
+    }
+    progressTotal = Math.round(progressTotal / DESIGN_FASES.length);
+  } else if (tipe === 'Build') {
+    // Use RAB bobot * realisasi
+    var sumBobot = 0, sumWeighted = 0;
+    for (var r = 0; r < projRab.length; r++) {
+      var bobot = parseFloat(p(projRab[r],'Bobot') || 0);
+      var realisasi = parseFloat(p(projRab[r],'Realisasi') || 0);
+      sumBobot += bobot;
+      sumWeighted += (bobot * realisasi / 100);
+    }
+    progressTotal = sumBobot > 0 ? Math.round(sumWeighted) : 0;
+  }
+
+  var html = '';
+  // HERO
+  html += '<div class="hero">';
+  html += '<div class="hero-title">' + p(proj,'NamaProyek') + '</div>';
+  html += '<div class="hero-meta">';
+  html += '<span>' + p(proj,'TipeLayanan') + ' · ' + p(proj,'TipeProyek') + '</span>';
+  if (p(proj,'TanggalMulai')) html += '<span>Mulai: ' + fmtDate(p(proj,'TanggalMulai')) + '</span>';
+  if (p(proj,'TargetSelesai')) html += '<span>Target: ' + fmtDate(p(proj,'TargetSelesai')) + '</span>';
+  html += '<span>Status: <strong style="color:var(--coral)">' + (p(proj,'StatusProyek') || 'Aktif') + '</strong></span>';
+  html += '</div>';
+  html += '<div class="hero-progress">';
+  html += '<div class="progress-label"><span>Progress keseluruhan</span><span><strong>' + progressTotal + '%</strong></span></div>';
+  html += '<div class="progress-bar"><div class="progress-fill" style="width:' + progressTotal + '%"></div></div>';
+  html += '</div>';
+  html += '</div>';
+
+  // PROGRESS TIMELINE
+  if (tipe === 'Design' || tipe === 'Design+Build') {
+    html += '<div class="section">';
+    html += '<div class="section-title">Progress Design</div>';
+    html += '<div class="card">';
+    for (var s = 0; s < DESIGN_FASES.length; s++) {
+      var fase = DESIGN_FASES[s];
+      var pct = stageProgress[fase] || 0;
+      var iconClass = pct >= 100 ? 'done' : pct > 0 ? 'active' : 'pending';
+      html += '<div class="stage-tl">';
+      html += '<div class="stage-head">';
+      html += '<div class="stage-icon ' + iconClass + '">' + (pct >= 100 ? '✓' : (s+1)) + '</div>';
+      html += '<div class="stage-name">' + fase + '</div>';
+      html += '<div class="stage-pct">' + pct + '%</div>';
+      html += '</div>';
+      html += '<div class="stage-bar"><div class="stage-bar-fill" style="width:' + pct + '%"></div></div>';
+      html += '</div>';
+    }
+    html += '</div></div>';
+  }
+  if (tipe === 'Build' || tipe === 'Design+Build') {
+    // Show by kelompok pekerjaan
+    var kelompokMap = {};
+    for (var ri = 0; ri < projRab.length; ri++) {
+      var kel = p(projRab[ri],'KelompokPekerjaan') || 'Lainnya';
+      if (!kelompokMap[kel]) kelompokMap[kel] = { bobot: 0, weighted: 0, count: 0 };
+      var bb = parseFloat(p(projRab[ri],'Bobot') || 0);
+      var rlz = parseFloat(p(projRab[ri],'Realisasi') || 0);
+      kelompokMap[kel].bobot += bb;
+      kelompokMap[kel].weighted += (bb * rlz / 100);
+      kelompokMap[kel].count++;
+    }
+    if (Object.keys(kelompokMap).length > 0) {
+      html += '<div class="section">';
+      html += '<div class="section-title">Progress Pembangunan</div>';
+      html += '<div class="card">';
+      for (var kel in kelompokMap) {
+        var km = kelompokMap[kel];
+        var kpct = km.bobot > 0 ? Math.round(km.weighted / km.bobot * 100) : 0;
+        var kIcon = kpct >= 100 ? 'done' : kpct > 0 ? 'active' : 'pending';
+        html += '<div class="stage-tl">';
+        html += '<div class="stage-head">';
+        html += '<div class="stage-icon ' + kIcon + '">' + (kpct >= 100 ? '✓' : '•') + '</div>';
+        html += '<div class="stage-name">' + kel + ' <span style="font-size:10px;color:var(--text3)">(' + km.count + ' item)</span></div>';
+        html += '<div class="stage-pct">' + kpct + '%</div>';
+        html += '</div>';
+        html += '<div class="stage-bar"><div class="stage-bar-fill" style="width:' + kpct + '%"></div></div>';
+        html += '</div>';
+      }
+      html += '</div></div>';
+    }
+  }
+
+  // GALLERY FOTO PROGRESS
+  var allReports = projLapD.concat(projLapB);
+  var photos = [];
+  for (var pr2 = 0; pr2 < allReports.length; pr2++) {
+    var urlRaw = p(allReports[pr2],'FotoURL');
+    if (urlRaw) {
+      var urls = urlRaw.split(/[\n,]/).map(function(x){return x.trim();}).filter(function(x){return x;});
+      for (var u = 0; u < urls.length; u++) {
+        photos.push({ url: urls[u], date: p(allReports[pr2],'Tanggal'), fase: p(allReports[pr2],'FaseDesign') || p(allReports[pr2],'NamaItem') });
+      }
+    }
+  }
+  if (photos.length > 0) {
+    html += '<div class="section">';
+    html += '<div class="section-title">Galeri Foto Progress <span class="section-count">' + photos.length + '</span></div>';
+    html += '<div class="card"><div class="gallery">';
+    photos.sort(function(a,b){ return new Date(b.date) - new Date(a.date); });
+    for (var ph = 0; ph < Math.min(photos.length, 24); ph++) {
+      html += '<a href="' + photos[ph].url + '" target="_blank" class="gallery-item">';
+      html += '<span class="gallery-link">🔗 Buka foto</span>';
+      if (photos[ph].fase) html += '<div class="gallery-label">' + photos[ph].fase + '</div>';
+      html += '</a>';
+    }
+    html += '</div></div></div>';
+  }
+
+  // MEETINGS
+  if (projMtg.length > 0) {
+    html += '<div class="section">';
+    html += '<div class="section-title">Riwayat Meeting <span class="section-count">' + projMtg.length + '</span></div>';
+    html += '<div class="card">';
+    var sortedMtg = projMtg.slice().sort(function(a,b){ return new Date(p(b,'TanggalMeeting') || p(b,'Tanggal')) - new Date(p(a,'TanggalMeeting') || p(a,'Tanggal')); });
+    for (var m = 0; m < sortedMtg.length; m++) {
+      var mtg = sortedMtg[m];
+      html += '<div class="meeting-row">';
+      html += '<div class="mr-title">' + p(mtg,'Judul') + '</div>';
+      html += '<div class="mr-meta">' + fmtDate(p(mtg,'TanggalMeeting') || p(mtg,'Tanggal')) + (p(mtg,'Lokasi') ? ' · ' + p(mtg,'Lokasi') : '') + '</div>';
+      if (p(mtg,'Keputusan')) html += '<div class="mr-content">' + p(mtg,'Keputusan') + '</div>';
+      html += '</div>';
+    }
+    html += '</div></div>';
+  }
+
+  // INVOICE
+  if (projInv.length > 0) {
+    html += '<div class="section">';
+    html += '<div class="section-title">Invoice &amp; Pembayaran</div>';
+    html += '<div class="card">';
+    var today = new Date(); today.setHours(0,0,0,0);
+    var sortedInv = projInv.slice().sort(function(a,b){ return new Date(p(a,'TanggalKirim')) - new Date(p(b,'TanggalKirim')); });
+    for (var iv = 0; iv < sortedInv.length; iv++) {
+      var inv = sortedInv[iv];
+      var statusRaw = p(inv,'StatusBayar') || 'Menunggu';
+      var tempo = p(inv,'JatuhTempo');
+      var isLate = tempo && new Date(tempo) < today && statusRaw !== 'Lunas';
+      html += '<div class="inv-row">';
+      html += '<div class="inv-info">';
+      html += '<div class="inv-termin">' + p(inv,'Termin') + '</div>';
+      html += '<div class="inv-meta">Dikirim: ' + fmtDate(p(inv,'TanggalKirim')) + (tempo ? ' · Jatuh tempo: ' + fmtDate(tempo) : '') + '</div>';
+      html += '</div>';
+      html += '<div style="text-align:right"><div class="inv-amount">' + rp(p(inv,'Nominal')) + '</div>';
+      html += '<span class="pill ' + (statusRaw === 'Lunas' ? 's-lunas' : isLate ? 's-late' : 's-menunggu') + '" style="margin-top:4px">' + (isLate ? 'Terlambat' : statusRaw) + '</span>';
+      html += '</div>';
+      html += '</div>';
+    }
+    html += '</div></div>';
+  }
+
+  // DOKUMEN
+  if (projFiles.length > 0) {
+    html += '<div class="section">';
+    html += '<div class="section-title">Dokumen Proyek <span class="section-count">' + projFiles.length + '</span></div>';
+    html += '<div class="card">';
+    var sortedFiles = projFiles.slice().sort(function(a,b){ return new Date(p(b,'TanggalUpload')) - new Date(p(a,'TanggalUpload')); });
+    for (var fi = 0; fi < sortedFiles.length; fi++) {
+      var f = sortedFiles[fi];
+      html += '<div class="doc-row">';
+      html += '<div class="doc-info">';
+      html += '<div class="doc-name">' + p(f,'NamaFile') + '</div>';
+      html += '<div class="doc-meta"><span class="doc-tipe">' + p(f,'TipeFile') + '</span><span>' + fmtDate(p(f,'TanggalUpload')) + '</span></div>';
+      html += '</div>';
+      html += '<a href="' + p(f,'LinkFile') + '" target="_blank" class="btn">📄 Buka</a>';
+      html += '</div>';
+    }
+    html += '</div></div>';
+  }
+
+  // CHAT
+  html += '<div class="section">';
+  html += '<div class="section-title">Chat dengan Tim Moona</div>';
+  html += '<div class="chat-box">';
+  html += '<div id="chat-msgs" class="chat-msgs"><div class="empty">Memuat pesan...</div></div>';
+  if (!clientName) {
+    html += '<div class="chat-input"><div style="flex:1"><input type="text" id="name-input" placeholder="Nama Anda untuk memulai chat" class="chat-field"><button class="btn btn-primary" style="width:100%;margin-top:6px" onclick="saveClientName()">Mulai Chat</button></div></div>';
+  } else {
+    html += '<div class="chat-input">';
+    html += '<textarea id="chat-field" class="chat-field" placeholder="Tulis pesan..." onkeypress="chatKey(event)"></textarea>';
+    html += '<button class="chat-send" onclick="sendChat()">Kirim</button>';
+    html += '</div>';
+  }
+  html += '</div></div>';
+
+  document.getElementById('content-area').innerHTML = html;
+  loadChat();
+}
+
+function loadChat() {
+  fetch(API + '?action=getClientChat&token=' + encodeURIComponent(TOKEN) + '&projectId=' + encodeURIComponent(currentProjectId))
+    .then(function(r){return r.json();})
+    .then(function(d){
+      if (d.status !== 'ok') return;
+      var el = document.getElementById('chat-msgs');
+      if (!el) return;
+      if (!d.data.length) { el.innerHTML = '<div class="empty">Belum ada pesan. Mulai chat dengan tim Moona!</div>'; return; }
+      var sorted = d.data.slice().sort(function(a,b){ return new Date(p(a,'Tanggal')) - new Date(p(b,'Tanggal')); });
+      var html = '';
+      for (var i = 0; i < sorted.length; i++) {
+        var msg = sorted[i];
+        var isKlien = p(msg,'Role') === 'Klien';
+        html += '<div class="msg ' + (isKlien ? 'klien' : 'tim') + '">';
+        html += '<div class="msg-name">' + p(msg,'Pengirim') + '</div>';
+        html += '<div class="msg-bubble">' + p(msg,'Pesan') + '</div>';
+        html += '<div class="msg-time">' + fmtDT(p(msg,'Tanggal')) + '</div>';
+        html += '</div>';
+      }
+      el.innerHTML = html;
+      el.scrollTop = el.scrollHeight;
+    });
+}
+
+function saveClientName() {
+  var name = document.getElementById('name-input').value.trim();
+  if (!name) { showToast('Masukkan nama'); return; }
+  clientName = name;
+  localStorage.setItem('moona_client_name_' + TOKEN, name);
+  renderContent();
+}
+
+function chatKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChat(); }
+}
+
+function sendChat() {
+  var el = document.getElementById('chat-field');
+  if (!el) return;
+  var pesan = el.value.trim();
+  if (!pesan) return;
+  el.value = '';
+  fetch(API, { method: 'POST', body: JSON.stringify({
+    action: 'addClientChat', token: TOKEN,
+    namaKlien: p(data.access,'NamaKlien'),
+    projectId: currentProjectId,
+    pengirim: clientName, role: 'Klien', pesan: pesan
+  })})
+  .then(function(r){return r.json();})
+  .then(function(d){
+    if (d.status === 'ok') { loadChat(); }
+    else { showToast('Gagal kirim'); el.value = pesan; }
+  })
+  .catch(function(){ showToast('Error kirim'); el.value = pesan; });
+}
+</script>
+</body>
+</html>

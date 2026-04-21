@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Moona v2 — Client Portal Management</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f8f7f4;--card:#fff;--border:#e5e3dc;--border2:#d0cec7;
+  --text:#1a1a18;--text2:#6b6a64;--text3:#9d9b94;
+  --coral:#993C1D;--coral-mid:#D85A30;--coral-bg:#FAECE7;
+  --purple:#534AB7;--purple-bg:#EEEDFE;
+  --teal:#0F6E56;--teal-bg:#E1F5EE;
+  --amber:#854F0B;--amber-bg:#FAEEDA;
+  --red:#A32D2D;--red-bg:#FCEBEB;
+  --green:#3B6D11;--green-bg:#EAF3DE;
+  --blue:#185FA5;--blue-bg:#E6F1FB;
+  --gray:#5F5E5A;--gray-bg:#F1EFE8;
+  --radius:10px;--radius-sm:6px;
+}
+body{background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:var(--text);font-size:14px;min-height:100vh}
+.app{display:flex;min-height:100vh}
+.sidebar{width:220px;min-width:220px;background:var(--card);border-right:0.5px solid var(--border);display:flex;flex-direction:column;position:fixed;top:0;left:0;height:100vh;z-index:10;overflow-y:auto}
+.logo{padding:18px 16px 14px;border-bottom:0.5px solid var(--border)}
+.logo-name{font-size:15px;font-weight:600}
+.logo-sub{font-size:10px;color:var(--text3);margin-top:2px}
+.logo-ver{display:inline-block;font-size:9px;font-weight:600;background:var(--coral-bg);color:var(--coral);padding:1px 5px;border-radius:4px;margin-top:3px}
+.nav-section{padding:10px 8px 3px;font-size:9px;font-weight:600;color:var(--text3);letter-spacing:.06em;text-transform:uppercase}
+.nav-item{display:flex;align-items:center;gap:8px;padding:7px 12px;margin:1px 4px;border-radius:var(--radius-sm);cursor:pointer;font-size:12px;color:var(--text2)}
+.nav-item:hover{background:var(--bg)}
+.nav-item.active{background:var(--blue-bg);color:var(--blue);font-weight:500}
+.nav-dot{width:6px;height:6px;border-radius:50%}
+.sidebar-footer{margin-top:auto;padding:12px 16px;border-top:0.5px solid var(--border)}
+.sf-label{font-size:10px;color:var(--text3)}
+.sf-name{font-size:11px;font-weight:500;margin-top:2px}
+.sf-logout{font-size:10px;color:var(--gray);margin-top:4px;cursor:pointer}
+
+.main{margin-left:220px;flex:1;padding:22px;max-width:1100px}
+.topbar{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:18px;gap:10px;flex-wrap:wrap}
+.page-title{font-size:19px;font-weight:600}
+.page-sub{font-size:11px;color:var(--text3);margin-top:2px}
+
+.btn{padding:7px 14px;border-radius:var(--radius-sm);border:0.5px solid var(--border2);background:var(--card);color:var(--text);font-size:12px;font-weight:500;cursor:pointer;white-space:nowrap}
+.btn:hover{background:var(--bg)}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn-primary{background:var(--blue);color:#fff;border-color:var(--blue)}
+.btn-primary:hover{opacity:.9}
+.btn-sm{padding:4px 10px;font-size:11px}
+.btn-green{background:var(--teal);color:#fff;border-color:var(--teal)}
+.btn-red{background:var(--red);color:#fff;border-color:var(--red)}
+
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:18px}
+.stat{background:var(--bg);border-radius:var(--radius-sm);padding:11px 13px}
+.stat-label{font-size:10px;color:var(--text3);margin-bottom:3px}
+.stat-val{font-size:19px;font-weight:600}
+
+.tabs{display:flex;border-bottom:0.5px solid var(--border);margin-bottom:14px}
+.tab{padding:8px 16px;font-size:12px;color:var(--text2);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-0.5px}
+.tab.active{color:var(--blue);border-bottom-color:var(--blue);font-weight:500}
+
+.card{background:var(--card);border:0.5px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:10px}
+.card-header{padding:10px 14px;border-bottom:0.5px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.card-title{font-size:12px;font-weight:500}
+
+.access-row{padding:12px 14px;border-bottom:0.5px solid var(--border)}
+.access-row:last-child{border-bottom:none}
+.ar-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:8px}
+.ar-name{font-size:13px;font-weight:500}
+.ar-meta{font-size:10px;color:var(--text3);margin-top:2px}
+.ar-link{background:var(--bg);padding:7px 10px;border-radius:var(--radius-sm);font-size:10px;font-family:monospace;color:var(--text2);word-break:break-all;cursor:pointer;border:0.5px dashed var(--border2);position:relative}
+.ar-link:hover{background:var(--card)}
+.ar-actions{display:flex;gap:5px;margin-top:8px;flex-wrap:wrap}
+
+.pill{display:inline-flex;padding:2px 8px;border-radius:7px;font-size:10px;font-weight:500}
+.s-active{background:var(--green-bg);color:var(--green)}
+.s-revoked{background:var(--red-bg);color:var(--red)}
+
+table{width:100%;border-collapse:collapse;font-size:11px}
+th{padding:8px 12px;text-align:left;font-size:10px;font-weight:600;color:var(--text3);background:var(--bg);text-transform:uppercase;letter-spacing:.04em;border-bottom:0.5px solid var(--border)}
+td{padding:9px 12px;border-bottom:0.5px solid var(--border);vertical-align:middle}
+tr:last-child td{border-bottom:none}
+
+.file-category{padding:10px 14px;border-bottom:0.5px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.fc-title{font-size:12px;font-weight:500}
+.file-row{padding:8px 14px;border-bottom:0.5px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:10px}
+.file-row:last-child{border-bottom:none}
+.file-info{flex:1;min-width:0}
+.file-name{font-size:12px;font-weight:500}
+.file-meta{font-size:10px;color:var(--text3);margin-top:2px}
+.file-tipe{padding:2px 7px;border-radius:6px;font-size:9px;background:var(--bg);color:var(--text2)}
+
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:100;align-items:flex-start;justify-content:center;padding:28px 14px;overflow-y:auto}
+.modal-overlay.open{display:flex}
+.modal{background:var(--card);border-radius:var(--radius);width:100%;max-width:500px}
+.modal-header{padding:13px 18px;border-bottom:0.5px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.modal-title{font-size:13px;font-weight:600}
+.modal-close{width:24px;height:24px;border-radius:4px;border:0.5px solid var(--border);background:none;cursor:pointer;font-size:14px;color:var(--text2)}
+.modal-body{padding:16px 18px}
+.modal-footer{padding:10px 18px;border-top:0.5px solid var(--border);display:flex;gap:7px;justify-content:flex-end}
+.form-group{margin-bottom:12px}
+.form-label{font-size:11px;font-weight:500;color:var(--text2);margin-bottom:4px;display:block}
+.req{color:var(--red);margin-left:2px}
+.form-input{width:100%;padding:7px 9px;border:0.5px solid var(--border2);border-radius:var(--radius-sm);font-size:12px;background:var(--card);outline:none;font-family:inherit}
+.form-input:focus{border-color:var(--blue)}
+textarea.form-input{resize:vertical;min-height:50px;line-height:1.5}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.form-hint{font-size:10px;color:var(--text3);margin-top:2px}
+
+.info-box{background:var(--blue-bg);border:0.5px solid #185FA540;border-radius:var(--radius-sm);padding:10px 12px;margin-bottom:12px;font-size:11px;color:var(--blue);line-height:1.5}
+.success-box{background:var(--green-bg);border:0.5px solid #3B6D1140;border-radius:var(--radius-sm);padding:12px;margin-top:10px;font-size:11px;line-height:1.5}
+
+.empty{text-align:center;padding:40px 20px;color:var(--text3);font-size:11px}
+.loading{text-align:center;padding:20px;color:var(--text3);font-size:11px}
+.toast{position:fixed;bottom:20px;right:20px;background:var(--text);color:#fff;padding:9px 14px;border-radius:var(--radius-sm);font-size:12px;z-index:200;opacity:0;transition:opacity .2s;pointer-events:none}
+.toast.show{opacity:1}
+
+@media(max-width:768px){
+  .sidebar{display:none}.main{margin-left:0;padding:12px}
+  .stats{grid-template-columns:1fr 1fr}.form-row{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+<div class="app">
+<div class="sidebar">
+  <div class="logo"><div class="logo-name">Moona</div><div class="logo-sub">Architect System</div><div class="logo-ver">v2</div></div>
+  <div class="nav-section">Utama</div>
+  <div class="nav-item" onclick="go('moona-v2-dashboard.html')"><span class="nav-dot" style="background:#888780"></span>Dashboard</div>
+  <div class="nav-section">Sales</div>
+  <div class="nav-item" onclick="go('moona-v2-crm.html')"><span class="nav-dot" style="background:var(--coral-mid)"></span>CRM &amp; Sales</div>
+  <div class="nav-item active"><span class="nav-dot" style="background:var(--blue)"></span>Client Portal</div>
+  <div class="nav-section">Operasional</div>
+  <div class="nav-item" onclick="go('moona-v2-projects.html')"><span class="nav-dot" style="background:var(--teal)"></span>Project Management</div>
+  <div class="nav-item" onclick="go('moona-v2-laporan-design-v4.html')"><span class="nav-dot" style="background:var(--purple)"></span>Laporan Design</div>
+  <div class="nav-item" onclick="go('moona-v2-laporan-build-v4.html')"><span class="nav-dot" style="background:var(--teal)"></span>Laporan Build</div>
+  <div class="nav-section">Lainnya</div>
+  <div class="nav-item" onclick="go('moona-v2-meetings.html')"><span class="nav-dot" style="background:var(--purple)"></span>Meeting Tracker</div>
+  <div class="nav-item" onclick="go('moona-v2-finance.html')"><span class="nav-dot" style="background:var(--amber)"></span>Finance</div>
+  <div class="nav-item" onclick="go('moona-v2-content.html')"><span class="nav-dot" style="background:var(--coral-mid)"></span>Content Planner</div>
+  <div class="nav-item" onclick="go('moona-v2-sop.html')"><span class="nav-dot" style="background:#888780"></span>SOP &amp; Dokumen</div>
+  <div class="sidebar-footer">
+    <div class="sf-label">Login sebagai</div>
+    <div class="sf-name" id="sf-name">–</div>
+    <div class="sf-logout" onclick="logout()">Keluar</div>
+  </div>
+</div>
+
+<div class="main">
+  <div class="topbar">
+    <div><div class="page-title">Client Portal</div><div class="page-sub">Kelola akses klien &amp; dokumen share</div></div>
+    <div style="display:flex;gap:6px">
+      <button class="btn" onclick="openFileForm()">+ Upload Dokumen</button>
+      <button class="btn btn-primary" onclick="openAccessForm()">+ Buat Akses Klien</button>
+    </div>
+  </div>
+
+  <div class="info-box">
+    <strong>Cara kerja:</strong> Buat akses klien → copy link yang dihasilkan → kirim ke klien via WhatsApp/email. Klien buka link tanpa perlu login, langsung lihat proyek mereka.
+  </div>
+
+  <div class="stats">
+    <div class="stat"><div class="stat-label">Total akses klien</div><div class="stat-val" id="s-total">–</div></div>
+    <div class="stat"><div class="stat-label">Aktif</div><div class="stat-val" id="s-active" style="color:var(--green)">–</div></div>
+    <div class="stat"><div class="stat-label">Dokumen klien</div><div class="stat-val" id="s-files">–</div></div>
+    <div class="stat"><div class="stat-label">Chat belum dibaca</div><div class="stat-val" id="s-unread" style="color:var(--red)">–</div></div>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" onclick="switchTab('access',this)">Akses Klien</div>
+    <div class="tab" onclick="switchTab('files',this)">Dokumen Klien</div>
+    <div class="tab" onclick="switchTab('chat',this)">Chat Masuk</div>
+  </div>
+
+  <div id="tab-access">
+    <div class="card">
+      <div class="card-header"><span class="card-title">Daftar akses klien</span></div>
+      <div id="access-list"><div class="loading">Memuat...</div></div>
+    </div>
+  </div>
+
+  <div id="tab-files" style="display:none">
+    <div class="card">
+      <div class="card-header"><span class="card-title">Dokumen untuk klien (per proyek)</span></div>
+      <div id="files-list"><div class="loading">Memuat...</div></div>
+    </div>
+  </div>
+
+  <div id="tab-chat" style="display:none">
+    <div class="card">
+      <div class="card-header"><span class="card-title">Pesan dari klien</span></div>
+      <div id="chat-list"><div class="loading">Memuat...</div></div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- MODAL AKSES KLIEN -->
+<div class="modal-overlay" id="modal-access">
+  <div class="modal">
+    <div class="modal-header"><span class="modal-title">Buat Akses Klien Baru</span><button class="modal-close" onclick="closeModal('modal-access')">✕</button></div>
+    <div class="modal-body" id="access-body">
+      <div class="info-box">Nama klien harus <strong>persis sama</strong> dengan yang di data proyek, agar semua proyek terkait bisa muncul di portal klien.</div>
+      <div class="form-group"><label class="form-label">Nama klien <span class="req">*</span></label>
+        <select id="af-klien" class="form-input">
+          <option value="">Pilih klien dari proyek yang ada</option>
+        </select>
+        <div class="form-hint">Atau ketik manual kalau belum ada di daftar:</div>
+        <input id="af-klien-manual" class="form-input" placeholder="Nama klien" style="margin-top:5px"></div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Email (opsional)</label>
+          <input id="af-email" class="form-input" type="email" placeholder="email@klien.com"></div>
+        <div class="form-group"><label class="form-label">No. HP (opsional)</label>
+          <input id="af-phone" class="form-input" placeholder="08xx-xxxx"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('modal-access')">Batal</button>
+      <button class="btn btn-primary" id="save-access-btn" onclick="saveAccess()">Generate Link Akses</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL UPLOAD FILE -->
+<div class="modal-overlay" id="modal-file">
+  <div class="modal">
+    <div class="modal-header"><span class="modal-title">Upload Dokumen untuk Klien</span><button class="modal-close" onclick="closeModal('modal-file')">✕</button></div>
+    <div class="modal-body">
+      <div class="info-box">Upload file ke Google Drive dulu → atur share "Anyone with link" → paste link di bawah.</div>
+      <div class="form-group"><label class="form-label">Proyek <span class="req">*</span></label>
+        <select id="ff-project" class="form-input"><option value="">Pilih proyek</option></select></div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Nama dokumen <span class="req">*</span></label>
+          <input id="ff-nama" class="form-input" placeholder="Contoh: Kontrak Villa Pak Andi"></div>
+        <div class="form-group"><label class="form-label">Tipe <span class="req">*</span></label>
+          <select id="ff-tipe" class="form-input">
+            <option value="">Pilih</option>
+            <option>Kontrak</option><option>BAST</option><option>Garansi</option>
+            <option>Invoice</option><option>Proposal</option><option>Design 3D</option>
+            <option>Gambar Kerja</option><option>Foto Progress</option><option>Lainnya</option>
+          </select></div>
+      </div>
+      <div class="form-group"><label class="form-label">Link dokumen <span class="req">*</span></label>
+        <input id="ff-link" class="form-input" type="url" placeholder="https://drive.google.com/..."></div>
+      <div class="form-group"><label class="form-label">Keterangan (opsional)</label>
+        <textarea id="ff-ket" class="form-input" placeholder="Catatan tambahan"></textarea></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('modal-file')">Batal</button>
+      <button class="btn btn-primary" id="save-file-btn" onclick="saveFile()">Upload</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+<script>
+var API = 'https://script.google.com/macros/s/AKfycbwkjBr_opT5V05KY6fQG3Aa2i7URgxpzX7a1ga3mBFKS3CeMbCvyLzdkNpHIhgg4Xxncw/exec';
+var CLIENT_VIEW_URL = window.location.href.replace('moona-v2-client-portal.html', 'moona-v2-client-view.html');
+
+var accesses = [], projects = [], files = [], chats = [];
+var currentTab = 'access';
+
+function getSession() { try { return JSON.parse(localStorage.getItem('moona_v2_session')); } catch(e) { return null; } }
+function logout() { localStorage.removeItem('moona_v2_session'); location.href = 'moona-v2-login.html'; }
+function go(u) { location.href = u; }
+var S = getSession();
+if (!S) { location.href = 'moona-v2-login.html'; }
+else { document.getElementById('sf-name').textContent = S.nama + ' - ' + S.role; }
+
+function p(o) {
+  for (var i = 1; i < arguments.length; i++) {
+    var k = arguments[i];
+    if (o[k] !== undefined && o[k] !== null && String(o[k]).trim() !== '') return String(o[k]);
+  }
+  return '';
+}
+function showToast(m) { var t = document.getElementById('toast'); t.textContent = m; t.classList.add('show'); setTimeout(function(){t.classList.remove('show');}, 2800); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+function fmtDate(s) { if (!s) return '-'; try { return new Date(s).toLocaleDateString('id-ID',{day:'numeric',month:'short',year:'numeric'}); } catch(e) { return s; } }
+function fmtDT(s) { if (!s) return '-'; try { return new Date(s).toLocaleString('id-ID',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}); } catch(e) { return s; } }
+
+function switchTab(t, el) {
+  currentTab = t;
+  var tabs = document.querySelectorAll('.tab');
+  for (var i = 0; i < tabs.length; i++) tabs[i].classList.remove('active');
+  el.classList.add('active');
+  ['access','files','chat'].forEach(function(id){ document.getElementById('tab-' + id).style.display = (id === t) ? 'block' : 'none'; });
+  if (t === 'files') renderFiles();
+  if (t === 'chat') renderChat();
+}
+
+window.onload = function() { Promise.all([loadAccesses(), loadProjects(), loadFiles(), loadChats()]); };
+
+function loadAccesses() {
+  return fetch(API + '?action=getClientAccess').then(function(r){return r.json();}).then(function(d){
+    if (d.status === 'ok') { accesses = d.data; renderAccesses(); updateStats(); }
+  });
+}
+function loadProjects() {
+  return fetch(API + '?action=getProjects').then(function(r){return r.json();}).then(function(d){
+    if (d.status === 'ok') {
+      projects = d.data;
+      // Extract unique clients
+      var clients = {};
+      for (var i = 0; i < d.data.length; i++) { var n = p(d.data[i],'NamaKlien'); if (n) clients[n] = true; }
+      var html = '<option value="">Pilih klien dari proyek yang ada</option>';
+      for (var c in clients) html += '<option value="' + c + '">' + c + '</option>';
+      document.getElementById('af-klien').innerHTML = html;
+      // Populate project dropdown for file upload
+      var projHtml = '<option value="">Pilih proyek</option>';
+      for (var j = 0; j < d.data.length; j++) projHtml += '<option value="' + p(d.data[j],'ID') + '">' + p(d.data[j],'NamaProyek') + ' - ' + p(d.data[j],'NamaKlien') + '</option>';
+      document.getElementById('ff-project').innerHTML = projHtml;
+    }
+  });
+}
+function loadFiles() {
+  return fetch(API + '?action=getClientFiles').then(function(r){return r.json();}).then(function(d){
+    if (d.status === 'ok') { files = d.data; updateStats(); if (currentTab === 'files') renderFiles(); }
+  });
+}
+function loadChats() {
+  // Get all chats across all tokens
+  return fetch(API + '?action=getClientChat&token=all').then(function(r){return r.json();}).then(function(d){
+    // Ambil semua dari semua token - workaround: fetch all per token
+    chats = [];
+    var promises = [];
+    for (var i = 0; i < accesses.length; i++) {
+      var tok = p(accesses[i],'Token');
+      if (tok) promises.push(fetch(API + '?action=getClientChat&token=' + tok).then(function(r){return r.json();}));
+    }
+    Promise.all(promises).then(function(results){
+      for (var j = 0; j < results.length; j++) {
+        if (results[j].status === 'ok') chats = chats.concat(results[j].data);
+      }
+      updateStats();
+      if (currentTab === 'chat') renderChat();
+    });
+  });
+}
+
+function updateStats() {
+  var total = accesses.length;
+  var active = 0;
+  for (var i = 0; i < accesses.length; i++) { if (p(accesses[i],'Status') === 'Active') active++; }
+  var unread = 0;
+  for (var j = 0; j < chats.length; j++) {
+    if (p(chats[j],'Role') === 'Klien' && p(chats[j],'DibacaOlehTim') !== 'Yes') unread++;
+  }
+  document.getElementById('s-total').textContent = total;
+  document.getElementById('s-active').textContent = active;
+  document.getElementById('s-files').textContent = files.length;
+  document.getElementById('s-unread').textContent = unread;
+}
+
+function renderAccesses() {
+  var el = document.getElementById('access-list');
+  if (!accesses.length) { el.innerHTML = '<div class="empty">Belum ada akses klien. Klik "+ Buat Akses Klien" untuk mulai.</div>'; return; }
+  var sorted = accesses.slice().sort(function(a,b){ return new Date(p(b,'TanggalBuat')) - new Date(p(a,'TanggalBuat')); });
+  var html = '';
+  for (var i = 0; i < sorted.length; i++) {
+    var a = sorted[i];
+    var id = p(a,'ID');
+    var token = p(a,'Token');
+    var status = p(a,'Status') || 'Active';
+    var link = CLIENT_VIEW_URL + '?token=' + token;
+    // Count projects for this client
+    var projCount = 0;
+    for (var j = 0; j < projects.length; j++) { if (p(projects[j],'NamaKlien') === p(a,'NamaKlien')) projCount++; }
+    html += '<div class="access-row">';
+    html += '<div class="ar-head"><div>';
+    html += '<div class="ar-name">' + p(a,'NamaKlien') + '</div>';
+    html += '<div class="ar-meta">' + (p(a,'Email') || '-') + (p(a,'Phone') ? ' · ' + p(a,'Phone') : '') + ' · ' + projCount + ' proyek · Dibuat ' + fmtDate(p(a,'TanggalBuat')) + (p(a,'LastAccess') ? ' · Terakhir diakses ' + fmtDT(p(a,'LastAccess')) : ' · Belum pernah diakses') + '</div>';
+    html += '</div>';
+    html += '<span class="pill s-' + status.toLowerCase() + '">' + status + '</span>';
+    html += '</div>';
+    html += '<div class="ar-link" onclick="copyLink(\'' + link + '\')">🔗 ' + link + '</div>';
+    html += '<div class="ar-actions">';
+    html += '<button class="btn btn-sm" onclick="copyLink(\'' + link + '\')">Copy Link</button>';
+    html += '<button class="btn btn-sm" onclick="openClient(\'' + link + '\')">Preview</button>';
+    html += '<button class="btn btn-sm" onclick="sendWA(\'' + encodeURIComponent(p(a,'Phone')) + '\',\'' + encodeURIComponent(p(a,'NamaKlien')) + '\',\'' + encodeURIComponent(link) + '\')">Kirim WA</button>';
+    if (status === 'Active') html += '<button class="btn btn-sm btn-red" onclick="revokeAccess(\'' + id + '\')">Nonaktifkan</button>';
+    else html += '<button class="btn btn-sm btn-green" onclick="activateAccess(\'' + id + '\')">Aktifkan</button>';
+    html += '<button class="btn btn-sm" style="margin-left:auto;color:var(--red)" onclick="deleteAccess(\'' + id + '\')">Hapus</button>';
+    html += '</div>';
+    html += '</div>';
+  }
+  el.innerHTML = html;
+}
+
+function renderFiles() {
+  var el = document.getElementById('files-list');
+  if (!files.length) { el.innerHTML = '<div class="empty">Belum ada dokumen.</div>'; return; }
+  // Group by project
+  var grouped = {};
+  for (var i = 0; i < files.length; i++) {
+    var pid = p(files[i],'Project_ID');
+    if (!grouped[pid]) grouped[pid] = [];
+    grouped[pid].push(files[i]);
+  }
+  var html = '';
+  for (var pid in grouped) {
+    var proj = null;
+    for (var j = 0; j < projects.length; j++) { if (p(projects[j],'ID') === pid) { proj = projects[j]; break; } }
+    html += '<div class="file-category"><span class="fc-title">' + (proj ? p(proj,'NamaProyek') + ' · ' + p(proj,'NamaKlien') : pid) + '</span><span style="font-size:10px;color:var(--text3)">' + grouped[pid].length + ' dokumen</span></div>';
+    for (var k = 0; k < grouped[pid].length; k++) {
+      var f = grouped[pid][k];
+      html += '<div class="file-row"><div class="file-info">';
+      html += '<div class="file-name">' + p(f,'NamaFile') + '</div>';
+      html += '<div class="file-meta"><span class="file-tipe">' + p(f,'TipeFile') + '</span> · ' + fmtDate(p(f,'TanggalUpload')) + (p(f,'Keterangan') ? ' · ' + p(f,'Keterangan') : '') + '</div>';
+      html += '</div>';
+      html += '<a href="' + p(f,'LinkFile') + '" target="_blank" class="btn btn-sm">Buka</a>';
+      html += '</div>';
+    }
+  }
+  el.innerHTML = html;
+}
+
+function renderChat() {
+  var el = document.getElementById('chat-list');
+  if (!chats.length) { el.innerHTML = '<div class="empty">Belum ada pesan dari klien.</div>'; return; }
+  // Group by token/klien
+  var grouped = {};
+  for (var i = 0; i < chats.length; i++) {
+    var tok = p(chats[i],'Token');
+    if (!grouped[tok]) grouped[tok] = [];
+    grouped[tok].push(chats[i]);
+  }
+  var html = '';
+  for (var tok in grouped) {
+    var msgs = grouped[tok];
+    msgs.sort(function(a,b){ return new Date(p(b,'Tanggal')) - new Date(p(a,'Tanggal')); });
+    var klien = p(msgs[0],'NamaKlien') || '-';
+    var latest = msgs[0];
+    var unread = 0;
+    for (var m = 0; m < msgs.length; m++) { if (p(msgs[m],'Role') === 'Klien' && p(msgs[m],'DibacaOlehTim') !== 'Yes') unread++; }
+    html += '<div class="access-row">';
+    html += '<div class="ar-head"><div>';
+    html += '<div class="ar-name">' + klien + (unread > 0 ? ' <span style="font-size:10px;background:var(--red);color:#fff;padding:1px 6px;border-radius:8px;margin-left:5px">' + unread + ' baru</span>' : '') + '</div>';
+    html += '<div class="ar-meta">' + msgs.length + ' pesan · Terakhir: ' + fmtDT(p(latest,'Tanggal')) + '</div>';
+    html += '</div></div>';
+    html += '<div style="margin-top:6px;max-height:200px;overflow-y:auto;border:0.5px solid var(--border);border-radius:var(--radius-sm);padding:8px;background:var(--bg)">';
+    // Reverse back to chronological for display
+    var displayMsgs = msgs.slice().reverse();
+    for (var d = 0; d < displayMsgs.length; d++) {
+      var msg = displayMsgs[d];
+      var isKlien = p(msg,'Role') === 'Klien';
+      html += '<div style="margin-bottom:6px;padding:6px 9px;background:' + (isKlien ? 'var(--blue-bg)' : 'var(--card)') + ';border-radius:var(--radius-sm);max-width:80%;' + (isKlien ? '' : 'margin-left:auto;') + '">';
+      html += '<div style="font-size:9px;font-weight:600;color:' + (isKlien ? 'var(--blue)' : 'var(--text2)') + ';margin-bottom:2px">' + p(msg,'Pengirim') + (isKlien ? ' (Klien)' : ' (Tim Moona)') + '</div>';
+      html += '<div style="font-size:11px;line-height:1.4;white-space:pre-wrap">' + p(msg,'Pesan') + '</div>';
+      html += '<div style="font-size:9px;color:var(--text3);margin-top:3px">' + fmtDT(p(msg,'Tanggal')) + '</div>';
+      html += '</div>';
+    }
+    html += '</div>';
+    if (unread > 0) html += '<button class="btn btn-sm" style="margin-top:6px" onclick="markAllRead(\'' + tok + '\')">Tandai sudah dibaca</button>';
+    html += '</div>';
+  }
+  el.innerHTML = html;
+}
+
+// AKSES
+function openAccessForm() {
+  document.getElementById('af-klien').value = '';
+  document.getElementById('af-klien-manual').value = '';
+  document.getElementById('af-email').value = '';
+  document.getElementById('af-phone').value = '';
+  document.getElementById('access-body').innerHTML = document.getElementById('access-body').innerHTML.replace(/<div class="success-box".*?<\/div>/g, '');
+  // Reset body jika sudah ada result
+  var body = document.getElementById('access-body');
+  var existing = body.querySelector('.success-box');
+  if (existing) existing.remove();
+  document.getElementById('save-access-btn').style.display = 'inline-block';
+  document.getElementById('save-access-btn').textContent = 'Generate Link Akses';
+  document.getElementById('save-access-btn').disabled = false;
+  document.getElementById('modal-access').classList.add('open');
+}
+
+function saveAccess() {
+  var klien = document.getElementById('af-klien').value || document.getElementById('af-klien-manual').value.trim();
+  if (!klien) { showToast('Pilih atau isi nama klien'); return; }
+  var btn = document.getElementById('save-access-btn');
+  btn.textContent = 'Generating...'; btn.disabled = true;
+  fetch(API, { method: 'POST', body: JSON.stringify({
+    action: 'generateClientToken', namaKlien: klien,
+    email: document.getElementById('af-email').value.trim(),
+    phone: document.getElementById('af-phone').value.trim(),
+    createdBy: S.nama
+  })})
+  .then(function(r){return r.json();})
+  .then(function(d){
+    if (d.status === 'ok') {
+      var link = CLIENT_VIEW_URL + '?token=' + d.token;
+      var body = document.getElementById('access-body');
+      var successHtml = '<div class="success-box"><strong>✓ Akses klien dibuat!</strong><br>Link untuk dikirim ke klien:<br><div style="background:var(--card);padding:6px 8px;margin-top:6px;border-radius:4px;font-family:monospace;font-size:10px;word-break:break-all">' + link + '</div><button class="btn btn-sm" style="margin-top:8px" onclick="copyLink(\'' + link + '\')">Copy Link</button></div>';
+      body.insertAdjacentHTML('beforeend', successHtml);
+      btn.style.display = 'none';
+      loadAccesses();
+      showToast('Akses klien berhasil dibuat!');
+    } else {
+      showToast('Gagal: ' + d.message);
+    }
+  })
+  .catch(function(e){ showToast('Error: ' + e.message); })
+  .then(function(){ btn.disabled = false; });
+}
+
+function copyLink(link) {
+  navigator.clipboard.writeText(link).then(function(){ showToast('Link disalin!'); });
+}
+
+function openClient(link) { window.open(link, '_blank'); }
+
+function sendWA(phone, nama, link) {
+  phone = decodeURIComponent(phone).replace(/[^0-9]/g,'');
+  if (!phone) { showToast('No HP klien kosong'); return; }
+  if (phone.startsWith('0')) phone = '62' + phone.substring(1);
+  var msg = 'Halo ' + decodeURIComponent(nama) + ', berikut link portal proyek Anda di Moona Architect:\n\n' + decodeURIComponent(link) + '\n\nSilakan bookmark link ini untuk akses selanjutnya. Terima kasih!';
+  window.open('https://wa.me/' + phone + '?text=' + encodeURIComponent(msg), '_blank');
+}
+
+function revokeAccess(id) {
+  if (!confirm('Nonaktifkan akses ini? Link akan berhenti bekerja.')) return;
+  fetch(API, { method: 'POST', body: JSON.stringify({ action: 'revokeClientAccess', id: id }) })
+    .then(function(r){return r.json();})
+    .then(function(d){ if (d.status === 'ok') { showToast('Akses dinonaktifkan'); loadAccesses(); } });
+}
+
+function activateAccess(id) {
+  fetch(API, { method: 'POST', body: JSON.stringify({ action: 'activateClientAccess', id: id }) })
+    .then(function(r){return r.json();})
+    .then(function(d){ if (d.status === 'ok') { showToast('Akses diaktifkan'); loadAccesses(); } });
+}
+
+function deleteAccess(id) {
+  if (!confirm('Hapus akses ini permanen?')) return;
+  fetch(API, { method: 'POST', body: JSON.stringify({ action: 'deleteClientAccess', id: id }) })
+    .then(function(r){return r.json();})
+    .then(function(d){ if (d.status === 'ok') { showToast('Akses dihapus'); loadAccesses(); } });
+}
+
+// FILE
+function openFileForm() {
+  ['ff-project','ff-nama','ff-tipe','ff-link','ff-ket'].forEach(function(id){ document.getElementById(id).value = ''; });
+  document.getElementById('modal-file').classList.add('open');
+}
+function saveFile() {
+  var projectId = document.getElementById('ff-project').value;
+  var nama = document.getElementById('ff-nama').value.trim();
+  var tipe = document.getElementById('ff-tipe').value;
+  var link = document.getElementById('ff-link').value.trim();
+  if (!projectId || !nama || !tipe || !link) { showToast('Lengkapi field wajib'); return; }
+  var btn = document.getElementById('save-file-btn');
+  btn.textContent = 'Menyimpan...'; btn.disabled = true;
+  fetch(API, { method: 'POST', body: JSON.stringify({
+    action: 'addClientFile', projectId: projectId,
+    namaFile: nama, tipeFile: tipe, linkFile: link,
+    keterangan: document.getElementById('ff-ket').value.trim()
+  })})
+  .then(function(r){return r.json();})
+  .then(function(d){
+    if (d.status === 'ok') { closeModal('modal-file'); showToast('Dokumen diupload!'); loadFiles(); }
+    else showToast('Gagal: ' + d.message);
+  })
+  .catch(function(){ showToast('Error'); })
+  .then(function(){ btn.textContent = 'Upload'; btn.disabled = false; });
+}
+
+// CHAT
+function markAllRead(token) {
+  fetch(API, { method: 'POST', body: JSON.stringify({ action: 'markChatRead', token: token }) })
+    .then(function(r){return r.json();})
+    .then(function(d){ if (d.status === 'ok') { showToast('Ditandai sudah dibaca'); loadChats(); } });
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,774 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Moona v2 — CRM & Sales</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f8f7f4;--card:#fff;--border:#e5e3dc;--border2:#d0cec7;
+  --text:#1a1a18;--text2:#6b6a64;--text3:#9d9b94;
+  --coral:#993C1D;--coral-bg:#FAECE7;--coral-mid:#D85A30;
+  --purple:#534AB7;--purple-bg:#EEEDFE;
+  --teal:#0F6E56;--teal-bg:#E1F5EE;
+  --amber:#854F0B;--amber-bg:#FAEEDA;
+  --red:#A32D2D;--red-bg:#FCEBEB;
+  --green:#3B6D11;--green-bg:#EAF3DE;
+  --blue:#185FA5;--blue-bg:#E6F1FB;
+  --gray:#5F5E5A;--gray-bg:#F1EFE8;
+  --radius:10px;--radius-sm:6px;
+}
+body{background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:var(--text);font-size:14px;min-height:100vh}
+.app{display:flex;min-height:100vh}
+
+/* SIDEBAR */
+.sidebar{width:220px;min-width:220px;background:var(--card);border-right:0.5px solid var(--border);display:flex;flex-direction:column;position:fixed;top:0;left:0;height:100vh;z-index:10;overflow-y:auto}
+.logo{padding:18px 16px 14px;border-bottom:0.5px solid var(--border);flex-shrink:0}
+.logo-name{font-size:15px;font-weight:600;color:var(--text);letter-spacing:-.3px}
+.logo-sub{font-size:10px;color:var(--text3);margin-top:2px}
+.logo-ver{display:inline-block;font-size:9px;font-weight:600;background:var(--coral-bg);color:var(--coral);padding:1px 5px;border-radius:4px;margin-top:3px}
+.nav-section{padding:10px 8px 3px;font-size:9px;font-weight:600;color:var(--text3);letter-spacing:.06em;text-transform:uppercase}
+.nav-item{display:flex;align-items:center;gap:8px;padding:7px 12px;margin:1px 4px;border-radius:var(--radius-sm);cursor:pointer;font-size:12px;color:var(--text2);transition:background .1s;text-decoration:none}
+.nav-item:hover{background:var(--bg)}
+.nav-item.active{background:var(--coral-bg);color:var(--coral);font-weight:500}
+.nav-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.nav-badge{margin-left:auto;background:var(--amber-bg);color:var(--amber);font-size:9px;font-weight:600;padding:1px 5px;border-radius:8px}
+.sidebar-footer{margin-top:auto;padding:12px 16px;border-top:0.5px solid var(--border);flex-shrink:0}
+.sf-label{font-size:10px;color:var(--text3)}
+.sf-name{font-size:11px;font-weight:500;color:var(--text);margin-top:2px}
+.sf-logout{font-size:10px;color:var(--gray);margin-top:4px;cursor:pointer}
+
+/* MAIN */
+.main{margin-left:220px;flex:1;padding:22px;max-width:1060px}
+.topbar{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:18px;gap:10px;flex-wrap:wrap}
+.page-title{font-size:19px;font-weight:600;color:var(--text);letter-spacing:-.3px}
+.page-sub{font-size:11px;color:var(--text3);margin-top:2px}
+.btn{padding:7px 14px;border-radius:var(--radius-sm);border:0.5px solid var(--border2);background:var(--card);color:var(--text);font-size:12px;font-weight:500;cursor:pointer;transition:background .1s;white-space:nowrap}
+.btn:hover{background:var(--bg)}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn-primary{background:var(--coral-mid);color:#fff;border-color:var(--coral-mid)}
+.btn-primary:hover{opacity:.9}
+.btn-sm{padding:4px 10px;font-size:11px}
+.btn-green{background:var(--teal);color:#fff;border-color:var(--teal)}
+
+/* FILTER BAR */
+.filter-bar{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap;align-items:center}
+.filter-pill{padding:5px 12px;border-radius:20px;font-size:11px;font-weight:500;cursor:pointer;border:0.5px solid var(--border2);color:var(--text2);background:var(--card);transition:all .1s}
+.filter-pill:hover{background:var(--bg)}
+.filter-pill.active{background:var(--text);color:#fff;border-color:var(--text)}
+.filter-sep{width:1px;height:20px;background:var(--border2);margin:0 2px}
+.search-box{flex:1;min-width:160px;padding:5px 10px;border:0.5px solid var(--border2);border-radius:var(--radius-sm);font-size:12px;color:var(--text);background:var(--card);outline:none;font-family:inherit}
+.search-box:focus{border-color:var(--coral-mid)}
+
+/* STATS */
+.stats{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:18px}
+.stat{background:var(--bg);border-radius:var(--radius-sm);padding:11px 13px}
+.stat-label{font-size:10px;color:var(--text3);margin-bottom:3px}
+.stat-val{font-size:19px;font-weight:600;color:var(--text)}
+.stat-note{font-size:10px;margin-top:2px;color:var(--text3)}
+
+/* TABS */
+.tabs{display:flex;border-bottom:0.5px solid var(--border);margin-bottom:14px}
+.tab{padding:7px 14px;font-size:12px;color:var(--text2);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-0.5px;transition:all .1s}
+.tab.active{color:var(--coral);border-bottom-color:var(--coral);font-weight:500}
+
+/* PIPELINE BOARD */
+.board{display:grid;gap:8px;margin-bottom:14px}
+.board-cols{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px}
+.pipeline-col{min-width:160px;width:160px;background:var(--bg);border-radius:var(--radius-sm);padding:8px;flex-shrink:0}
+.col-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:7px}
+.col-title{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.04em}
+.col-count{font-size:10px;font-weight:600;padding:1px 6px;border-radius:8px}
+.lead-card{background:var(--card);border:0.5px solid var(--border);border-radius:var(--radius-sm);padding:9px;margin-bottom:5px;cursor:pointer;transition:border-color .1s}
+.lead-card:hover{border-color:var(--border2)}
+.lead-card.selected{border-color:var(--coral-mid);border-width:1.5px}
+.lc-name{font-size:12px;font-weight:500;color:var(--text);margin-bottom:3px}
+.lc-meta{font-size:10px;color:var(--text3);line-height:1.4}
+.lc-fu{font-size:10px;font-weight:500;margin-top:4px}
+.fu-ok{color:var(--teal)}
+.fu-warn{color:var(--amber)}
+.fu-late{color:var(--red)}
+
+/* LIST VIEW */
+.card{background:var(--card);border:0.5px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:10px}
+.card-header{padding:10px 14px;border-bottom:0.5px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.card-title{font-size:12px;font-weight:500;color:var(--text)}
+.list-row{display:flex;align-items:center;gap:10px;padding:9px 14px;border-bottom:0.5px solid var(--border);cursor:pointer;transition:background .1s;font-size:12px}
+.list-row:last-child{border-bottom:none}
+.list-row:hover{background:var(--bg)}
+.list-row.selected{background:var(--coral-bg)}
+.lr-info{flex:1;min-width:0}
+.lr-name{font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lr-sub{font-size:10px;color:var(--text3);margin-top:2px}
+
+/* PILLS */
+.pill{display:inline-flex;padding:2px 7px;border-radius:8px;font-size:10px;font-weight:500;white-space:nowrap}
+.p-interior{background:var(--purple-bg);color:var(--purple)}
+.p-eksterior{background:var(--blue-bg);color:var(--blue)}
+.p-residensial{background:var(--teal-bg);color:var(--teal)}
+.p-komersial{background:var(--amber-bg);color:var(--amber)}
+.p-deal{background:var(--green-bg);color:var(--green)}
+.p-lost{background:var(--red-bg);color:var(--red)}
+.p-hold{background:var(--gray-bg);color:var(--gray)}
+
+/* CYCLE TIME */
+.cycle-tag{font-size:10px;font-weight:500;padding:2px 7px;border-radius:8px;background:var(--purple-bg);color:var(--purple)}
+
+/* DETAIL PANEL */
+.detail-panel{background:var(--card);border:0.5px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:12px}
+.dp-header{padding:13px 16px;border-bottom:0.5px solid var(--border);display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
+.dp-name{font-size:15px;font-weight:600;color:var(--text)}
+.dp-badges{display:flex;gap:5px;margin-top:5px;flex-wrap:wrap}
+.dp-body{padding:14px 16px}
+.detail-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:14px}
+.d-label{font-size:9px;font-weight:600;color:var(--text3);letter-spacing:.05em;text-transform:uppercase;margin-bottom:3px}
+.d-val{font-size:12px;color:var(--text)}
+
+/* PIPELINE STEPS */
+.pipe-steps{display:flex;gap:0;overflow-x:auto;margin-bottom:14px;padding-bottom:2px}
+.pipe-step{padding:5px 10px;font-size:10px;font-weight:500;border:0.5px solid var(--border);margin-right:-0.5px;color:var(--text3);background:var(--bg);white-space:nowrap;flex-shrink:0}
+.pipe-step:first-child{border-radius:var(--radius-sm) 0 0 var(--radius-sm)}
+.pipe-step:last-child{border-radius:0 var(--radius-sm) var(--radius-sm) 0}
+.pipe-step.passed{background:var(--coral-bg);color:var(--coral);border-color:#F0997B}
+.pipe-step.active{background:var(--coral-mid);color:#fff;border-color:var(--coral-mid)}
+
+/* LOG */
+.log-row{display:flex;gap:10px;padding:8px 14px;border-bottom:0.5px solid var(--border);font-size:11px}
+.log-row:last-child{border-bottom:none}
+.log-date{min-width:100px;color:var(--text3);flex-shrink:0}
+.log-text{flex:1;color:var(--text);line-height:1.5}
+.log-pic{min-width:60px;color:var(--text2);font-weight:500;text-align:right}
+
+/* FORM */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:100;align-items:flex-start;justify-content:center;padding:28px 14px;overflow-y:auto}
+.modal-overlay.open{display:flex}
+.modal{background:var(--card);border-radius:var(--radius);width:100%;max-width:560px}
+.modal-header{padding:14px 18px;border-bottom:0.5px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.modal-title{font-size:14px;font-weight:600;color:var(--text)}
+.modal-close{width:26px;height:26px;border-radius:var(--radius-sm);border:0.5px solid var(--border);background:none;cursor:pointer;font-size:14px;color:var(--text2);display:flex;align-items:center;justify-content:center}
+.modal-body{padding:18px}
+.modal-footer{padding:10px 18px;border-top:0.5px solid var(--border);display:flex;gap:7px;justify-content:flex-end}
+.form-group{margin-bottom:12px}
+.form-label{font-size:11px;font-weight:500;color:var(--text2);margin-bottom:4px;display:block}
+.req{color:var(--red);margin-left:2px}
+.form-input{width:100%;padding:7px 9px;border:0.5px solid var(--border2);border-radius:var(--radius-sm);font-size:12px;color:var(--text);background:var(--card);outline:none;transition:border .1s;font-family:inherit}
+.form-input:focus{border-color:var(--coral-mid)}
+select.form-input{cursor:pointer}
+textarea.form-input{resize:vertical;min-height:64px;line-height:1.5}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.form-hint{font-size:10px;color:var(--text3);margin-top:3px}
+
+/* STAGE SELECTOR */
+.stage-selector{display:flex;flex-wrap:wrap;gap:5px;margin-top:5px}
+.stage-opt{padding:4px 9px;border-radius:var(--radius-sm);border:0.5px solid var(--border2);font-size:10px;cursor:pointer;color:var(--text2);background:var(--bg);transition:all .1s}
+.stage-opt.active{background:var(--coral-mid);color:#fff;border-color:var(--coral-mid)}
+
+.empty{text-align:center;padding:28px 16px;color:var(--text3);font-size:12px}
+.loading{text-align:center;padding:24px;color:var(--text3);font-size:12px}
+.toast{position:fixed;bottom:20px;right:20px;background:var(--text);color:#fff;padding:9px 14px;border-radius:var(--radius-sm);font-size:12px;z-index:200;opacity:0;transition:opacity .2s;pointer-events:none}
+.toast.show{opacity:1}
+.divider{border:none;border-top:0.5px solid var(--border);margin:12px 0}
+
+@media(max-width:768px){
+  .sidebar{display:none}.main{margin-left:0;padding:12px}
+  .stats{grid-template-columns:1fr 1fr}.board-cols{flex-direction:column}
+  .detail-grid{grid-template-columns:1fr 1fr}.form-row{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- SIDEBAR -->
+<div class="sidebar">
+  <div class="logo">
+    <div class="logo-name">Moona</div>
+    <div class="logo-sub">Architect System</div>
+    <div class="logo-ver">v2</div>
+  </div>
+  <div class="nav-section">Utama</div>
+  <div class="nav-item" onclick="go('moona-v2-dashboard.html')"><span class="nav-dot" style="background:#888780"></span>Dashboard</div>
+  <div class="nav-section">Sales</div>
+  <div class="nav-item active"><span class="nav-dot" style="background:var(--coral-mid)"></span>CRM &amp; Sales<span class="nav-badge" id="nav-badge">–</span></div>
+  <div class="nav-item" onclick="go('moona-v2-client-portal.html')"><span class="nav-dot" style="background:var(--blue)"></span>Client Portal</div>
+  <div class="nav-section">Operasional</div>
+  <div class="nav-item" onclick="go('moona-v2-projects.html')"><span class="nav-dot" style="background:var(--teal)"></span>Project Management</div>
+  <div class="nav-item" onclick="go('moona-v2-laporan-design-v4.html')"><span class="nav-dot" style="background:var(--purple)"></span>Laporan Design</div>
+  <div class="nav-item" onclick="go('moona-v2-laporan-build-v4.html')"><span class="nav-dot" style="background:var(--teal)"></span>Laporan Build</div>
+  <div class="nav-section">Lainnya</div>
+  <div class="nav-item" onclick="go('moona-v2-meetings.html')"><span class="nav-dot" style="background:var(--purple)"></span>Meeting Tracker</div>
+  <div class="nav-item" onclick="go('moona-v2-finance.html')"><span class="nav-dot" style="background:var(--amber)"></span>Finance</div>
+  <div class="nav-item" onclick="go('moona-v2-content.html')"><span class="nav-dot" style="background:var(--coral-mid)"></span>Content Planner</div>
+  <div class="nav-item" onclick="go('moona-v2-sop.html')"><span class="nav-dot" style="background:#888780"></span>SOP &amp; Dokumen</div>
+  <div class="sidebar-footer">
+    <div class="sf-label">Login sebagai</div>
+    <div class="sf-name" id="sf-name">–</div>
+    <div class="sf-logout" onclick="logout()">Keluar →</div>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+  <div class="topbar">
+    <div><div class="page-title">CRM &amp; Sales</div><div class="page-sub">Pipeline lead · Interior &amp; Eksterior · Residensial &amp; Komersial</div></div>
+    <button class="btn btn-primary" onclick="openLeadForm()">+ Lead Baru</button>
+  </div>
+
+  <!-- STATS -->
+  <div class="stats">
+    <div class="stat"><div class="stat-label">Lead aktif</div><div class="stat-val" id="s-aktif">–</div></div>
+    <div class="stat"><div class="stat-label">Follow-up hari ini</div><div class="stat-val" id="s-fu" style="color:var(--amber)">–</div></div>
+    <div class="stat"><div class="stat-label">Deal bulan ini</div><div class="stat-val" id="s-deal">–</div><div class="stat-note" id="s-deal-note"></div></div>
+    <div class="stat"><div class="stat-label">Lost bulan ini</div><div class="stat-val" id="s-lost" style="color:var(--red)">–</div></div>
+    <div class="stat"><div class="stat-label">Avg cycle time</div><div class="stat-val" id="s-cycle">–</div><div class="stat-note">hari lead→closing</div></div>
+  </div>
+
+  <!-- FILTER -->
+  <div class="filter-bar">
+    <div class="filter-pill active" onclick="setFilter('periode','semua',this)">Semua</div>
+    <div class="filter-pill" onclick="setFilter('periode','minggu',this)">Minggu ini</div>
+    <div class="filter-pill" onclick="setFilter('periode','bulan',this)">Bulan ini</div>
+    <div class="filter-pill" onclick="setFilter('periode','kuartal',this)">Kuartal</div>
+    <div class="filter-pill" onclick="setFilter('periode','tahun',this)">Tahun ini</div>
+    <div class="filter-sep"></div>
+    <div class="filter-pill active" onclick="setFilter('layanan','',this)" id="fl-semua">Semua layanan</div>
+    <div class="filter-pill" onclick="setFilter('layanan','Interior',this)">Interior</div>
+    <div class="filter-pill" onclick="setFilter('layanan','Eksterior',this)">Eksterior</div>
+    <div class="filter-sep"></div>
+    <input class="search-box" id="search-box" placeholder="Cari nama, lokasi..." oninput="renderView()">
+  </div>
+
+  <!-- TABS -->
+  <div class="tabs">
+    <div class="tab active" onclick="switchTab('pipeline',this)">Pipeline Board</div>
+    <div class="tab" onclick="switchTab('list',this)">Daftar Lead</div>
+    <div class="tab" onclick="switchTab('analytics',this)">Analitik</div>
+  </div>
+
+  <!-- PIPELINE TAB -->
+  <div id="tab-pipeline">
+    <div class="board-cols" id="pipeline-board"><div class="loading">Memuat pipeline...</div></div>
+  </div>
+
+  <!-- LIST TAB -->
+  <div id="tab-list" style="display:none">
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Semua lead</span>
+        <select id="list-status-filter" class="form-input" style="width:130px;font-size:11px;padding:4px 7px" onchange="renderList()">
+          <option value="aktif">Aktif</option>
+          <option value="Deal">Deal</option>
+          <option value="Lost">Lost</option>
+          <option value="On Hold">On Hold</option>
+          <option value="">Semua</option>
+        </select>
+      </div>
+      <div id="lead-list"><div class="loading">Memuat...</div></div>
+    </div>
+  </div>
+
+  <!-- ANALYTICS TAB -->
+  <div id="tab-analytics" style="display:none">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div class="card">
+        <div class="card-header"><span class="card-title">Sumber lead</span></div>
+        <div id="analytics-sumber" style="padding:12px"></div>
+      </div>
+      <div class="card">
+        <div class="card-header"><span class="card-title">Konversi per layanan</span></div>
+        <div id="analytics-layanan" style="padding:12px"></div>
+      </div>
+      <div class="card">
+        <div class="card-header"><span class="card-title">Alasan lost</span></div>
+        <div id="analytics-lost" style="padding:12px"></div>
+      </div>
+      <div class="card">
+        <div class="card-header"><span class="card-title">Cycle time per tahap</span></div>
+        <div id="analytics-cycle" style="padding:12px"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DETAIL PANEL -->
+  <div class="detail-panel" id="detail-panel" style="display:none">
+    <div class="dp-header">
+      <div style="flex:1">
+        <div class="dp-name" id="dp-name">–</div>
+        <div class="dp-badges" id="dp-badges"></div>
+      </div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <button class="btn btn-sm" onclick="openFollowUpForm()">+ Follow-up</button>
+        <button class="btn btn-sm" onclick="openStageForm()">Ubah tahap</button>
+        <button class="btn btn-sm" onclick="closeDetail()">✕</button>
+      </div>
+    </div>
+    <div class="dp-body">
+      <!-- PIPELINE PROGRESS -->
+      <div style="margin-bottom:14px">
+        <div class="d-label" style="margin-bottom:6px">Tahap pipeline</div>
+        <div class="pipe-steps" id="dp-pipe-steps"></div>
+      </div>
+      <hr class="divider">
+      <div class="detail-grid">
+        <div><div class="d-label">No. WA</div><div class="d-val" id="dp-wa">–</div></div>
+        <div><div class="d-label">Sumber</div><div class="d-val" id="dp-sumber">–</div></div>
+        <div><div class="d-label">Alamat</div><div class="d-val" id="dp-alamat">–</div></div>
+        <div><div class="d-label">Tanggal masuk</div><div class="d-val" id="dp-tgl">–</div></div>
+        <div><div class="d-label">Follow-up berikutnya</div><div class="d-val" id="dp-fu">–</div></div>
+        <div><div class="d-label">Nilai kontrak</div><div class="d-val" id="dp-nilai">–</div></div>
+        <div><div class="d-label">Cycle time</div><div class="d-val" id="dp-cycle">–</div></div>
+        <div id="dp-alasan-wrap" style="display:none"><div class="d-label">Alasan lost</div><div class="d-val" id="dp-alasan" style="color:var(--red)">–</div></div>
+      </div>
+      <hr class="divider">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <div class="d-label" style="margin:0">Histori follow-up</div>
+      </div>
+      <div class="card" style="margin:0">
+        <div id="dp-log"><div class="empty" style="padding:14px">Belum ada catatan follow-up.</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- MODAL LEAD BARU -->
+<div class="modal-overlay" id="modal-lead">
+  <div class="modal">
+    <div class="modal-header"><span class="modal-title">Lead Baru</span><button class="modal-close" onclick="closeModal('modal-lead')">✕</button></div>
+    <div class="modal-body">
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Nama calon klien <span class="req">*</span></label><input id="f-nama" class="form-input" placeholder="Nama / perusahaan"></div>
+        <div class="form-group"><label class="form-label">No. WhatsApp <span class="req">*</span></label><input id="f-wa" class="form-input" placeholder="08xx..." type="tel"></div>
+      </div>
+      <div class="form-group"><label class="form-label">Alamat / lokasi proyek</label><input id="f-alamat" class="form-input" placeholder="Kota, area, atau alamat lengkap"></div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Sumber lead <span class="req">*</span></label>
+          <select id="f-sumber" class="form-input"><option value="">Pilih sumber</option><option>Instagram</option><option>TikTok</option><option>Threads</option><option>Referral</option><option>Website</option><option>Pameran</option><option>Lainnya</option></select>
+        </div>
+        <div class="form-group"><label class="form-label">Tipe layanan <span class="req">*</span></label>
+          <select id="f-layanan" class="form-input" onchange="updateStages()"><option value="">Pilih layanan</option><option>Interior</option><option>Eksterior</option></select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Tipe proyek <span class="req">*</span></label>
+          <select id="f-proyek" class="form-input"><option value="">Pilih tipe</option><option>Residensial</option><option>Komersial</option></select>
+        </div>
+        <div class="form-group"><label class="form-label">Follow-up berikutnya <span class="req">*</span></label><input id="f-followup" class="form-input" type="date"></div>
+      </div>
+      <div class="form-group"><label class="form-label">Tahap saat ini <span class="req">*</span></label>
+        <div class="stage-selector" id="f-stage-selector"><div style="font-size:11px;color:var(--text3)">Pilih tipe layanan dulu</div></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Nilai estimasi (Rp)</label><input id="f-nilai" class="form-input" type="number" placeholder="Opsional"></div>
+        <div></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('modal-lead')">Batal</button>
+      <button class="btn btn-primary" id="save-lead-btn" onclick="saveLead()">Simpan Lead</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL FOLLOW UP -->
+<div class="modal-overlay" id="modal-fu">
+  <div class="modal" style="max-width:440px">
+    <div class="modal-header"><span class="modal-title">Catat Follow-up</span><button class="modal-close" onclick="closeModal('modal-fu')">✕</button></div>
+    <div class="modal-body">
+      <div class="form-group"><label class="form-label">Hasil / catatan <span class="req">*</span></label><textarea id="fu-catatan" class="form-input" placeholder="Apa yang dibicarakan? Respons klien?"></textarea></div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">PIC</label><select id="fu-pic" class="form-input"><option value="">Pilih</option></select></div>
+        <div class="form-group"><label class="form-label">Follow-up berikutnya <span class="req">*</span></label><input id="fu-next" class="form-input" type="date"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('modal-fu')">Batal</button>
+      <button class="btn btn-primary" id="save-fu-btn" onclick="saveFollowUp()">Simpan</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL UBAH TAHAP -->
+<div class="modal-overlay" id="modal-stage">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-header"><span class="modal-title">Ubah Tahap Pipeline</span><button class="modal-close" onclick="closeModal('modal-stage')">✕</button></div>
+    <div class="modal-body">
+      <div class="form-group"><label class="form-label">Tahap baru <span class="req">*</span></label>
+        <div class="stage-selector" id="edit-stage-selector"></div>
+      </div>
+      <div class="form-group"><label class="form-label">Status akhir (opsional)</label>
+        <select id="edit-status" class="form-input">
+          <option value="">Masih aktif</option>
+          <option value="Deal">Deal — kontrak ditandatangani</option>
+          <option value="Lost">Lost — tidak jadi</option>
+          <option value="On Hold">On Hold — ditunda</option>
+        </select>
+      </div>
+      <div class="form-group" id="lost-reason-group" style="display:none">
+        <label class="form-label">Alasan lost <span class="req">*</span></label>
+        <select id="edit-alasan" class="form-input">
+          <option value="">Pilih alasan</option>
+          <option>Budget tidak sesuai</option>
+          <option>Pilih kompetitor</option>
+          <option>Proyek ditunda</option>
+          <option>Tidak ada respons</option>
+          <option>Tidak cocok dengan konsep</option>
+          <option>Lainnya</option>
+        </select>
+      </div>
+      <div class="form-group"><label class="form-label">Nilai kontrak (Rp)</label><input id="edit-nilai" class="form-input" type="number" placeholder="Isi saat Deal"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('modal-stage')">Batal</button>
+      <button class="btn btn-primary" id="save-stage-btn" onclick="saveStage()">Simpan</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const API='https://script.google.com/macros/s/AKfycbwkjBr_opT5V05KY6fQG3Aa2i7URgxpzX7a1ga3mBFKS3CeMbCvyLzdkNpHIhgg4Xxncw/exec';
+const PIPE_INT=['Consultation','Proposal Sent','Site visit','Design','Kontrak build','Eksekusi','Handover','After sales'];
+const PIPE_EXT=['Consultation','Proposal Sent','Site visit','Design moodboard','Kontrak design','Design','Design handover','Build costing','Kontrak build','Eksekusi build','Handover','After sales'];
+const PIPE_GROUPS={
+  'Consultation':0,'Proposal Sent':0,
+  'Site visit':1,
+  'Design moodboard':2,'Design':2,'Design handover':2,
+  'Kontrak design':3,'Kontrak build':3,'Build costing':3,
+  'Eksekusi':4,'Eksekusi build':4,
+  'Handover':5,'After sales':5
+};
+const COL_COLORS=['#E6F1FB|#185FA5','#EEEDFE|#534AB7','#EEEDFE|#534AB7','#FAEEDA|#854F0B','#FAEEDA|#854F0B','#EAF3DE|#3B6D11'];
+const COL_LABELS=['Konsultasi & Proposal','Site Visit','Desain','Kontrak','Eksekusi','Handover'];
+
+let leads=[],logs=[],users=[];
+let selectedId=null,selStage='',editStage='';
+let filterPeriode='semua',filterLayanan='';
+
+// AUTH
+function getSession(){try{return JSON.parse(localStorage.getItem('moona_v2_session'));}catch(e){return null;}}
+function logout(){localStorage.removeItem('moona_v2_session');location.href='moona-v2-login.html';}
+function go(url){location.href=url;}
+const S=getSession();
+if(!S){location.href='moona-v2-login.html';}
+else document.getElementById('sf-name').textContent=S.nama+' — '+S.role;
+
+// HELPERS
+function p(o,...ks){for(const k of ks){if(o[k]!==undefined&&o[k]!==null&&String(o[k]).trim()!='')return String(o[k]);}return '';}
+function showToast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2800);}
+function fmtDate(s){if(!s)return'–';try{return new Date(s).toLocaleDateString('id-ID',{day:'numeric',month:'short',year:'numeric'});}catch(e){return s;}}
+function rp(n){if(!n||isNaN(n))return'–';const v=parseFloat(n);if(v>=1e9)return'Rp '+(v/1e9).toFixed(1)+' M';if(v>=1e6)return'Rp '+Math.round(v/1e6)+' jt';return'Rp '+v.toLocaleString('id-ID');}
+function cycledays(lead){
+  const masuk=p(lead,'TanggalMasuk');const closing=p(lead,'TanggalClosing');
+  if(!masuk)return null;
+  const end=closing?new Date(closing):new Date();
+  try{const diff=Math.floor((end-new Date(masuk))/(1000*60*60*24));return diff>=0?diff:null;}catch(e){return null;}
+}
+function inPeriode(lead){
+  const tgl=p(lead,'TanggalMasuk');if(!tgl)return true;
+  const d=new Date(tgl);const now=new Date();
+  if(filterPeriode==='semua')return true;
+  if(filterPeriode==='minggu'){const w=new Date(now);w.setDate(now.getDate()-7);return d>=w;}
+  if(filterPeriode==='bulan')return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear();
+  if(filterPeriode==='kuartal'){const q=Math.floor(now.getMonth()/3);return Math.floor(d.getMonth()/3)===q&&d.getFullYear()===now.getFullYear();}
+  if(filterPeriode==='tahun')return d.getFullYear()===now.getFullYear();
+  return true;
+}
+function filtered(){
+  const q=document.getElementById('search-box').value.toLowerCase();
+  return leads.filter(l=>{
+    if(!inPeriode(l))return false;
+    if(filterLayanan&&p(l,'TipeLayanan')!==filterLayanan)return false;
+    if(q&&!p(l,'Nama').toLowerCase().includes(q)&&!p(l,'Alamat').toLowerCase().includes(q))return false;
+    return true;
+  });
+}
+function isActive(l){return !p(l,'StatusAkhir');}
+function closeModal(id){document.getElementById(id).classList.remove('open');}
+
+// TABS
+function switchTab(tab,el){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));el.classList.add('active');
+  ['pipeline','list','analytics'].forEach(t=>document.getElementById('tab-'+t).style.display=t===tab?'block':'none');
+  if(tab==='list')renderList();
+  if(tab==='analytics')renderAnalytics();
+}
+
+// FILTER
+function setFilter(type,val,el){
+  if(type==='periode'){filterPeriode=val;document.querySelectorAll('.filter-pill').forEach(p=>{if(['Semua','Minggu ini','Bulan ini','Kuartal','Tahun ini'].includes(p.textContent))p.classList.remove('active')});}
+  if(type==='layanan'){filterLayanan=val;document.querySelectorAll('.filter-pill').forEach(p=>{if(['Semua layanan','Interior','Eksterior'].includes(p.textContent))p.classList.remove('active')});}
+  el.classList.add('active');
+  renderView();updateStats();
+}
+function renderView(){renderPipeline();if(document.getElementById('tab-list').style.display!=='none')renderList();}
+
+// LOAD
+window.onload=async()=>{
+  document.getElementById('f-followup').value=new Date().toISOString().split('T')[0];
+  await Promise.all([loadLeads(),loadLogs(),loadUsers()]);
+};
+async function loadLeads(){
+  try{const r=await fetch(API+'?action=getLeads');const d=await r.json();if(d.status==='ok'){leads=d.data;renderPipeline();updateStats();}}
+  catch(e){document.getElementById('pipeline-board').innerHTML='<div class="empty">Gagal memuat data.</div>';}
+}
+async function loadLogs(){try{const r=await fetch(API+'?action=getFollowUpLogs');const d=await r.json();if(d.status==='ok')logs=d.data;}catch(e){}}
+async function loadUsers(){
+  try{const r=await fetch(API+'?action=getUsers');const d=await r.json();
+    if(d.status==='ok'){users=d.data;['fu-pic'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML='<option value="">Pilih</option>'+d.data.map(u=>`<option value="${u.nama}">${u.nama}</option>`).join('');});}}catch(e){}
+}
+
+// STATS
+function updateStats(){
+  const f=filtered();
+  const aktif=f.filter(l=>isActive(l));
+  const today=new Date();today.setHours(0,0,0,0);
+  const fu=aktif.filter(l=>{const d=p(l,'FollowUpBerikutnya');if(!d)return false;const dd=new Date(d);dd.setHours(0,0,0,0);return dd<=today;});
+  const now=new Date();
+  const deals=leads.filter(l=>p(l,'StatusAkhir')==='Deal'&&inPeriode(l));
+  const lost=leads.filter(l=>p(l,'StatusAkhir')==='Lost'&&inPeriode(l));
+  const closedWithTime=leads.filter(l=>p(l,'StatusAkhir')==='Deal'&&p(l,'TanggalMasuk')&&p(l,'TanggalClosing'));
+  const avgCycle=closedWithTime.length>0?Math.round(closedWithTime.reduce((s,l)=>s+(cycledays(l)||0),0)/closedWithTime.length):null;
+  const totalDeal=deals.reduce((s,l)=>s+parseFloat(p(l,'NilaiKontrak')||0),0);
+  document.getElementById('s-aktif').textContent=aktif.length;
+  document.getElementById('s-fu').textContent=fu.length;
+  document.getElementById('s-deal').textContent=deals.length;
+  if(totalDeal>0)document.getElementById('s-deal-note').textContent=rp(totalDeal);
+  document.getElementById('s-lost').textContent=lost.length;
+  document.getElementById('s-cycle').textContent=avgCycle!==null?avgCycle+'h':'–';
+  document.getElementById('nav-badge').textContent=fu.length||'–';
+}
+
+// PIPELINE BOARD
+function renderPipeline(){
+  const f=filtered().filter(l=>isActive(l));
+  const board=document.getElementById('pipeline-board');
+  board.innerHTML=COL_LABELS.map((label,ci)=>{
+    const [bg,clr]=COL_COLORS[ci].split('|');
+    const cols=f.filter(l=>PIPE_GROUPS[p(l,'TahapPipeline')]===ci);
+    return `<div class="pipeline-col">
+      <div class="col-header">
+        <div class="col-title" style="color:${clr}">${label}</div>
+        <span class="col-count" style="background:${bg};color:${clr}">${cols.length}</span>
+      </div>
+      ${cols.length===0?'<div style="font-size:10px;color:var(--text3);text-align:center;padding:10px 0">–</div>':''}
+      ${cols.map(l=>{
+        const fu=p(l,'FollowUpBerikutnya');
+        const today=new Date();today.setHours(0,0,0,0);
+        const fuDate=fu?new Date(fu):null;if(fuDate)fuDate.setHours(0,0,0,0);
+        const isLate=fuDate&&fuDate<today,isToday=fuDate&&fuDate.getTime()===today.getTime();
+        const fuCls=isLate?'fu-late':isToday?'fu-warn':'fu-ok';
+        const fuLabel=fu?(isLate?'Terlambat':isToday?'Hari ini':fmtDate(fu)):'';
+        const cy=cycledays(l);
+        return `<div class="lead-card ${selectedId===p(l,'ID')?'selected':''}" onclick="selectLead('${p(l,'ID')}')">
+          <div class="lc-name">${p(l,'Nama')}</div>
+          <div class="lc-meta">${p(l,'TipeLayanan')||'–'} · ${p(l,'TipeProyek')||'–'}<br>${p(l,'TahapPipeline')||'–'}</div>
+          ${fuLabel?`<div class="lc-fu ${fuCls}">↺ ${fuLabel}</div>`:''}
+          ${cy!==null?`<div style="font-size:10px;color:var(--text3);margin-top:2px">${cy} hari</div>`:''}
+        </div>`;
+      }).join('')}
+    </div>`;
+  }).join('');
+  // Lost & Deal summary
+  const dealCount=filtered().filter(l=>p(l,'StatusAkhir')==='Deal').length;
+  const lostCount=filtered().filter(l=>p(l,'StatusAkhir')==='Lost').length;
+  if(dealCount>0||lostCount>0){
+    board.innerHTML+=`<div style="display:flex;gap:8px;margin-top:6px;min-width:100%;padding-bottom:4px">
+      ${dealCount>0?`<div style="padding:6px 12px;border-radius:var(--radius-sm);background:var(--green-bg);color:var(--green);font-size:11px;font-weight:500;white-space:nowrap">${dealCount} Deal</div>`:''}
+      ${lostCount>0?`<div style="padding:6px 12px;border-radius:var(--radius-sm);background:var(--red-bg);color:var(--red);font-size:11px;font-weight:500;white-space:nowrap">${lostCount} Lost</div>`:''}
+    </div>`;
+  }
+}
+
+// LIST
+function renderList(){
+  const sf=document.getElementById('list-status-filter').value;
+  let f=filtered();
+  if(sf==='aktif')f=f.filter(l=>isActive(l));
+  else if(sf)f=f.filter(l=>p(l,'StatusAkhir')===sf);
+  const el=document.getElementById('lead-list');
+  if(!f.length){el.innerHTML='<div class="empty">Tidak ada lead.</div>';return;}
+  el.innerHTML=f.map(l=>{
+    const status=p(l,'StatusAkhir');const cy=cycledays(l);
+    const fu=p(l,'FollowUpBerikutnya');
+    const today=new Date();today.setHours(0,0,0,0);
+    const fuDate=fu?new Date(fu):null;if(fuDate)fuDate.setHours(0,0,0,0);
+    const isLate=!status&&fuDate&&fuDate<today;
+    return `<div class="list-row ${selectedId===p(l,'ID')?'selected':''}" onclick="selectLead('${p(l,'ID')}')">
+      <div class="lr-info">
+        <div class="lr-name">${p(l,'Nama')}</div>
+        <div class="lr-sub">${p(l,'Sumber')||'–'} · ${p(l,'Alamat')||'–'} · ${p(l,'TahapPipeline')||'–'}</div>
+      </div>
+      <span class="pill p-${(p(l,'TipeLayanan')||'').toLowerCase()}">${p(l,'TipeLayanan')||'–'}</span>
+      ${cy!==null?`<span class="cycle-tag">${cy}h</span>`:''}
+      <div style="min-width:80px;text-align:right;font-size:11px">
+        ${status?`<span class="pill p-${status.toLowerCase().replace(' ','-')}">${status}</span>`:(isLate?`<span style="color:var(--red);font-size:10px">Terlambat</span>`:fmtDate(fu))}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ANALYTICS
+function renderAnalytics(){
+  const f=filtered();
+  // Sumber
+  const sumberMap={};f.forEach(l=>{const s=p(l,'Sumber')||'Lainnya';sumberMap[s]=(sumberMap[s]||0)+1;});
+  renderBarChart('analytics-sumber',sumberMap,'Sumber Lead');
+  // Layanan konversi
+  const layMap={};f.forEach(l=>{const lay=p(l,'TipeLayanan')||'–';if(!layMap[lay])layMap[lay]={total:0,deal:0};layMap[lay].total++;if(p(l,'StatusAkhir')==='Deal')layMap[lay].deal++;});
+  const layData={};Object.entries(layMap).forEach(([k,v])=>{layData[k]=v.total>0?Math.round(v.deal/v.total*100):0;});
+  renderBarChart('analytics-layanan',layData,'Konversi (%)');
+  // Lost reasons
+  const lostMap={};f.filter(l=>p(l,'StatusAkhir')==='Lost').forEach(l=>{const a=p(l,'AlasanLost')||'Tidak tercatat';lostMap[a]=(lostMap[a]||0)+1;});
+  if(Object.keys(lostMap).length)renderBarChart('analytics-lost',lostMap,'Lead Lost');
+  else document.getElementById('analytics-lost').innerHTML='<div class="empty">Belum ada data lost.</div>';
+  // Cycle time avg per layanan
+  const cycleMap={};f.filter(l=>p(l,'StatusAkhir')==='Deal').forEach(l=>{const lay=p(l,'TipeLayanan')||'–';const cy=cycledays(l);if(cy!==null){if(!cycleMap[lay])cycleMap[lay]=[];cycleMap[lay].push(cy);}});
+  const cycleAvg={};Object.entries(cycleMap).forEach(([k,v])=>{cycleAvg[k]=Math.round(v.reduce((s,n)=>s+n,0)/v.length);});
+  if(Object.keys(cycleAvg).length)renderBarChart('analytics-cycle',cycleAvg,'Avg Hari');
+  else document.getElementById('analytics-cycle').innerHTML='<div class="empty">Belum ada data deal.</div>';
+}
+function renderBarChart(elId,data,label){
+  const el=document.getElementById(elId);
+  const max=Math.max(...Object.values(data),1);
+  el.innerHTML=Object.entries(data).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`
+    <div style="margin-bottom:8px">
+      <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:3px">
+        <span style="color:var(--text2)">${k}</span>
+        <span style="font-weight:500">${v}</span>
+      </div>
+      <div style="height:5px;background:var(--border);border-radius:3px">
+        <div style="height:100%;width:${Math.round(v/max*100)}%;background:var(--coral-mid);border-radius:3px"></div>
+      </div>
+    </div>`).join('');
+}
+
+// SELECT LEAD
+function selectLead(id){
+  selectedId=id;renderPipeline();
+  const l=leads.find(x=>p(x,'ID')===id);if(!l)return;
+  document.getElementById('detail-panel').style.display='block';
+  document.getElementById('dp-name').textContent=p(l,'Nama');
+  const status=p(l,'StatusAkhir');
+  const layanan=p(l,'TipeLayanan');
+  document.getElementById('dp-badges').innerHTML=`
+    <span class="pill p-${layanan.toLowerCase()}">${layanan||'–'}</span>
+    <span class="pill p-${p(l,'TipeProyek').toLowerCase()}">${p(l,'TipeProyek')||'–'}</span>
+    ${status?`<span class="pill p-${status.toLowerCase().replace(' ','-')}">${status}</span>`:''}`;
+  // Pipeline steps
+  const pipe=layanan==='Eksterior'?PIPE_EXT:PIPE_INT;
+  const cur=p(l,'TahapPipeline');const curIdx=pipe.indexOf(cur);
+  document.getElementById('dp-pipe-steps').innerHTML=pipe.map((s,i)=>`<div class="pipe-step ${i<curIdx?'passed':i===curIdx?'active':''}">${s}</div>`).join('');
+  document.getElementById('dp-wa').textContent=p(l,'NoWA')||'–';
+  document.getElementById('dp-sumber').textContent=p(l,'Sumber')||'–';
+  document.getElementById('dp-alamat').textContent=p(l,'Alamat')||'–';
+  document.getElementById('dp-tgl').textContent=fmtDate(p(l,'TanggalMasuk'));
+  document.getElementById('dp-fu').textContent=fmtDate(p(l,'FollowUpBerikutnya'));
+  document.getElementById('dp-nilai').textContent=rp(p(l,'NilaiKontrak'));
+  const cy=cycledays(l);
+  document.getElementById('dp-cycle').textContent=cy!==null?cy+' hari':'–';
+  const alasanWrap=document.getElementById('dp-alasan-wrap');
+  if(status==='Lost'){alasanWrap.style.display='block';document.getElementById('dp-alasan').textContent=p(l,'AlasanLost')||'–';}
+  else alasanWrap.style.display='none';
+  // Logs
+  const ls=logs.filter(x=>p(x,'Lead_ID')===id);
+  document.getElementById('dp-log').innerHTML=ls.length?[...ls].reverse().map(x=>`<div class="log-row"><div class="log-date">${p(x,'Tanggal')||'–'}</div><div class="log-text">${p(x,'Catatan')||'–'}</div><div class="log-pic">${p(x,'PIC')||'–'}</div></div>`).join(''):'<div class="empty" style="padding:14px">Belum ada catatan.</div>';
+  document.getElementById('detail-panel').scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+function closeDetail(){selectedId=null;document.getElementById('detail-panel').style.display='none';renderPipeline();}
+
+// STAGE SELECTOR
+function getPipe(layanan){return layanan==='Eksterior'?PIPE_EXT:PIPE_INT;}
+function renderStageOpts(containerId,layanan,cur){
+  const el=document.getElementById(containerId);
+  const pipe=getPipe(layanan);
+  if(!layanan){el.innerHTML='<div style="font-size:11px;color:var(--text3)">Pilih tipe layanan dulu</div>';return;}
+  if(containerId==='f-stage-selector')selStage=cur||pipe[0];
+  else editStage=cur||pipe[0];
+  el.innerHTML=pipe.map(s=>`<div class="stage-opt ${s===(containerId==='f-stage-selector'?selStage:editStage)?'active':''}" onclick="selectStage('${containerId}','${s}')">${s}</div>`).join('');
+}
+function selectStage(cid,s){
+  document.querySelectorAll(`#${cid} .stage-opt`).forEach(e=>e.classList.remove('active'));
+  document.querySelector(`#${cid} .stage-opt[onclick*="${s}"]`)?.classList.add('active');
+  if(cid==='f-stage-selector')selStage=s;else editStage=s;
+}
+function updateStages(){renderStageOpts('f-stage-selector',document.getElementById('f-layanan').value,'');}
+
+// LEAD FORM
+function openLeadForm(){
+  ['f-nama','f-wa','f-alamat','f-nilai'].forEach(id=>document.getElementById(id).value='');
+  ['f-sumber','f-layanan','f-proyek'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('f-followup').value=new Date().toISOString().split('T')[0];
+  document.getElementById('f-stage-selector').innerHTML='<div style="font-size:11px;color:var(--text3)">Pilih tipe layanan dulu</div>';
+  selStage='';
+  document.getElementById('modal-lead').classList.add('open');
+}
+async function saveLead(){
+  const nama=document.getElementById('f-nama').value.trim();
+  const wa=document.getElementById('f-wa').value.trim();
+  const sumber=document.getElementById('f-sumber').value;
+  const layanan=document.getElementById('f-layanan').value;
+  const proyek=document.getElementById('f-proyek').value;
+  const followup=document.getElementById('f-followup').value;
+  if(!nama||!wa||!sumber||!layanan||!proyek||!selStage||!followup){showToast('Lengkapi semua field wajib');return;}
+  const btn=document.getElementById('save-lead-btn');btn.textContent='Menyimpan...';btn.disabled=true;
+  try{
+    const r=await fetch(API,{method:'POST',body:JSON.stringify({action:'addLead',nama,wa,alamat:document.getElementById('f-alamat').value.trim(),sumber,layanan,proyek,tahap:selStage,followup,nilai:document.getElementById('f-nilai').value||''})});
+    const d=await r.json();
+    if(d.status==='ok'){closeModal('modal-lead');showToast('Lead berhasil disimpan!');await loadLeads();}
+    else showToast('Gagal: '+d.message);
+  }catch(e){showToast('Error: '+e.message);}
+  btn.textContent='Simpan Lead';btn.disabled=false;
+}
+
+// FOLLOW UP FORM
+function openFollowUpForm(){
+  document.getElementById('fu-catatan').value='';
+  document.getElementById('fu-next').value=new Date().toISOString().split('T')[0];
+  document.getElementById('modal-fu').classList.add('open');
+}
+async function saveFollowUp(){
+  const catatan=document.getElementById('fu-catatan').value.trim();
+  const next=document.getElementById('fu-next').value;
+  if(!catatan||!next){showToast('Lengkapi catatan dan tanggal follow-up');return;}
+  const btn=document.getElementById('save-fu-btn');btn.textContent='Menyimpan...';btn.disabled=true;
+  try{
+    const r=await fetch(API,{method:'POST',body:JSON.stringify({action:'addFollowUpLog',leadId:selectedId,catatan,pic:document.getElementById('fu-pic').value,followupNext:next})});
+    const d=await r.json();
+    if(d.status==='ok'){closeModal('modal-fu');showToast('Follow-up dicatat!');await loadLeads();await loadLogs();selectLead(selectedId);}
+    else showToast('Gagal: '+d.message);
+  }catch(e){showToast('Error');}
+  btn.textContent='Simpan';btn.disabled=false;
+}
+
+// STAGE FORM
+function openStageForm(){
+  const l=leads.find(x=>p(x,'ID')===selectedId);if(!l)return;
+  renderStageOpts('edit-stage-selector',p(l,'TipeLayanan'),p(l,'TahapPipeline'));
+  document.getElementById('edit-status').value='';
+  document.getElementById('edit-nilai').value=p(l,'NilaiKontrak')||'';
+  document.getElementById('lost-reason-group').style.display='none';
+  document.getElementById('modal-stage').classList.add('open');
+  document.getElementById('edit-status').onchange=function(){
+    document.getElementById('lost-reason-group').style.display=this.value==='Lost'?'block':'none';
+  };
+}
+async function saveStage(){
+  if(!editStage){showToast('Pilih tahap');return;}
+  const status=document.getElementById('edit-status').value;
+  const alasan=document.getElementById('edit-alasan').value;
+  if(status==='Lost'&&!alasan){showToast('Pilih alasan lost');return;}
+  const btn=document.getElementById('save-stage-btn');btn.textContent='Menyimpan...';btn.disabled=true;
+  try{
+    const r=await fetch(API,{method:'POST',body:JSON.stringify({action:'updateLead',id:selectedId,tahap:editStage,status,alasanLost:alasan,nilai:document.getElementById('edit-nilai').value||''})});
+    const d=await r.json();
+    if(d.status==='ok'){closeModal('modal-stage');showToast('Pipeline diperbarui!');await loadLeads();selectLead(selectedId);}
+    else showToast('Gagal: '+d.message);
+  }catch(e){showToast('Error');}
+  btn.textContent='Simpan';btn.disabled=false;
+}
+</script>
+</body>
+</html>

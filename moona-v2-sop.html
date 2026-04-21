@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Moona v2 — SOP & Dokumen</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f8f7f4;--card:#fff;--border:#e5e3dc;--border2:#d0cec7;
+  --text:#1a1a18;--text2:#6b6a64;--text3:#9d9b94;
+  --coral:#993C1D;--coral-mid:#D85A30;--coral-bg:#FAECE7;
+  --purple:#534AB7;--purple-bg:#EEEDFE;
+  --teal:#0F6E56;--teal-bg:#E1F5EE;
+  --amber:#854F0B;--amber-bg:#FAEEDA;
+  --red:#A32D2D;--red-bg:#FCEBEB;
+  --green:#3B6D11;--green-bg:#EAF3DE;
+  --blue:#185FA5;--blue-bg:#E6F1FB;
+  --gray:#5F5E5A;--gray-bg:#F1EFE8;
+  --radius:10px;--radius-sm:6px;
+}
+body{background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:var(--text);font-size:14px;min-height:100vh}
+.app{display:flex;min-height:100vh}
+.sidebar{width:220px;min-width:220px;background:var(--card);border-right:0.5px solid var(--border);display:flex;flex-direction:column;position:fixed;top:0;left:0;height:100vh;z-index:10;overflow-y:auto}
+.logo{padding:18px 16px 14px;border-bottom:0.5px solid var(--border)}
+.logo-name{font-size:15px;font-weight:600}
+.logo-sub{font-size:10px;color:var(--text3);margin-top:2px}
+.logo-ver{display:inline-block;font-size:9px;font-weight:600;background:var(--coral-bg);color:var(--coral);padding:1px 5px;border-radius:4px;margin-top:3px}
+.nav-section{padding:10px 8px 3px;font-size:9px;font-weight:600;color:var(--text3);letter-spacing:.06em;text-transform:uppercase}
+.nav-item{display:flex;align-items:center;gap:8px;padding:7px 12px;margin:1px 4px;border-radius:var(--radius-sm);cursor:pointer;font-size:12px;color:var(--text2)}
+.nav-item:hover{background:var(--bg)}
+.nav-item.active{background:var(--gray-bg);color:var(--gray);font-weight:500}
+.nav-dot{width:6px;height:6px;border-radius:50%}
+.sidebar-footer{margin-top:auto;padding:12px 16px;border-top:0.5px solid var(--border)}
+.sf-label{font-size:10px;color:var(--text3)}
+.sf-name{font-size:11px;font-weight:500;margin-top:2px}
+.sf-logout{font-size:10px;color:var(--gray);margin-top:4px;cursor:pointer}
+
+.main{margin-left:220px;flex:1;padding:22px;max-width:1100px}
+.topbar{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:18px;gap:10px;flex-wrap:wrap}
+.page-title{font-size:19px;font-weight:600}
+.page-sub{font-size:11px;color:var(--text3);margin-top:2px}
+
+.btn{padding:7px 14px;border-radius:var(--radius-sm);border:0.5px solid var(--border2);background:var(--card);color:var(--text);font-size:12px;font-weight:500;cursor:pointer;white-space:nowrap}
+.btn:hover{background:var(--bg)}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn-primary{background:var(--gray);color:#fff;border-color:var(--gray)}
+.btn-primary:hover{opacity:.9}
+.btn-sm{padding:4px 10px;font-size:11px}
+.btn-green{background:var(--teal);color:#fff;border-color:var(--teal)}
+.btn-red{background:var(--red);color:#fff;border-color:var(--red)}
+.btn-ghost{background:none;border:none;color:var(--text3);font-size:11px;cursor:pointer;padding:2px 6px}
+.btn-ghost:hover{color:var(--red)}
+
+.search-bar{display:flex;gap:8px;margin-bottom:14px;align-items:center}
+.search-input{flex:1;padding:8px 12px;border:0.5px solid var(--border2);border-radius:var(--radius-sm);font-size:12px;background:var(--card);outline:none}
+.search-input:focus{border-color:var(--gray)}
+
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:16px}
+.stat{background:var(--bg);border-radius:var(--radius-sm);padding:10px 12px}
+.stat-label{font-size:10px;color:var(--text3);margin-bottom:3px}
+.stat-val{font-size:19px;font-weight:600}
+
+.filter-bar{display:flex;gap:5px;margin-bottom:12px;flex-wrap:wrap;align-items:center}
+.fpill{padding:4px 11px;border-radius:20px;font-size:11px;font-weight:500;cursor:pointer;border:0.5px solid var(--border2);color:var(--text2);background:var(--card)}
+.fpill.active{background:var(--text);color:#fff;border-color:var(--text)}
+.fsep{width:1px;height:16px;background:var(--border2);margin:0 4px}
+
+.tabs{display:flex;border-bottom:0.5px solid var(--border);margin-bottom:14px}
+.tab{padding:8px 16px;font-size:12px;color:var(--text2);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-0.5px}
+.tab.active{color:var(--gray);border-bottom-color:var(--gray);font-weight:500}
+
+.doc-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+.doc-card{background:var(--card);border:0.5px solid var(--border);border-radius:var(--radius);padding:12px 14px;transition:border-color .1s;position:relative}
+.doc-card:hover{border-color:var(--border2)}
+.dc-head{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:5px}
+.dc-title{font-size:13px;font-weight:500;line-height:1.3;color:var(--text);flex:1}
+.dc-meta{font-size:10px;color:var(--text3);margin-top:4px;display:flex;gap:8px;flex-wrap:wrap}
+.dc-desc{font-size:11px;color:var(--text2);margin:5px 0 8px;line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.dc-tags{display:flex;gap:4px;flex-wrap:wrap;margin-top:5px}
+.dc-tag{font-size:9px;background:var(--bg);color:var(--text2);padding:2px 7px;border-radius:10px}
+.dc-actions{display:flex;gap:5px;margin-top:9px;padding-top:8px;border-top:0.5px solid var(--border);align-items:center;flex-wrap:wrap}
+
+.pill{display:inline-flex;padding:2px 7px;border-radius:7px;font-size:10px;font-weight:500;white-space:nowrap}
+.k-sopdivisi{background:var(--teal-bg);color:var(--teal)}
+.k-sopproses{background:var(--blue-bg);color:var(--blue)}
+.k-template{background:var(--amber-bg);color:var(--amber)}
+.k-panduantools{background:var(--purple-bg);color:var(--purple)}
+.k-knowledgebase{background:var(--coral-bg);color:var(--coral)}
+.s-pendingreview{background:var(--amber-bg);color:var(--amber)}
+.s-published{background:var(--green-bg);color:var(--green)}
+.s-rejected{background:var(--red-bg);color:var(--red)}
+.s-archived{background:var(--gray-bg);color:var(--gray)}
+
+.d-divisi{background:var(--gray-bg);color:var(--gray)}
+
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:100;align-items:flex-start;justify-content:center;padding:28px 14px;overflow-y:auto}
+.modal-overlay.open{display:flex}
+.modal{background:var(--card);border-radius:var(--radius);width:100%;max-width:520px}
+.modal-header{padding:13px 18px;border-bottom:0.5px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.modal-title{font-size:13px;font-weight:600}
+.modal-close{width:24px;height:24px;border-radius:4px;border:0.5px solid var(--border);background:none;cursor:pointer;font-size:14px;color:var(--text2)}
+.modal-body{padding:16px 18px}
+.modal-footer{padding:10px 18px;border-top:0.5px solid var(--border);display:flex;gap:7px;justify-content:flex-end;flex-wrap:wrap}
+.form-group{margin-bottom:12px}
+.form-label{font-size:11px;font-weight:500;color:var(--text2);margin-bottom:4px;display:block}
+.req{color:var(--red);margin-left:2px}
+.form-input{width:100%;padding:7px 9px;border:0.5px solid var(--border2);border-radius:var(--radius-sm);font-size:12px;background:var(--card);outline:none;font-family:inherit}
+.form-input:focus{border-color:var(--gray)}
+textarea.form-input{resize:vertical;min-height:50px;line-height:1.5}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.form-hint{font-size:10px;color:var(--text3);margin-top:2px}
+
+.info-box{background:var(--blue-bg);border:0.5px solid #185FA540;border-radius:var(--radius-sm);padding:10px 12px;margin-bottom:12px;font-size:11px;color:var(--blue);line-height:1.5}
+
+.empty{text-align:center;padding:40px 20px;color:var(--text3);font-size:11px}
+.loading{text-align:center;padding:20px;color:var(--text3);font-size:11px}
+.toast{position:fixed;bottom:20px;right:20px;background:var(--text);color:#fff;padding:9px 14px;border-radius:var(--radius-sm);font-size:12px;z-index:200;opacity:0;transition:opacity .2s;pointer-events:none}
+.toast.show{opacity:1}
+
+@media(max-width:768px){
+  .sidebar{display:none}.main{margin-left:0;padding:12px}
+  .stats{grid-template-columns:1fr 1fr}.doc-grid{grid-template-columns:1fr}
+  .form-row{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+<div class="app">
+<div class="sidebar">
+  <div class="logo"><div class="logo-name">Moona</div><div class="logo-sub">Architect System</div><div class="logo-ver">v2</div></div>
+  <div class="nav-section">Utama</div>
+  <div class="nav-item" onclick="go('moona-v2-dashboard.html')"><span class="nav-dot" style="background:#888780"></span>Dashboard</div>
+  <div class="nav-section">Sales</div>
+  <div class="nav-item" onclick="go('moona-v2-crm.html')"><span class="nav-dot" style="background:var(--coral-mid)"></span>CRM &amp; Sales</div>
+  <div class="nav-item" onclick="go('moona-v2-client-portal.html')"><span class="nav-dot" style="background:var(--blue)"></span>Client Portal</div>
+  <div class="nav-section">Operasional</div>
+  <div class="nav-item" onclick="go('moona-v2-projects.html')"><span class="nav-dot" style="background:var(--teal)"></span>Project Management</div>
+  <div class="nav-item" onclick="go('moona-v2-laporan-design-v4.html')"><span class="nav-dot" style="background:var(--purple)"></span>Laporan Design</div>
+  <div class="nav-item" onclick="go('moona-v2-laporan-build-v4.html')"><span class="nav-dot" style="background:var(--teal)"></span>Laporan Build</div>
+  <div class="nav-section">Lainnya</div>
+  <div class="nav-item" onclick="go('moona-v2-meetings.html')"><span class="nav-dot" style="background:var(--purple)"></span>Meeting Tracker</div>
+  <div class="nav-item" onclick="go('moona-v2-finance.html')"><span class="nav-dot" style="background:var(--amber)"></span>Finance</div>
+  <div class="nav-item" onclick="go('moona-v2-content.html')"><span class="nav-dot" style="background:var(--coral-mid)"></span>Content Planner</div>
+  <div class="nav-item active"><span class="nav-dot" style="background:#888780"></span>SOP &amp; Dokumen</div>
+  <div class="sidebar-footer">
+    <div class="sf-label">Login sebagai</div>
+    <div class="sf-name" id="sf-name">–</div>
+    <div class="sf-logout" onclick="logout()">Keluar</div>
+  </div>
+</div>
+
+<div class="main">
+  <div class="topbar">
+    <div><div class="page-title">SOP &amp; Dokumen</div><div class="page-sub">Library SOP, template, panduan tools, knowledge base</div></div>
+    <button class="btn btn-primary" onclick="openForm()">+ Dokumen Baru</button>
+  </div>
+
+  <div class="stats">
+    <div class="stat"><div class="stat-label">Total dokumen</div><div class="stat-val" id="s-total">–</div></div>
+    <div class="stat"><div class="stat-label">Published</div><div class="stat-val" id="s-published" style="color:var(--green)">–</div></div>
+    <div class="stat"><div class="stat-label">Pending review</div><div class="stat-val" id="s-pending" style="color:var(--amber)">–</div></div>
+    <div class="stat"><div class="stat-label">Perlu approval (kamu)</div><div class="stat-val" id="s-myapproval" style="color:var(--red)">–</div></div>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" onclick="switchTab('published',this)">Published</div>
+    <div class="tab" onclick="switchTab('pending',this)">Pending Review</div>
+    <div class="tab" onclick="switchTab('all',this)">Semua</div>
+  </div>
+
+  <div class="search-bar">
+    <input type="text" class="search-input" id="search-input" placeholder="Cari dokumen..." oninput="renderDocs()">
+  </div>
+
+  <div class="filter-bar">
+    <div class="fpill active" onclick="setKategori('',this)">Semua kategori</div>
+    <div class="fpill" onclick="setKategori('SOP Divisi',this)">SOP Divisi</div>
+    <div class="fpill" onclick="setKategori('SOP Proses',this)">SOP Proses</div>
+    <div class="fpill" onclick="setKategori('Template',this)">Template</div>
+    <div class="fpill" onclick="setKategori('Panduan Tools',this)">Panduan Tools</div>
+    <div class="fpill" onclick="setKategori('Knowledge Base',this)">Knowledge Base</div>
+  </div>
+
+  <div id="doc-list"><div class="loading">Memuat...</div></div>
+</div>
+</div>
+
+<!-- MODAL FORM -->
+<div class="modal-overlay" id="modal-form">
+  <div class="modal">
+    <div class="modal-header"><span class="modal-title" id="form-title">Dokumen Baru</span><button class="modal-close" onclick="closeModal('modal-form')">✕</button></div>
+    <div class="modal-body">
+      <div class="info-box">
+        <strong>Upload file dulu ke Google Drive</strong> → atur share "Anyone with link" → paste link-nya di bawah. Format file bebas (PDF, Docs, Sheets, dll).
+      </div>
+      <div class="form-group"><label class="form-label">Judul dokumen <span class="req">*</span></label>
+        <input id="df-judul" class="form-input" placeholder="Contoh: SOP Onboarding Klien"></div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Kategori <span class="req">*</span></label>
+          <select id="df-kategori" class="form-input" onchange="toggleDivisi()">
+            <option value="">Pilih kategori</option>
+            <option>SOP Divisi</option>
+            <option>SOP Proses</option>
+            <option>Template</option>
+            <option>Panduan Tools</option>
+            <option>Knowledge Base</option>
+          </select></div>
+        <div class="form-group" id="divisi-wrap" style="display:none"><label class="form-label">Divisi</label>
+          <select id="df-divisi" class="form-input">
+            <option value="">Pilih divisi</option>
+            <option>Sales</option><option>Design</option><option>Build</option>
+            <option>Finance</option><option>Marketing</option><option>Operasional</option>
+          </select></div>
+      </div>
+      <div class="form-group"><label class="form-label">Deskripsi singkat</label>
+        <textarea id="df-deskripsi" class="form-input" placeholder="Apa isi dokumen ini? Kapan dipakai?"></textarea></div>
+      <div class="form-group"><label class="form-label">Link dokumen (Drive/Notion/file lain) <span class="req">*</span></label>
+        <input id="df-link" class="form-input" type="url" placeholder="https://drive.google.com/..."></div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Tag (pisah dengan koma)</label>
+          <input id="df-tag" class="form-input" placeholder="Contoh: kontrak, klien, onboarding"></div>
+        <div class="form-group"><label class="form-label">Versi</label>
+          <input id="df-versi" class="form-input" placeholder="Contoh: 1.0, 2.1"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" id="del-btn" onclick="deleteDoc()" style="margin-right:auto;display:none">Hapus</button>
+      <button class="btn" onclick="closeModal('modal-form')">Batal</button>
+      <button class="btn btn-primary" id="save-btn" onclick="saveDoc()">Simpan</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL APPROVAL -->
+<div class="modal-overlay" id="modal-approve">
+  <div class="modal" style="max-width:440px">
+    <div class="modal-header"><span class="modal-title">Review Dokumen</span><button class="modal-close" onclick="closeModal('modal-approve')">✕</button></div>
+    <div class="modal-body">
+      <div id="ap-info" style="padding:10px 12px;background:var(--bg);border-radius:var(--radius-sm);margin-bottom:12px;font-size:11px;line-height:1.6"></div>
+      <div class="form-group"><label class="form-label">Catatan review</label>
+        <textarea id="ap-catatan" class="form-input" placeholder="Opsional untuk approve, wajib untuk reject"></textarea></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-red" id="reject-btn" onclick="doApproval('Rejected')">Reject</button>
+      <button class="btn btn-green" id="approve-btn" onclick="doApproval('Published')">Publish</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+<script>
+var API = 'https://script.google.com/macros/s/AKfycbwkjBr_opT5V05KY6fQG3Aa2i7URgxpzX7a1ga3mBFKS3CeMbCvyLzdkNpHIhgg4Xxncw/exec';
+var docs = [];
+var filterKategori = '', currentTab = 'published', editingId = null, approveId = null;
+
+function getSession() { try { return JSON.parse(localStorage.getItem('moona_v2_session')); } catch(e) { return null; } }
+function logout() { localStorage.removeItem('moona_v2_session'); location.href = 'moona-v2-login.html'; }
+function go(u) { location.href = u; }
+var S = getSession();
+if (!S) { location.href = 'moona-v2-login.html'; }
+else { document.getElementById('sf-name').textContent = S.nama + ' - ' + S.role; }
+
+function canApprove() { return S && ['Owner','Admin'].indexOf(S.role) >= 0; }
+
+function p(o) {
+  for (var i = 1; i < arguments.length; i++) {
+    var k = arguments[i];
+    if (o[k] !== undefined && o[k] !== null && String(o[k]).trim() !== '') return String(o[k]);
+  }
+  return '';
+}
+function showToast(m) { var t = document.getElementById('toast'); t.textContent = m; t.classList.add('show'); setTimeout(function(){t.classList.remove('show');}, 2800); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+function fmtDate(s) { if (!s) return '-'; try { return new Date(s).toLocaleDateString('id-ID',{day:'numeric',month:'short',year:'numeric'}); } catch(e) { return s; } }
+function slug(s) { return (s || '').toLowerCase().replace(/[^a-z0-9]/g,''); }
+
+function switchTab(t, el) {
+  currentTab = t;
+  var tabs = document.querySelectorAll('.tab');
+  for (var i = 0; i < tabs.length; i++) tabs[i].classList.remove('active');
+  el.classList.add('active');
+  renderDocs();
+}
+function setKategori(v, el) {
+  filterKategori = v;
+  var pills = el.parentNode.querySelectorAll('.fpill');
+  for (var i = 0; i < pills.length; i++) pills[i].classList.remove('active');
+  el.classList.add('active');
+  renderDocs();
+}
+
+window.onload = function() { loadDocs(); };
+
+function loadDocs() {
+  return fetch(API + '?action=getSOP').then(function(r){return r.json();}).then(function(d){
+    if (d.status === 'ok') { docs = d.data; renderDocs(); updateStats(); }
+    else document.getElementById('doc-list').innerHTML = '<div class="empty">Gagal memuat data.</div>';
+  }).catch(function(){ document.getElementById('doc-list').innerHTML = '<div class="empty">Gagal memuat data.</div>'; });
+}
+
+function updateStats() {
+  var pub = 0, pending = 0;
+  for (var i = 0; i < docs.length; i++) {
+    var st = p(docs[i],'StatusApproval');
+    if (st === 'Published') pub++;
+    if (st === 'Pending Review' || !st) pending++;
+  }
+  document.getElementById('s-total').textContent = docs.length;
+  document.getElementById('s-published').textContent = pub;
+  document.getElementById('s-pending').textContent = pending;
+  document.getElementById('s-myapproval').textContent = canApprove() ? pending : '-';
+}
+
+function toggleDivisi() {
+  var kat = document.getElementById('df-kategori').value;
+  document.getElementById('divisi-wrap').style.display = kat === 'SOP Divisi' ? 'block' : 'none';
+}
+
+function renderDocs() {
+  var q = (document.getElementById('search-input').value || '').toLowerCase();
+  var f = [];
+  for (var i = 0; i < docs.length; i++) {
+    var d = docs[i];
+    var st = p(d,'StatusApproval') || 'Pending Review';
+    // Tab filter
+    if (currentTab === 'published' && st !== 'Published') continue;
+    if (currentTab === 'pending' && st !== 'Pending Review') continue;
+    // Kategori filter
+    if (filterKategori && p(d,'Kategori') !== filterKategori) continue;
+    // Search
+    if (q) {
+      var hay = (p(d,'Judul') + ' ' + p(d,'Deskripsi') + ' ' + p(d,'Tag') + ' ' + p(d,'Divisi')).toLowerCase();
+      if (hay.indexOf(q) < 0) continue;
+    }
+    f.push(d);
+  }
+  var el = document.getElementById('doc-list');
+  if (!f.length) { el.innerHTML = '<div class="empty">Belum ada dokumen. Klik "+ Dokumen Baru" untuk tambah.</div>'; return; }
+  var sorted = f.slice().sort(function(a,b){ return new Date(p(b,'TanggalUpload')) - new Date(p(a,'TanggalUpload')); });
+  var html = '<div class="doc-grid">';
+  for (var k = 0; k < sorted.length; k++) {
+    var d = sorted[k];
+    var id = p(d,'ID');
+    var kat = p(d,'Kategori') || '-';
+    var st = p(d,'StatusApproval') || 'Pending Review';
+    var tags = (p(d,'Tag') || '').split(',').map(function(x){return x.trim();}).filter(function(x){return x;});
+    html += '<div class="doc-card">';
+    html += '<div class="dc-head">';
+    html += '<div class="dc-title">' + p(d,'Judul') + '</div>';
+    html += '<span class="pill s-' + slug(st) + '">' + st + '</span>';
+    html += '</div>';
+    html += '<div class="dc-meta">';
+    html += '<span class="pill k-' + slug(kat) + '">' + kat + '</span>';
+    if (p(d,'Divisi')) html += '<span class="pill d-divisi">' + p(d,'Divisi') + '</span>';
+    if (p(d,'Versi')) html += '<span>v' + p(d,'Versi') + '</span>';
+    html += '</div>';
+    if (p(d,'Deskripsi')) html += '<div class="dc-desc">' + p(d,'Deskripsi') + '</div>';
+    if (tags.length) {
+      html += '<div class="dc-tags">';
+      for (var t = 0; t < tags.length; t++) html += '<span class="dc-tag">#' + tags[t] + '</span>';
+      html += '</div>';
+    }
+    html += '<div class="dc-actions">';
+    html += '<a href="' + p(d,'LinkDokumen') + '" target="_blank" class="btn btn-sm" style="text-decoration:none">📄 Buka dokumen</a>';
+    if (canApprove() && st === 'Pending Review') {
+      html += '<button class="btn btn-sm btn-green" onclick="openApproval(\'' + id + '\')">Review</button>';
+    }
+    html += '<button class="btn btn-sm" onclick="editDoc(\'' + id + '\')">Edit</button>';
+    html += '<span style="margin-left:auto;font-size:9px;color:var(--text3)">' + p(d,'Uploader') + ' · ' + fmtDate(p(d,'TanggalUpload')) + '</span>';
+    html += '</div>';
+    html += '</div>';
+  }
+  html += '</div>';
+  el.innerHTML = html;
+}
+
+// FORM
+function openForm() {
+  editingId = null;
+  document.getElementById('form-title').textContent = 'Dokumen Baru';
+  ['df-judul','df-kategori','df-divisi','df-deskripsi','df-link','df-tag'].forEach(function(id){ document.getElementById(id).value = ''; });
+  document.getElementById('df-versi').value = '1.0';
+  document.getElementById('divisi-wrap').style.display = 'none';
+  document.getElementById('del-btn').style.display = 'none';
+  document.getElementById('modal-form').classList.add('open');
+}
+
+function editDoc(id) {
+  editingId = id;
+  var d = null;
+  for (var i = 0; i < docs.length; i++) { if (p(docs[i],'ID') === id) { d = docs[i]; break; } }
+  if (!d) return;
+  document.getElementById('form-title').textContent = 'Edit Dokumen';
+  document.getElementById('df-judul').value = p(d,'Judul');
+  document.getElementById('df-kategori').value = p(d,'Kategori');
+  document.getElementById('df-divisi').value = p(d,'Divisi');
+  document.getElementById('df-deskripsi').value = p(d,'Deskripsi');
+  document.getElementById('df-link').value = p(d,'LinkDokumen');
+  document.getElementById('df-tag').value = p(d,'Tag');
+  document.getElementById('df-versi').value = p(d,'Versi') || '1.0';
+  toggleDivisi();
+  document.getElementById('del-btn').style.display = canApprove() ? 'inline-block' : 'none';
+  document.getElementById('modal-form').classList.add('open');
+}
+
+function saveDoc() {
+  var judul = document.getElementById('df-judul').value.trim();
+  var kategori = document.getElementById('df-kategori').value;
+  var link = document.getElementById('df-link').value.trim();
+  if (!judul || !kategori || !link) { showToast('Lengkapi field wajib'); return; }
+  var btn = document.getElementById('save-btn');
+  btn.textContent = 'Menyimpan...'; btn.disabled = true;
+  var payload = {
+    action: editingId ? 'updateSOP' : 'addSOP',
+    judul: judul, kategori: kategori,
+    divisi: document.getElementById('df-divisi').value,
+    deskripsi: document.getElementById('df-deskripsi').value.trim(),
+    linkDokumen: link,
+    tag: document.getElementById('df-tag').value.trim(),
+    versi: document.getElementById('df-versi').value.trim() || '1.0',
+    uploader: S.nama
+  };
+  if (editingId) payload.id = editingId;
+  fetch(API, { method: 'POST', body: JSON.stringify(payload) })
+    .then(function(r){return r.json();})
+    .then(function(d){
+      if (d.status === 'ok') {
+        closeModal('modal-form');
+        showToast(editingId ? 'Dokumen diperbarui!' : 'Dokumen dikirim untuk review!');
+        loadDocs();
+      } else { showToast('Gagal: ' + d.message); }
+    })
+    .catch(function(e){ showToast('Error: ' + e.message); })
+    .then(function(){ btn.textContent = 'Simpan'; btn.disabled = false; });
+}
+
+function deleteDoc() {
+  if (!editingId) return;
+  if (!confirm('Hapus dokumen ini?')) return;
+  fetch(API, { method: 'POST', body: JSON.stringify({ action: 'deleteSOP', id: editingId }) })
+    .then(function(r){return r.json();})
+    .then(function(d){
+      if (d.status === 'ok') { closeModal('modal-form'); showToast('Dokumen dihapus'); loadDocs(); }
+    });
+}
+
+// APPROVAL
+function openApproval(id) {
+  approveId = id;
+  var d = null;
+  for (var i = 0; i < docs.length; i++) { if (p(docs[i],'ID') === id) { d = docs[i]; break; } }
+  if (!d) return;
+  var html = '<strong>' + p(d,'Judul') + '</strong><br>';
+  html += p(d,'Kategori') + (p(d,'Divisi') ? ' · ' + p(d,'Divisi') : '') + '<br>';
+  html += 'Upload oleh: ' + p(d,'Uploader') + ' · ' + fmtDate(p(d,'TanggalUpload')) + '<br>';
+  if (p(d,'Deskripsi')) html += '<span style="color:var(--text3)">' + p(d,'Deskripsi') + '</span><br>';
+  html += '<a href="' + p(d,'LinkDokumen') + '" target="_blank" style="color:var(--blue);font-size:11px">📄 Buka dokumen sebelum review</a>';
+  document.getElementById('ap-info').innerHTML = html;
+  document.getElementById('ap-catatan').value = '';
+  document.getElementById('modal-approve').classList.add('open');
+}
+
+function doApproval(status) {
+  var catatan = document.getElementById('ap-catatan').value.trim();
+  if (status === 'Rejected' && !catatan) { showToast('Reject wajib disertai catatan'); return; }
+  var btn = document.getElementById(status === 'Published' ? 'approve-btn' : 'reject-btn');
+  btn.textContent = '...'; btn.disabled = true;
+  fetch(API, { method: 'POST', body: JSON.stringify({
+    action: 'approvalSOP', id: approveId, status: status,
+    catatan: catatan, approvedBy: S.nama
+  })})
+  .then(function(r){return r.json();})
+  .then(function(d){
+    if (d.status === 'ok') {
+      closeModal('modal-approve');
+      showToast('Dokumen ' + (status === 'Published' ? 'dipublish!' : 'direject!'));
+      loadDocs();
+    } else { showToast('Gagal'); }
+  })
+  .catch(function(){ showToast('Error'); })
+  .then(function(){
+    document.getElementById('approve-btn').textContent = 'Publish';
+    document.getElementById('reject-btn').textContent = 'Reject';
+    document.getElementById('approve-btn').disabled = false;
+    document.getElementById('reject-btn').disabled = false;
+  });
+}
+</script>
+</body>
+</html>

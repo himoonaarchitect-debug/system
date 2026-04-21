@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Moona v2 — Dashboard</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f8f7f4;--card:#fff;--border:#e5e3dc;--border2:#d0cec7;
+  --text:#1a1a18;--text2:#6b6a64;--text3:#9d9b94;
+  --coral:#993C1D;--coral-mid:#D85A30;--coral-bg:#FAECE7;
+  --purple:#534AB7;--purple-bg:#EEEDFE;
+  --teal:#0F6E56;--teal-bg:#E1F5EE;
+  --amber:#854F0B;--amber-bg:#FAEEDA;
+  --red:#A32D2D;--red-bg:#FCEBEB;
+  --green:#3B6D11;--green-bg:#EAF3DE;
+  --blue:#185FA5;--blue-bg:#E6F1FB;
+  --gray:#5F5E5A;--gray-bg:#F1EFE8;
+  --radius:10px;--radius-sm:6px;
+}
+body{background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:var(--text);font-size:14px;min-height:100vh}
+.app{display:flex;min-height:100vh}
+.sidebar{width:220px;min-width:220px;background:var(--card);border-right:0.5px solid var(--border);display:flex;flex-direction:column;position:fixed;top:0;left:0;height:100vh;z-index:10;overflow-y:auto}
+.logo{padding:18px 16px 14px;border-bottom:0.5px solid var(--border);flex-shrink:0}
+.logo-name{font-size:15px;font-weight:600;color:var(--text);letter-spacing:-.3px}
+.logo-sub{font-size:10px;color:var(--text3);margin-top:2px}
+.logo-ver{display:inline-block;font-size:9px;font-weight:600;background:var(--coral-bg);color:var(--coral);padding:1px 5px;border-radius:4px;margin-top:3px}
+.nav-section{padding:10px 8px 3px;font-size:9px;font-weight:600;color:var(--text3);letter-spacing:.06em;text-transform:uppercase}
+.nav-item{display:flex;align-items:center;gap:8px;padding:7px 12px;margin:1px 4px;border-radius:var(--radius-sm);cursor:pointer;font-size:12px;color:var(--text2);transition:background .1s}
+.nav-item:hover{background:var(--bg)}
+.nav-item.active{background:var(--gray-bg);color:var(--gray);font-weight:500}
+.nav-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.sidebar-footer{margin-top:auto;padding:12px 16px;border-top:0.5px solid var(--border);flex-shrink:0}
+.sf-label{font-size:10px;color:var(--text3)}
+.sf-name{font-size:11px;font-weight:500;color:var(--text);margin-top:2px}
+.sf-logout{font-size:10px;color:var(--gray);margin-top:4px;cursor:pointer}
+.main{margin-left:220px;flex:1;padding:22px;max-width:1040px}
+.topbar{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:18px;gap:10px;flex-wrap:wrap}
+.page-title{font-size:19px;font-weight:600;color:var(--text);letter-spacing:-.3px}
+.page-sub{font-size:11px;color:var(--text3);margin-top:2px}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:18px}
+.stat{background:var(--bg);border-radius:var(--radius-sm);padding:11px 13px}
+.stat-label{font-size:10px;color:var(--text3);margin-bottom:3px}
+.stat-val{font-size:20px;font-weight:600;color:var(--text)}
+.stat-note{font-size:10px;margin-top:2px;color:var(--text3)}
+.module-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px}
+.mod-card{background:var(--card);border:0.5px solid var(--border);border-radius:var(--radius);padding:14px;cursor:pointer;transition:border-color .15s;text-decoration:none;display:block}
+.mod-card:hover{border-color:var(--border2)}
+.mod-icon{width:34px;height:34px;border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;margin-bottom:9px;font-size:13px;font-weight:700}
+.mod-name{font-size:12px;font-weight:500;color:var(--text);margin-bottom:3px}
+.mod-desc{font-size:10px;color:var(--text3);line-height:1.5}
+.mod-badge{display:inline-block;margin-top:5px;font-size:10px;font-weight:600;padding:2px 7px;border-radius:8px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+.card{background:var(--card);border:0.5px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:10px}
+.card-header{padding:10px 14px;border-bottom:0.5px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.card-title{font-size:12px;font-weight:500;color:var(--text)}
+.card-link{font-size:10px;color:var(--blue);cursor:pointer;text-decoration:none}
+.item-row{display:flex;align-items:center;gap:8px;padding:8px 14px;border-bottom:0.5px solid var(--border);font-size:11px}
+.item-row:last-child{border-bottom:none}
+.item-main{flex:1}
+.item-title{font-size:11px;font-weight:500;color:var(--text)}
+.item-sub{font-size:10px;color:var(--text3);margin-top:1px}
+.pill{display:inline-flex;padding:1px 6px;border-radius:6px;font-size:9px;font-weight:500;white-space:nowrap}
+.p-aktif{background:var(--teal-bg);color:var(--teal)}
+.p-late{background:var(--red-bg);color:var(--red)}
+.p-open{background:var(--amber-bg);color:var(--amber)}
+.p-int{background:var(--gray-bg);color:var(--gray)}
+.p-client{background:var(--purple-bg);color:var(--purple)}
+.action-row{display:flex;align-items:flex-start;gap:8px;padding:8px 14px;border-bottom:0.5px solid var(--border);font-size:11px}
+.action-row:last-child{border-bottom:none}
+.chk{width:13px;height:13px;border-radius:3px;border:1.5px solid var(--border2);flex-shrink:0;margin-top:1px}
+.chk.done{background:var(--teal);border-color:var(--teal)}
+.empty{text-align:center;padding:20px;color:var(--text3);font-size:11px}
+.loading{text-align:center;padding:18px;color:var(--text3);font-size:11px}
+@media(max-width:768px){.sidebar{display:none}.main{margin-left:0;padding:12px}.stats{grid-template-columns:1fr 1fr}.grid2{grid-template-columns:1fr}.module-grid{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body>
+<div class="app">
+<div class="sidebar">
+  <div class="logo">
+    <div class="logo-name">Moona</div>
+    <div class="logo-sub">Architect System</div>
+    <div class="logo-ver">v2</div>
+  </div>
+  <div class="nav-section">Utama</div>
+  <div class="nav-item active"><span class="nav-dot" style="background:#888780"></span>Dashboard</div>
+  <div class="nav-section">Sales</div>
+  <div class="nav-item" onclick="go('moona-v2-crm.html')"><span class="nav-dot" style="background:var(--coral-mid)"></span>CRM &amp; Sales</div>
+  <div class="nav-item" onclick="go('moona-v2-client-portal.html')"><span class="nav-dot" style="background:var(--blue)"></span>Client Portal</div>
+  <div class="nav-section">Operasional</div>
+  <div class="nav-item" onclick="go('moona-v2-projects.html')"><span class="nav-dot" style="background:var(--teal)"></span>Project Management</div>
+  <div class="nav-item" onclick="go('moona-v2-laporan-design-v4.html')"><span class="nav-dot" style="background:var(--purple)"></span>Laporan Design</div>
+  <div class="nav-item" onclick="go('moona-v2-laporan-build-v4.html')"><span class="nav-dot" style="background:var(--teal)"></span>Laporan Build</div>
+  <div class="nav-section">Lainnya</div>
+  <div class="nav-item" onclick="go('moona-v2-meetings.html')"><span class="nav-dot" style="background:var(--purple)"></span>Meeting Tracker</div>
+  <div class="nav-item" onclick="go('moona-v2-finance.html')"><span class="nav-dot" style="background:var(--amber)"></span>Finance</div>
+  <div class="nav-item" onclick="go('moona-v2-content.html')"><span class="nav-dot" style="background:var(--coral-mid)"></span>Content Planner</div>
+  <div class="nav-item" onclick="go('moona-v2-sop.html')"><span class="nav-dot" style="background:#888780"></span>SOP &amp; Dokumen</div>
+  <div class="sidebar-footer">
+    <div class="sf-label">Login sebagai</div>
+    <div class="sf-name" id="sf-name">–</div>
+    <div class="sf-logout" onclick="logout()">Keluar →</div>
+  </div>
+</div>
+
+<div class="main">
+  <div class="topbar">
+    <div>
+      <div class="page-title">Dashboard</div>
+      <div class="page-sub" id="page-sub">Selamat datang di Moona Architect System v2</div>
+    </div>
+    <div style="font-size:11px;color:var(--text3);padding-top:4px" id="today-date"></div>
+  </div>
+
+  <div class="stats">
+    <div class="stat"><div class="stat-label">Lead aktif</div><div class="stat-val" id="s-lead">–</div><div class="stat-note" id="s-lead-note"></div></div>
+    <div class="stat"><div class="stat-label">Proyek aktif</div><div class="stat-val" id="s-proj">–</div></div>
+    <div class="stat"><div class="stat-label">Action item open</div><div class="stat-val" id="s-action">–</div><div class="stat-note" id="s-action-note" style="color:var(--amber)"></div></div>
+    <div class="stat"><div class="stat-label">Follow-up hari ini</div><div class="stat-val" id="s-fu">–</div><div class="stat-note" id="s-fu-note" style="color:var(--red)"></div></div>
+  </div>
+
+  <!-- MODULE SHORTCUTS -->
+  <div class="module-grid">
+    <a class="mod-card" href="moona-v2-crm.html">
+      <div class="mod-icon" style="background:var(--coral-bg)">CR</div>
+      <div class="mod-name">CRM &amp; Sales</div>
+      <div class="mod-desc">Pipeline lead, follow-up, cycle time</div>
+      <div class="mod-badge" style="background:var(--coral-bg);color:var(--coral)" id="badge-crm">Buka →</div>
+    </a>
+    <a class="mod-card" href="moona-v2-projects.html">
+      <div class="mod-icon" style="background:var(--teal-bg)">PM</div>
+      <div class="mod-name">Project Management</div>
+      <div class="mod-desc">RAB, progress, laporan design & build</div>
+      <div class="mod-badge" style="background:var(--teal-bg);color:var(--teal)" id="badge-pm">Buka →</div>
+    </a>
+    <a class="mod-card" href="moona-v2-meetings.html">
+      <div class="mod-icon" style="background:var(--purple-bg)">MT</div>
+      <div class="mod-name">Meeting Tracker</div>
+      <div class="mod-desc">Notulen &amp; action items tim</div>
+      <div class="mod-badge" style="background:var(--purple-bg);color:var(--purple)" id="badge-mt">Buka →</div>
+    </a>
+    <a class="mod-card" href="moona-v2-finance.html">
+      <div class="mod-icon" style="background:var(--amber-bg)">FN</div>
+      <div class="mod-name">Finance</div>
+      <div class="mod-desc">Invoice, cashflow per proyek</div>
+      <div class="mod-badge" style="background:var(--amber-bg);color:var(--amber)">Buka →</div>
+    </a>
+    <a class="mod-card" href="moona-v2-content.html">
+      <div class="mod-icon" style="background:var(--coral-bg)">CP</div>
+      <div class="mod-name">Content Planner</div>
+      <div class="mod-desc">Jadwal konten & KPI sosmed</div>
+      <div class="mod-badge" style="background:var(--coral-bg);color:var(--coral)">Buka →</div>
+    </a>
+    <a class="mod-card" href="moona-v2-client-portal.html">
+      <div class="mod-icon" style="background:var(--blue-bg)">CP</div>
+      <div class="mod-name">Client Portal</div>
+      <div class="mod-desc">Meeting, dokumen & progress klien</div>
+      <div class="mod-badge" style="background:var(--blue-bg);color:var(--blue)">Buka →</div>
+    </a>
+  </div>
+
+  <div class="grid2">
+    <div>
+      <div class="card">
+        <div class="card-header"><span class="card-title">Action items belum selesai</span><a class="card-link" href="moona-v2-meetings.html">Lihat semua →</a></div>
+        <div id="action-list"><div class="loading">Memuat...</div></div>
+      </div>
+    </div>
+    <div>
+      <div class="card">
+        <div class="card-header"><span class="card-title">Follow-up hari ini &amp; terlambat</span><a class="card-link" href="moona-v2-crm.html">Buka CRM →</a></div>
+        <div id="fu-list"><div class="loading">Memuat...</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid2">
+    <div>
+      <div class="card">
+        <div class="card-header"><span class="card-title">Proyek aktif</span><a class="card-link" href="moona-v2-projects.html">Lihat semua →</a></div>
+        <div id="proj-list"><div class="loading">Memuat...</div></div>
+      </div>
+    </div>
+    <div>
+      <div class="card">
+        <div class="card-header"><span class="card-title">Meeting terakhir</span><a class="card-link" href="moona-v2-meetings.html">Lihat semua →</a></div>
+        <div id="meeting-list"><div class="loading">Memuat...</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<script>
+const API='https://script.google.com/macros/s/AKfycbwkjBr_opT5V05KY6fQG3Aa2i7URgxpzX7a1ga3mBFKS3CeMbCvyLzdkNpHIhgg4Xxncw/exec';
+function getSession(){try{return JSON.parse(localStorage.getItem('moona_v2_session'));}catch(e){return null;}}
+function logout(){localStorage.removeItem('moona_v2_session');location.href='moona-v2-login.html';}
+function go(u){location.href=u;}
+const S=getSession();
+if(!S){location.href='moona-v2-login.html';}
+else{
+  document.getElementById('sf-name').textContent=S.nama+' — '+S.role;
+  document.getElementById('page-sub').textContent='Halo, '+S.nama+'. Ini ringkasan hari ini.';
+}
+document.getElementById('today-date').textContent=new Date().toLocaleDateString('id-ID',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+
+function p(o,...ks){for(const k of ks){if(o[k]!==undefined&&o[k]!==null&&String(o[k]).trim()!='')return String(o[k]);}return '';}
+function fmtDate(s){if(!s)return'–';try{return new Date(s).toLocaleDateString('id-ID',{day:'numeric',month:'short'});}catch(e){return s;}}
+function rp(n){if(!n||isNaN(n))return'–';const v=parseFloat(n);if(v>=1e9)return'Rp '+(v/1e9).toFixed(1)+' M';if(v>=1e6)return'Rp '+Math.round(v/1e6)+' jt';return'Rp '+v.toLocaleString('id-ID');}
+
+window.onload=async()=>{
+  const [leadsRes,projRes,actRes,meetRes]=await Promise.allSettled([
+    fetch(API+'?action=getLeads').then(r=>r.json()),
+    fetch(API+'?action=getProjects').then(r=>r.json()),
+    fetch(API+'?action=getActionItems').then(r=>r.json()),
+    fetch(API+'?action=getMeetings').then(r=>r.json()),
+  ]);
+  const leads=leadsRes.status==='fulfilled'&&leadsRes.value.status==='ok'?leadsRes.value.data:[];
+  const projects=projRes.status==='fulfilled'&&projRes.value.status==='ok'?projRes.value.data:[];
+  const actions=actRes.status==='fulfilled'&&actRes.value.status==='ok'?actRes.value.data:[];
+  const meetings=meetRes.status==='fulfilled'&&meetRes.value.status==='ok'?meetRes.value.data:[];
+  renderStats(leads,projects,actions);
+  renderActions(actions,meetings);
+  renderFU(leads);
+  renderProjects(projects);
+  renderMeetings(meetings);
+};
+
+function renderStats(leads,projects,actions){
+  const today=new Date();today.setHours(0,0,0,0);
+  const aktif=leads.filter(l=>!p(l,'StatusAkhir'));
+  const fu=aktif.filter(l=>{const d=p(l,'FollowUpBerikutnya');if(!d)return false;const dd=new Date(d);dd.setHours(0,0,0,0);return dd<=today;});
+  const fuLate=fu.filter(l=>{const d=p(l,'FollowUpBerikutnya');const dd=new Date(d);dd.setHours(0,0,0,0);return dd<today;});
+  const projAktif=projects.filter(pr=>p(pr,'StatusProyek')==='Aktif'||!p(pr,'StatusProyek'));
+  const openAct=actions.filter(a=>p(a,'Status')!=='Done');
+  const lateAct=openAct.filter(a=>{const d=p(a,'Deadline');return d&&new Date(d)<today;});
+  document.getElementById('s-lead').textContent=aktif.length;
+  document.getElementById('s-proj').textContent=projAktif.length;
+  document.getElementById('s-action').textContent=openAct.length;
+  if(lateAct.length)document.getElementById('s-action-note').textContent=lateAct.length+' terlambat';
+  document.getElementById('s-fu').textContent=fu.length;
+  if(fuLate.length)document.getElementById('s-fu-note').textContent=fuLate.length+' terlambat';
+  if(fu.length)document.getElementById('badge-crm').textContent=fu.length+' follow-up →';
+  if(openAct.length)document.getElementById('badge-mt').textContent=openAct.length+' open →';
+  if(projAktif.length)document.getElementById('badge-pm').textContent=projAktif.length+' aktif →';
+}
+
+function renderActions(actions,meetings){
+  const open=actions.filter(a=>p(a,'Status')!=='Done').slice(0,5);
+  const el=document.getElementById('action-list');
+  if(!open.length){el.innerHTML='<div class="empty">Semua action item selesai.</div>';return;}
+  const today=new Date();today.setHours(0,0,0,0);
+  el.innerHTML=open.map(a=>{
+    const isLate=p(a,'Deadline')&&new Date(p(a,'Deadline'))<today;
+    const mtg=meetings.find(m=>p(m,'ID')===p(a,'Meeting_ID'));
+    return `<div class="action-row">
+      <div class="chk"></div>
+      <div style="flex:1">
+        <div style="font-size:11px;font-weight:500;color:var(--text)">${p(a,'Deskripsi')}</div>
+        <div style="font-size:10px;color:var(--text3);margin-top:2px">${p(a,'PIC')||'–'} · <span style="color:${isLate?'var(--red)':'var(--text3)'}">${isLate?'Terlambat':fmtDate(p(a,'Deadline'))}</span>${mtg?' · '+p(mtg,'Judul'):''}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderFU(leads){
+  const today=new Date();today.setHours(0,0,0,0);
+  const due=leads.filter(l=>{if(p(l,'StatusAkhir'))return false;const f=p(l,'FollowUpBerikutnya');if(!f)return false;const d=new Date(f);d.setHours(0,0,0,0);return d<=today;}).slice(0,5);
+  const el=document.getElementById('fu-list');
+  if(!due.length){el.innerHTML='<div class="empty">Tidak ada follow-up hari ini.</div>';return;}
+  el.innerHTML=due.map(l=>{
+    const f=p(l,'FollowUpBerikutnya');const today2=new Date();today2.setHours(0,0,0,0);
+    const isLate=new Date(f)<today2;
+    return `<div class="item-row">
+      <div class="item-main"><div class="item-title">${p(l,'Nama')}</div><div class="item-sub">${p(l,'TipeLayanan')||'–'} · ${p(l,'TahapPipeline')||'–'}</div></div>
+      <span class="pill ${isLate?'p-late':'p-open'}">${isLate?'Terlambat':'Hari ini'}</span>
+    </div>`;
+  }).join('');
+}
+
+function renderProjects(projects){
+  const aktif=projects.filter(pr=>p(pr,'StatusProyek')==='Aktif'||!p(pr,'StatusProyek')).slice(0,4);
+  const el=document.getElementById('proj-list');
+  if(!aktif.length){el.innerHTML='<div class="empty">Belum ada proyek aktif.</div>';return;}
+  el.innerHTML=aktif.map(pr=>`<div class="item-row">
+    <div class="item-main"><div class="item-title">${p(pr,'NamaProyek')}</div><div class="item-sub">${p(pr,'NamaKlien')||'–'} · ${p(pr,'TipeLayanan')||'–'} · ${p(pr,'TipeProyek')||'–'}</div></div>
+    <span class="pill p-aktif">Aktif</span>
+  </div>`).join('');
+}
+
+function renderMeetings(meetings){
+  const recent=[...meetings].slice(0,4);
+  const el=document.getElementById('meeting-list');
+  if(!recent.length){el.innerHTML='<div class="empty">Belum ada meeting.</div>';return;}
+  el.innerHTML=recent.map(m=>`<div class="item-row">
+    <div class="item-main"><div class="item-title">${p(m,'Judul')}</div><div class="item-sub">${p(m,'Tanggal')||'–'}</div></div>
+    <span class="pill ${p(m,'Tipe')==='Internal'?'p-int':'p-client'}">${p(m,'Tipe')||'–'}</span>
+  </div>`).join('');
+}
+</script>
+</body>
+</html>

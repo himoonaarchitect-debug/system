@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Moona v2 — Login</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#f8f7f4;--card:#fff;--border:#e5e3dc;--border2:#d0cec7;--text:#1a1a18;--text2:#6b6a64;--text3:#9d9b94;--coral:#993C1D;--coral-mid:#D85A30;--red:#A32D2D;--red-bg:#FCEBEB;--radius:12px;--radius-sm:8px;}
+body{background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:var(--text);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+.wrap{width:100%;max-width:380px}
+.brand{text-align:center;margin-bottom:28px}
+.brand-logo{width:48px;height:48px;background:var(--coral-mid);border-radius:13px;display:flex;align-items:center;justify-content:center;margin:0 auto 10px;font-size:20px;font-weight:700;color:#fff;letter-spacing:-1px}
+.brand-name{font-size:20px;font-weight:700;color:var(--text);letter-spacing:-.5px}
+.brand-ver{display:inline-block;font-size:10px;font-weight:600;background:var(--coral-mid);color:#fff;padding:1px 6px;border-radius:4px;margin-left:4px;vertical-align:middle}
+.brand-sub{font-size:12px;color:var(--text3);margin-top:4px}
+.card{background:var(--card);border:0.5px solid var(--border);border-radius:var(--radius);padding:24px}
+.form-group{margin-bottom:14px}
+.form-label{font-size:11px;font-weight:500;color:var(--text2);margin-bottom:5px;display:block}
+.form-input{width:100%;padding:9px 11px;border:0.5px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;color:var(--text);background:var(--card);outline:none;transition:border .15s;font-family:inherit}
+.form-input:focus{border-color:var(--coral-mid);border-width:1.5px}
+.btn-login{width:100%;padding:10px;border-radius:var(--radius-sm);border:none;background:var(--coral-mid);color:#fff;font-size:13px;font-weight:600;cursor:pointer;transition:opacity .15s;margin-top:4px;font-family:inherit}
+.btn-login:hover{opacity:.9}
+.btn-login:disabled{opacity:.6;cursor:not-allowed}
+.error-msg{background:var(--red-bg);color:var(--red);font-size:11px;padding:7px 10px;border-radius:var(--radius-sm);margin-bottom:12px;display:none;line-height:1.5}
+.error-msg.show{display:block}
+.footer{text-align:center;font-size:10px;color:var(--text3);margin-top:16px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="brand">
+    <div class="brand-logo">M</div>
+    <div class="brand-name">Moona<span class="brand-ver">v2</span></div>
+    <div class="brand-sub">Architect System</div>
+  </div>
+  <div class="card">
+    <div class="error-msg" id="err"></div>
+    <div class="form-group"><label class="form-label">Username</label><input id="username" class="form-input" placeholder="Masukkan username" autocomplete="username" onkeydown="if(event.key==='Enter')document.getElementById('password').focus()"></div>
+    <div class="form-group"><label class="form-label">Password</label><input id="password" class="form-input" type="password" placeholder="Masukkan password" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()"></div>
+    <button class="btn-login" id="login-btn" onclick="doLogin()">Masuk</button>
+  </div>
+  <div class="footer">Moona Architect · Sistem Internal v2</div>
+</div>
+<script>
+const API='https://script.google.com/macros/s/AKfycbwkjBr_opT5V05KY6fQG3Aa2i7URgxpzX7a1ga3mBFKS3CeMbCvyLzdkNpHIhgg4Xxncw/exec';
+function getSession(){try{return JSON.parse(localStorage.getItem('moona_v2_session'));}catch(e){return null;}}
+window.onload=()=>{const s=getSession();if(s)redirectByRole(s.role);}
+function redirectByRole(role){
+  const map={'Owner':'moona-v2-dashboard.html','Admin':'moona-v2-dashboard.html','Sales':'moona-v2-crm.html','Operasional':'moona-v2-projects.html','Finance':'moona-v2-finance.html','Marketing':'moona-v2-content.html','HeadStudio':'moona-v2-laporan-design-v4.html'};
+  location.href=map[role]||'moona-v2-dashboard.html';
+}
+async function doLogin(){
+  const u=document.getElementById('username').value.trim();
+  const pw=document.getElementById('password').value.trim();
+  const err=document.getElementById('err');
+  if(!u||!pw){err.textContent='Username dan password wajib diisi.';err.classList.add('show');return;}
+  const btn=document.getElementById('login-btn');btn.disabled=true;btn.textContent='Memeriksa...';
+  err.classList.remove('show');
+  try{
+    const r=await fetch(`${API}?action=login&username=${encodeURIComponent(u)}&password=${encodeURIComponent(pw)}`);
+    const d=await r.json();
+    if(d.status==='ok'){localStorage.setItem('moona_v2_session',JSON.stringify({id:d.id,nama:d.nama,role:d.role,username:d.username}));redirectByRole(d.role);}
+    else{err.textContent='Username atau password salah.';err.classList.add('show');btn.disabled=false;btn.textContent='Masuk';}
+  }catch(e){err.textContent='Gagal terhubung. Coba lagi.';err.classList.add('show');btn.disabled=false;btn.textContent='Masuk';}
+}
+</script>
+</body>
+</html>
