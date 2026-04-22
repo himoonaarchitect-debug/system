@@ -9,6 +9,7 @@
 :root{
   --bg:#f8f7f4;--card:#fff;--border:#e5e3dc;--border2:#d0cec7;
   --text:#1a1a18;--text2:#6b6a64;--text3:#9d9b94;
+  --brand:#406EB6;--brand-bg:#E8F0FA;--brand-mid:#406EB6;
   --coral:#993C1D;--coral-mid:#D85A30;--coral-bg:#FAECE7;
   --purple:#534AB7;--purple-bg:#EEEDFE;
   --teal:#0F6E56;--teal-bg:#E1F5EE;
@@ -25,7 +26,7 @@ body{background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI
 .logo{padding:18px 16px 14px;border-bottom:0.5px solid var(--border);flex-shrink:0}
 .logo-name{font-size:15px;font-weight:600;color:var(--text)}
 .logo-sub{font-size:10px;color:var(--text3);margin-top:2px}
-.logo-ver{display:inline-block;font-size:9px;font-weight:600;background:var(--coral-bg);color:var(--coral);padding:1px 5px;border-radius:4px;margin-top:3px}
+.logo-ver{display:inline-block;font-size:9px;font-weight:600;background:var(--brand-bg,#E8F0FA);color:var(--brand,#406EB6);padding:1px 5px;border-radius:4px;margin-top:3px}
 .nav-section{padding:10px 8px 3px;font-size:9px;font-weight:600;color:var(--text3);letter-spacing:.06em;text-transform:uppercase}
 .nav-item{display:flex;align-items:center;gap:8px;padding:7px 12px;margin:1px 4px;border-radius:var(--radius-sm);cursor:pointer;font-size:12px;color:var(--text2)}
 .nav-item:hover{background:var(--bg)}
@@ -120,8 +121,11 @@ textarea.form-input{resize:vertical;min-height:56px;line-height:1.5}
 <body>
 <div class="app">
 <div class="sidebar">
-  <div class="logo"><div class="logo-name">Moona</div><div class="logo-sub">Architect System</div><div class="logo-ver">v2</div></div>
-  <div class="nav-section">Utama</div>
+    <div class="logo" style="padding:16px 16px 12px;border-bottom:0.5px solid var(--border)">
+    <img src="data:image/svg+xml;base64,PHN2ZyB2aWV3Qm94PSIxODIgMTI3IDE4NTMgMTE5NCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTAgMCBDOTYuNjkgMCAxOTMuMzggMCAyOTMgMCBDMjkzIDk5LjY2IDI5MyAxOTkuMzIgMjkzIDMwMiBDODA3LjggMzAyIDEzMjIuNiAzMDIgMTg1MyAzMDIgQzE4NTMgNTk2LjM2IDE4NTMgODkwLjcyIDE4NTMgMTE5NCBDMTc1Ni45NyAxMTk0IDE2NjAuOTQgMTE5NCAxNTYyIDExOTQgQzE1NjIgOTk1LjY3IDE1NjIgNzk3LjM0IDE1NjIgNTkzIEMxNDAxLjYyIDU5MyAxMjQxLjI0IDU5MyAxMDc2IDU5MyBDMTA3NiA3OTAuNjcgMTA3NiA5ODguMzQgMTA3NiAxMTkyIEM5NzguOTggMTE5MiA4ODEuOTYgMTE5MiA3ODIgMTE5MiBDNzgyIDk5NC4zMyA3ODIgNzk2LjY2IDc4MiA1OTMgQzYyMS4yOSA1OTMgNDYwLjU4IDU5MyAyOTUgNTkzIEMyOTUgNzkxLjMzIDI5NSA5ODkuNjYgMjk1IDExOTQgQzUgMTE5NCA1IDExOTQgMCAxMTkyIEMwIDc5OC42NCAwIDQwNS4yOCAwIDAgWiIgZmlsbD0iIzQwNkVCNiIgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMTgyLDEyNykiLz4KPHBhdGggZD0iTTAgMCBDNTAuNTEzNDYzNjEgLTEuNjU5NTc5OTEgOTguNzA2NjAyODYgMTUuNzkxMTc0MTYgMTM1Ljg3MDExNzE5IDUwLjA3ODEyNSBDMTM2LjQ1MDAzNDE4IDUwLjYxMjc2MzY3IDEzNy4wMjk5NTExNyA1MS4xNDc0MDIzNCAxMzcuNjI3NDQxNDEgNTEuNjk4MjQyMTkgQzE3MS41NDMyODYgODMuMzc3OTgwMDYgMTkyLjg3ODY0OTg1IDEyOS4yMjAwODgyNiAxOTUuMDM0MTc5NjkgMTc1LjYwODg4NjcyIEMxOTYuNzI0NDQ4MTggMjI5LjY0ODE3ODk3IDE3OS40NjIxNDk2OSAyNzguMjk2Nzc5NDYgMTQyLjQzNjUyMzQ0IDMxNy43Njk1MzEyNSBDMTI5LjYwMTg0MTc2IDMzMS4xNTg3MjM1MyAxMTUuMTQ1NzU3NDQgMzQyLjE5NTQ4NzQ0IDk4Ljg3MDExNzE5IDM1MS4wNzgxMjUgQzk3LjkyOTY2NTUzIDM1MS41OTM2Njk0MyA5Ny45Mjk2NjU1MyAzNTEuNTkzNjY5NDMgOTYuOTcwMjE0ODQgMzUyLjExOTYyODkxIEM1My4zNjI3NjU3IDM3NS42OTkyOTc1NSAxLjkyNTkyNDcyIDM4MC40MDM3MzYwOSAtNDUuNTk4NjMyODEgMzY2LjgwMDc4MTI1IEMtODIuNTc4MTkzODYgMzU1LjU5OTc0NDUyIC0xMTUuMzE5OTc1NDEgMzMzLjUzNjI1MzMgLTEzOS4xMjk4ODI4MSAzMDMuMDc4MTI1IEMtMTM5LjU1MTQwNjI1IDMwMi41NDg5NjQ4NCAtMTM5Ljk3MjkyOTY5IDMwMi4wMTk4MDQ2OSAtMTQwLjQwNzIyNjU2IDMwMS40NzQ2MDkzOCBDLTE2NC44MTg5OTg5MiAyNzAuNjUyMDMwMzMgLTE3Ny42ODUzNzA3NyAyMzIuMTcwMjMyMTcgLTE3OS4xMjk4ODI4MSAxOTMuMDc4MTI1IEMtMTc5LjE5MTc1NzgxIDE5MS42ODIwNzAzMSAtMTc5LjE5MTc1NzgxIDE5MS42ODIwNzAzMSAtMTc5LjI1NDg4MjgxIDE5MC4yNTc4MTI1IEMtMTc5Ljk3NTQzNDMgMTU4LjY0MzYxNTkxIC0xNzIuMjg1MjcwODIgMTI2Ljc2NzA4MjgzIC0xNTcuMTI5ODgyODEgOTkuMDc4MTI1IEMtMTU2LjY2MzI0MjE5IDk4LjE0NzQyMTg3IC0xNTYuMTk2NjAxNTYgOTcuMjE2NzE4NzUgLTE1NS43MTU4MjAzMSA5Ni4yNTc4MTI1IEMtMTQ5LjEwNjcyMTQ0IDgzLjMxMDE2MjY2IC0xNDAuMDc4Mjg1OTUgNzEuNjA4MzA2MSAtMTMwLjEyOTg4MjgxIDYxLjA3ODEyNSBDLTEyOS4wMDAyNjA0OCA1OS43NDg3MDU1MiAtMTI3Ljg3NTA4OTY5IDU4LjQxNTQ4NzgyIC0xMjYuNzU0ODgyODEgNTcuMDc4MTI1IEMtOTcuMjE2ODU4OTIgMjMuNDM1NzI4NzcgLTUxLjg2MzQ2OCA0Ljg3NTk0MDM5IC04LjA2NzM4MjgxIDAuMzI4MTI1IEMtNS4zNzg2MzU2NCAwLjE3NDkyMDAzIC0yLjY5MTAzMjQ2IDAuMDk4NzA4MjEgMCAwIFoiIGZpbGw9IiM0MDZFQjYiIHRyYW5zZm9ybT0idHJhbnNsYXRlKDIzMDQuMTI5ODgyODEyNSw5NDYuOTIxODc1KSIvPgo8L3N2Zz4=" alt="Moona" style="height:28px;width:auto;display:block;margin-bottom:6px">
+    <div style="font-size:9px;color:var(--text3);letter-spacing:.07em;text-transform:uppercase;font-weight:500">Architect System <span style="background:var(--brand-bg,#E8F0FA);color:var(--brand,#406EB6);font-size:8px;padding:1px 5px;border-radius:4px;margin-left:2px">v2</span></div>
+  </div>
+<div class="nav-section">Utama</div>
   <div class="nav-item" onclick="go('moona-v2-dashboard.html')"><span class="nav-dot" style="background:#888780"></span>Dashboard</div>
   <div class="nav-section">Sales</div>
   <div class="nav-item" onclick="go('moona-v2-crm.html')"><span class="nav-dot" style="background:var(--coral-mid)"></span>CRM &amp; Sales</div>

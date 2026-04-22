@@ -9,6 +9,7 @@
 :root{
   --bg:#f8f7f4;--card:#fff;--border:#e5e3dc;--border2:#d0cec7;
   --text:#1a1a18;--text2:#6b6a64;--text3:#9d9b94;
+  --brand:#406EB6;--brand-bg:#E8F0FA;--brand-mid:#406EB6;
   --coral:#993C1D;--coral-mid:#D85A30;--coral-bg:#FAECE7;
   --purple:#534AB7;--purple-bg:#EEEDFE;
   --teal:#0F6E56;--teal-bg:#E1F5EE;
@@ -22,10 +23,10 @@
 body{background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:var(--text);font-size:14px;min-height:100vh}
 .app{display:flex;min-height:100vh}
 .sidebar{width:220px;min-width:220px;background:var(--card);border-right:0.5px solid var(--border);display:flex;flex-direction:column;position:fixed;top:0;left:0;height:100vh;z-index:10;overflow-y:auto}
-.logo{padding:18px 16px 14px;border-bottom:0.5px solid var(--border)}
+.logo{padding:0}
 .logo-name{font-size:15px;font-weight:600}
 .logo-sub{font-size:10px;color:var(--text3);margin-top:2px}
-.logo-ver{display:inline-block;font-size:9px;font-weight:600;background:var(--coral-bg);color:var(--coral);padding:1px 5px;border-radius:4px;margin-top:3px}
+.logo-ver{display:inline-block;font-size:9px;font-weight:600;background:var(--brand-bg,#E8F0FA);color:var(--brand,#406EB6);padding:1px 5px;border-radius:4px;margin-top:3px}
 .nav-section{padding:10px 8px 3px;font-size:9px;font-weight:600;color:var(--text3);letter-spacing:.06em;text-transform:uppercase}
 .nav-item{display:flex;align-items:center;gap:8px;padding:7px 12px;margin:1px 4px;border-radius:var(--radius-sm);cursor:pointer;font-size:12px;color:var(--text2)}
 .nav-item:hover{background:var(--bg)}
@@ -88,11 +89,6 @@ tr:hover td{background:var(--bg)}
 .s-lunas{background:var(--green-bg);color:var(--green)}
 .s-menunggu{background:var(--amber-bg);color:var(--amber)}
 .s-late{background:var(--red-bg);color:var(--red)}
-.cat-material{background:var(--teal-bg);color:var(--teal)}
-.cat-upah{background:var(--amber-bg);color:var(--amber)}
-.cat-overhead{background:var(--gray-bg);color:var(--gray)}
-.cat-transport{background:var(--purple-bg);color:var(--purple)}
-.cat-lainlain{background:var(--blue-bg);color:var(--blue)}
 .cat-dp{background:var(--green-bg);color:var(--green)}
 .cat-termin{background:var(--blue-bg);color:var(--blue)}
 
@@ -141,8 +137,11 @@ textarea.form-input{resize:vertical;min-height:50px;line-height:1.5}
 <body>
 <div class="app">
 <div class="sidebar">
-  <div class="logo"><div class="logo-name">Moona</div><div class="logo-sub">Architect System</div><div class="logo-ver">v2</div></div>
-  <div class="nav-section">Utama</div>
+    <div class="logo" style="padding:16px 16px 12px;border-bottom:0.5px solid var(--border)">
+    <img src="data:image/svg+xml;base64,PHN2ZyB2aWV3Qm94PSIxODIgMTI3IDE4NTMgMTE5NCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTAgMCBDOTYuNjkgMCAxOTMuMzggMCAyOTMgMCBDMjkzIDk5LjY2IDI5MyAxOTkuMzIgMjkzIDMwMiBDODA3LjggMzAyIDEzMjIuNiAzMDIgMTg1MyAzMDIgQzE4NTMgNTk2LjM2IDE4NTMgODkwLjcyIDE4NTMgMTE5NCBDMTc1Ni45NyAxMTk0IDE2NjAuOTQgMTE5NCAxNTYyIDExOTQgQzE1NjIgOTk1LjY3IDE1NjIgNzk3LjM0IDE1NjIgNTkzIEMxNDAxLjYyIDU5MyAxMjQxLjI0IDU5MyAxMDc2IDU5MyBDMTA3NiA3OTAuNjcgMTA3NiA5ODguMzQgMTA3NiAxMTkyIEM5NzguOTggMTE5MiA4ODEuOTYgMTE5MiA3ODIgMTE5MiBDNzgyIDk5NC4zMyA3ODIgNzk2LjY2IDc4MiA1OTMgQzYyMS4yOSA1OTMgNDYwLjU4IDU5MyAyOTUgNTkzIEMyOTUgNzkxLjMzIDI5NSA5ODkuNjYgMjk1IDExOTQgQzUgMTE5NCA1IDExOTQgMCAxMTkyIEMwIDc5OC42NCAwIDQwNS4yOCAwIDAgWiIgZmlsbD0iIzQwNkVCNiIgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMTgyLDEyNykiLz4KPHBhdGggZD0iTTAgMCBDNTAuNTEzNDYzNjEgLTEuNjU5NTc5OTEgOTguNzA2NjAyODYgMTUuNzkxMTc0MTYgMTM1Ljg3MDExNzE5IDUwLjA3ODEyNSBDMTM2LjQ1MDAzNDE4IDUwLjYxMjc2MzY3IDEzNy4wMjk5NTExNyA1MS4xNDc0MDIzNCAxMzcuNjI3NDQxNDEgNTEuNjk4MjQyMTkgQzE3MS41NDMyODYgODMuMzc3OTgwMDYgMTkyLjg3ODY0OTg1IDEyOS4yMjAwODgyNiAxOTUuMDM0MTc5NjkgMTc1LjYwODg4NjcyIEMxOTYuNzI0NDQ4MTggMjI5LjY0ODE3ODk3IDE3OS40NjIxNDk2OSAyNzguMjk2Nzc5NDYgMTQyLjQzNjUyMzQ0IDMxNy43Njk1MzEyNSBDMTI5LjYwMTg0MTc2IDMzMS4xNTg3MjM1MyAxMTUuMTQ1NzU3NDQgMzQyLjE5NTQ4NzQ0IDk4Ljg3MDExNzE5IDM1MS4wNzgxMjUgQzk3LjkyOTY2NTUzIDM1MS41OTM2Njk0MyA5Ny45Mjk2NjU1MyAzNTEuNTkzNjY5NDMgOTYuOTcwMjE0ODQgMzUyLjExOTYyODkxIEM1My4zNjI3NjU3IDM3NS42OTkyOTc1NSAxLjkyNTkyNDcyIDM4MC40MDM3MzYwOSAtNDUuNTk4NjMyODEgMzY2LjgwMDc4MTI1IEMtODIuNTc4MTkzODYgMzU1LjU5OTc0NDUyIC0xMTUuMzE5OTc1NDEgMzMzLjUzNjI1MzMgLTEzOS4xMjk4ODI4MSAzMDMuMDc4MTI1IEMtMTM5LjU1MTQwNjI1IDMwMi41NDg5NjQ4NCAtMTM5Ljk3MjkyOTY5IDMwMi4wMTk4MDQ2OSAtMTQwLjQwNzIyNjU2IDMwMS40NzQ2MDkzOCBDLTE2NC44MTg5OTg5MiAyNzAuNjUyMDMwMzMgLTE3Ny42ODUzNzA3NyAyMzIuMTcwMjMyMTcgLTE3OS4xMjk4ODI4MSAxOTMuMDc4MTI1IEMtMTc5LjE5MTc1NzgxIDE5MS42ODIwNzAzMSAtMTc5LjE5MTc1NzgxIDE5MS42ODIwNzAzMSAtMTc5LjI1NDg4MjgxIDE5MC4yNTc4MTI1IEMtMTc5Ljk3NTQzNDMgMTU4LjY0MzYxNTkxIC0xNzIuMjg1MjcwODIgMTI2Ljc2NzA4MjgzIC0xNTcuMTI5ODgyODEgOTkuMDc4MTI1IEMtMTU2LjY2MzI0MjE5IDk4LjE0NzQyMTg3IC0xNTYuMTk2NjAxNTYgOTcuMjE2NzE4NzUgLTE1NS43MTU4MjAzMSA5Ni4yNTc4MTI1IEMtMTQ5LjEwNjcyMTQ0IDgzLjMxMDE2MjY2IC0xNDAuMDc4Mjg1OTUgNzEuNjA4MzA2MSAtMTMwLjEyOTg4MjgxIDYxLjA3ODEyNSBDLTEyOS4wMDAyNjA0OCA1OS43NDg3MDU1MiAtMTI3Ljg3NTA4OTY5IDU4LjQxNTQ4NzgyIC0xMjYuNzU0ODgyODEgNTcuMDc4MTI1IEMtOTcuMjE2ODU4OTIgMjMuNDM1NzI4NzcgLTUxLjg2MzQ2OCA0Ljg3NTk0MDM5IC04LjA2NzM4MjgxIDAuMzI4MTI1IEMtNS4zNzg2MzU2NCAwLjE3NDkyMDAzIC0yLjY5MTAzMjQ2IDAuMDk4NzA4MjEgMCAwIFoiIGZpbGw9IiM0MDZFQjYiIHRyYW5zZm9ybT0idHJhbnNsYXRlKDIzMDQuMTI5ODgyODEyNSw5NDYuOTIxODc1KSIvPgo8L3N2Zz4=" alt="Moona" style="height:28px;width:auto;display:block;margin-bottom:6px">
+    <div style="font-size:9px;color:var(--text3);letter-spacing:.07em;text-transform:uppercase;font-weight:500">Architect System <span style="background:var(--brand-bg,#E8F0FA);color:var(--brand,#406EB6);font-size:8px;padding:1px 5px;border-radius:4px;margin-left:2px">v2</span></div>
+  </div>
+<div class="nav-section">Utama</div>
   <div class="nav-item" onclick="go('moona-v2-dashboard.html')"><span class="nav-dot" style="background:#888780"></span>Dashboard</div>
   <div class="nav-section">Sales</div>
   <div class="nav-item" onclick="go('moona-v2-crm.html')"><span class="nav-dot" style="background:var(--coral-mid)"></span>CRM &amp; Sales</div>
@@ -158,8 +157,8 @@ textarea.form-input{resize:vertical;min-height:50px;line-height:1.5}
   <div class="nav-item" onclick="go('moona-v2-sop.html')"><span class="nav-dot" style="background:#888780"></span>SOP &amp; Dokumen</div>
   <div class="sidebar-footer">
     <div class="sf-label">Login sebagai</div>
-    <div class="sf-name" id="sf-name">–</div>
-    <div class="sf-logout" onclick="logout()">Keluar</div>
+    <div class="sf-name" id="sf-name" style="color:var(--brand);font-weight:600">–</div>
+    <div class="sf-logout" onclick="logout()">Keluar →</div>
   </div>
 </div>
 
@@ -206,19 +205,11 @@ textarea.form-input{resize:vertical;min-height:50px;line-height:1.5}
 
   <!-- CASHFLOW TAB -->
   <div id="tab-cashflow" style="display:none">
-    <div class="filter-bar">
-      <div class="fpill active" onclick="setCfFilter('',this)">Semua</div>
-      <div class="fpill" onclick="setCfFilter('Material',this)">Material</div>
-      <div class="fpill" onclick="setCfFilter('Upah',this)">Upah</div>
-      <div class="fpill" onclick="setCfFilter('Overhead',this)">Overhead</div>
-      <div class="fpill" onclick="setCfFilter('Transport',this)">Transport</div>
-      <div class="fpill" onclick="setCfFilter('Lain-lain',this)">Lain-lain</div>
-    </div>
     <div class="card">
       <div class="card-header"><span class="card-title">Daftar pengeluaran</span></div>
       <div style="overflow-x:auto">
         <table id="cf-table">
-          <thead><tr><th>Tanggal</th><th>Proyek</th><th>Kategori</th><th>Periode</th><th class="td-right">Total</th><th></th></tr></thead>
+          <thead><tr><th>Tanggal</th><th>Proyek</th><th>Periode</th><th class="td-right">Total</th><th></th></tr></thead>
           <tbody id="cf-rows"><tr><td colspan="6" class="empty">Memuat...</td></tr></tbody>
         </table>
       </div>
@@ -285,13 +276,7 @@ textarea.form-input{resize:vertical;min-height:50px;line-height:1.5}
       <div class="form-group"><label class="form-label">Proyek <span class="req">*</span></label>
         <select id="cf-project" class="form-input"><option value="">Pilih proyek</option><option value="UMUM">Umum / Overhead kantor</option></select>
       </div>
-      <div class="form-group"><label class="form-label">Kategori <span class="req">*</span></label>
-        <select id="cf-kategori" class="form-input">
-          <option value="">Pilih kategori</option>
-          <option>Material</option><option>Upah</option><option>Overhead</option>
-          <option>Transport</option><option>Lain-lain</option>
-        </select>
-      </div>
+
       <div class="form-group"><label class="form-label">Total pengeluaran (Rp) <span class="req">*</span></label>
         <input id="cf-keluar" class="form-input" type="number" placeholder="Total di kategori ini"></div>
       <div class="form-group"><label class="form-label">Catatan (opsional)</label>
@@ -354,7 +339,7 @@ function switchTab(t, el) {
   if (t === 'proyek') renderProyek();
 }
 function setInvFilter(v, el) { invFilter = v; var pills = el.parentNode.querySelectorAll('.fpill'); for (var i = 0; i < pills.length; i++) pills[i].classList.remove('active'); el.classList.add('active'); renderInvoices(); }
-function setCfFilter(v, el) { cfFilter = v; var pills = el.parentNode.querySelectorAll('.fpill'); for (var i = 0; i < pills.length; i++) pills[i].classList.remove('active'); el.classList.add('active'); renderCashflows(); }
+
 
 window.onload = function() {
   if (!S || ALLOWED.indexOf(S.role) < 0) return;
@@ -466,7 +451,7 @@ function renderCashflows() {
   var el = document.getElementById('cf-rows');
   var f = [];
   for (var i = 0; i < cashflows.length; i++) {
-    if (!cfFilter || p(cashflows[i],'Kategori') === cfFilter) f.push(cashflows[i]);
+    f.push(cashflows[i]);
   }
   if (!f.length) { el.innerHTML = '<tr><td colspan="6" class="empty">Belum ada pengeluaran.</td></tr>'; return; }
   var sorted = f.slice().sort(function(a,b){ return new Date(p(b,'Tanggal')) - new Date(p(a,'Tanggal')); });
@@ -475,11 +460,10 @@ function renderCashflows() {
     var cf = sorted[k];
     var proj = null;
     for (var j = 0; j < projects.length; j++) { if (p(projects[j],'ID') === p(cf,'Project_ID')) { proj = projects[j]; break; } }
-    var kategori = p(cf,'Kategori') || '-';
     var html = '<tr>';
     html += '<td>' + fmtDate(p(cf,'Tanggal')) + '</td>';
     html += '<td>' + (proj ? p(proj,'NamaProyek') : '<span style="color:var(--text3)">Umum / Overhead</span>') + '</td>';
-    html += '<td><span class="pill cat-' + slug(kategori) + '">' + kategori + '</span></td>';
+
     html += '<td>' + (p(cf,'Minggu') || '<span style="color:var(--text3)">-</span>') + (p(cf,'Keterangan') ? '<br><span style="font-size:9px;color:var(--text3)">' + p(cf,'Keterangan') + '</span>' : '') + '</td>';
     html += '<td class="td-right td-amount out">-' + rpFull(p(cf,'Keluar')) + '</td>';
     html += '<td><button class="btn-ghost" onclick="deleteCf(\'' + p(cf,'ID') + '\')">✕</button></td>';
@@ -585,22 +569,21 @@ function deleteInv(id) {
 
 // CASHFLOW
 function openCashflowForm() {
-  ['cf-kategori','cf-project','cf-keluar','cf-ket','cf-periode'].forEach(function(id){ document.getElementById(id).value = ''; });
+  ['cf-project','cf-keluar','cf-ket','cf-periode'].forEach(function(id){ document.getElementById(id).value = ''; });
   document.getElementById('cf-tgl').value = new Date().toISOString().split('T')[0];
   document.getElementById('modal-cf').classList.add('open');
 }
 function saveCashflow() {
   var tgl = document.getElementById('cf-tgl').value;
-  var kategori = document.getElementById('cf-kategori').value;
   var keluar = document.getElementById('cf-keluar').value;
   var projectId = document.getElementById('cf-project').value;
   var periode = document.getElementById('cf-periode').value.trim();
   var ket = document.getElementById('cf-ket').value.trim();
-  if (!tgl || !kategori || !keluar || !projectId) { showToast('Lengkapi field wajib'); return; }
+  if (!tgl || !keluar || !projectId) { showToast('Lengkapi field wajib'); return; }
   var btn = document.getElementById('save-cf-btn');
   btn.textContent = 'Menyimpan...'; btn.disabled = true;
   fetch(API, { method: 'POST', body: JSON.stringify({
-    action: 'addCashflow', tgl: tgl, kategori: kategori,
+    action: 'addCashflow', tgl: tgl, kategori: '',
     projectId: projectId === 'UMUM' ? '' : projectId,
     minggu: periode, keluar: keluar, ket: ket
   })})
