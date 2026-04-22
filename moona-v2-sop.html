@@ -82,11 +82,14 @@ body{background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI
 .dc-actions{display:flex;gap:5px;margin-top:9px;padding-top:8px;border-top:0.5px solid var(--border);align-items:center;flex-wrap:wrap}
 
 .pill{display:inline-flex;padding:2px 7px;border-radius:7px;font-size:10px;font-weight:500;white-space:nowrap}
-.k-sopdivisi{background:var(--teal-bg);color:var(--teal)}
-.k-sopproses{background:var(--blue-bg);color:var(--blue)}
-.k-template{background:var(--amber-bg);color:var(--amber)}
-.k-panduantools{background:var(--purple-bg);color:var(--purple)}
-.k-knowledgebase{background:var(--coral-bg);color:var(--coral)}
+.k-prinsip{background:var(--coral-bg);color:var(--coral)}
+.k-piranti{background:var(--purple-bg);color:var(--purple)}
+.k-panduan{background:var(--blue-bg);color:var(--blue)}
+.k-regulasi{background:var(--red-bg);color:var(--red)}
+.k-proses{background:var(--teal-bg);color:var(--teal)}
+.k-struktur{background:var(--amber-bg);color:var(--amber)}
+.k-ritme{background:var(--green-bg);color:var(--green)}
+.k-data{background:var(--gray-bg);color:var(--gray)}
 .s-pendingreview{background:var(--amber-bg);color:var(--amber)}
 .s-published{background:var(--green-bg);color:var(--green)}
 .s-rejected{background:var(--red-bg);color:var(--red)}
@@ -174,14 +177,26 @@ textarea.form-input{resize:vertical;min-height:50px;line-height:1.5}
   </div>
 
   <div class="filter-bar">
-    <div class="fpill active" onclick="setKategori('',this)">Semua kategori</div>
-    <div class="fpill" onclick="setKategori('SOP Divisi',this)">SOP Divisi</div>
-    <div class="fpill" onclick="setKategori('SOP Proses',this)">SOP Proses</div>
-    <div class="fpill" onclick="setKategori('Template',this)">Template</div>
-    <div class="fpill" onclick="setKategori('Panduan Tools',this)">Panduan Tools</div>
-    <div class="fpill" onclick="setKategori('Knowledge Base',this)">Knowledge Base</div>
+    <div class="fpill active" onclick="setKategori('',this)">Semua</div>
+    <div class="fpill" onclick="setKategori('PRINSIP',this)">PRINSIP</div>
+    <div class="fpill" onclick="setKategori('PIRANTI',this)">PIRANTI</div>
+    <div class="fpill" onclick="setKategori('PANDUAN',this)">PANDUAN</div>
+    <div class="fpill" onclick="setKategori('REGULASI',this)">REGULASI</div>
+    <div class="fpill" onclick="setKategori('PROSES',this)">PROSES</div>
+    <div class="fpill" onclick="setKategori('STRUKTUR',this)">STRUKTUR</div>
+    <div class="fpill" onclick="setKategori('RITME',this)">RITME</div>
+    <div class="fpill" onclick="setKategori('DATA',this)">DATA</div>
   </div>
 
+  <div class="filter-bar" style="margin-top:-6px">
+    <span style="font-size:11px;color:var(--text3);margin-right:4px">Filter:</span>
+    <div class="fpill" id="fd-all" onclick="toggleDivisiFilter('',this)" style="background:var(--text);color:#fff;border-color:var(--text)">Semua dept</div>
+    <div class="fpill" id="fd-perusahaan" onclick="toggleDivisiFilter('Perusahaan',this)">Perusahaan</div>
+    <div class="fpill" id="fd-operasional" onclick="toggleDivisiFilter('Operasional',this)">Operasional</div>
+    <div class="fpill" id="fd-sales" onclick="toggleDivisiFilter('Sales',this)">Sales</div>
+    <div class="fpill" id="fd-marketing" onclick="toggleDivisiFilter('Marketing',this)">Marketing</div>
+    <div class="fpill" id="fd-finance" onclick="toggleDivisiFilter('Finance',this)">Finance</div>
+  </div>
   <div id="doc-list"><div class="loading">Memuat...</div></div>
 </div>
 </div>
@@ -200,18 +215,24 @@ textarea.form-input{resize:vertical;min-height:50px;line-height:1.5}
         <div class="form-group"><label class="form-label">Kategori <span class="req">*</span></label>
           <select id="df-kategori" class="form-input" onchange="toggleDivisi()">
             <option value="">Pilih kategori</option>
-            <option>SOP Divisi</option>
-            <option>SOP Proses</option>
-            <option>Template</option>
-            <option>Panduan Tools</option>
-            <option>Knowledge Base</option>
+            <option>PRINSIP</option>
+            <option>PIRANTI</option>
+            <option>PANDUAN</option>
+            <option>REGULASI</option>
+            <option>PROSES</option>
+            <option>STRUKTUR</option>
+            <option>RITME</option>
+            <option>DATA</option>
           </select></div>
-        <div class="form-group" id="divisi-wrap" style="display:none"><label class="form-label">Divisi</label>
-          <select id="df-divisi" class="form-input">
-            <option value="">Pilih divisi</option>
-            <option>Sales</option><option>Design</option><option>Build</option>
-            <option>Finance</option><option>Marketing</option><option>Operasional</option>
-          </select></div>
+        <div class="form-group"><label class="form-label">Departemen yang menggunakan (centang semua yang relevan)</label>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;padding:8px;background:var(--bg);border-radius:var(--radius-sm)">
+            <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer"><input type="checkbox" class="df-dept" value="Perusahaan"> Perusahaan</label>
+            <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer"><input type="checkbox" class="df-dept" value="Operasional"> Operasional</label>
+            <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer"><input type="checkbox" class="df-dept" value="Sales"> Sales</label>
+            <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer"><input type="checkbox" class="df-dept" value="Marketing"> Marketing</label>
+            <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer"><input type="checkbox" class="df-dept" value="Finance"> Finance</label>
+          </div>
+        </div>
       </div>
       <div class="form-group"><label class="form-label">Deskripsi singkat</label>
         <textarea id="df-deskripsi" class="form-input" placeholder="Apa isi dokumen ini? Kapan dipakai?"></textarea></div>
@@ -252,7 +273,7 @@ textarea.form-input{resize:vertical;min-height:50px;line-height:1.5}
 <script>
 var API = 'https://script.google.com/macros/s/AKfycbwkjBr_opT5V05KY6fQG3Aa2i7URgxpzX7a1ga3mBFKS3CeMbCvyLzdkNpHIhgg4Xxncw/exec';
 var docs = [];
-var filterKategori = '', currentTab = 'published', editingId = null, approveId = null;
+var filterKategori = '', filterDivisi = [], currentTab = 'published', editingId = null, approveId = null;
 
 function getSession() { try { return JSON.parse(localStorage.getItem('moona_v2_session')); } catch(e) { return null; } }
 function logout() { localStorage.removeItem('moona_v2_session'); location.href = 'moona-v2-login.html'; }
@@ -290,6 +311,35 @@ function setKategori(v, el) {
   renderDocs();
 }
 
+
+function toggleDivisiFilter(dept, el) {
+  if (!dept) {
+    // All departments - clear filter
+    filterDivisi = [];
+    var pills = document.querySelectorAll('[id^="fd-"]');
+    for (var i = 0; i < pills.length; i++) pills[i].classList.remove('active');
+    document.getElementById('fd-all').classList.add('active');
+    document.getElementById('fd-all').style.background = 'var(--text)';
+    document.getElementById('fd-all').style.color = '#fff';
+  } else {
+    // Toggle specific dept
+    var fdAll = document.getElementById('fd-all');
+    if (fdAll) { fdAll.classList.remove('active'); fdAll.style.background = ''; fdAll.style.color = ''; }
+    var idx = filterDivisi.indexOf(dept);
+    if (idx >= 0) {
+      filterDivisi.splice(idx, 1);
+      el.classList.remove('active');
+    } else {
+      filterDivisi.push(dept);
+      el.classList.add('active');
+    }
+    if (!filterDivisi.length) {
+      var fdAll2 = document.getElementById('fd-all');
+      if (fdAll2) { fdAll2.classList.add('active'); fdAll2.style.background = 'var(--text)'; fdAll2.style.color = '#fff'; }
+    }
+  }
+  renderDocs();
+}
 window.onload = function() { loadDocs(); };
 
 function loadDocs() {
@@ -312,10 +362,7 @@ function updateStats() {
   document.getElementById('s-myapproval').textContent = canApprove() ? pending : '-';
 }
 
-function toggleDivisi() {
-  var kat = document.getElementById('df-kategori').value;
-  document.getElementById('divisi-wrap').style.display = kat === 'SOP Divisi' ? 'block' : 'none';
-}
+function toggleDivisi() { /* divisi now always visible */ }
 
 function renderDocs() {
   var q = (document.getElementById('search-input').value || '').toLowerCase();
@@ -328,6 +375,16 @@ function renderDocs() {
     if (currentTab === 'pending' && st !== 'Pending Review') continue;
     // Kategori filter
     if (filterKategori && p(d,'Kategori') !== filterKategori) continue;
+    // Divisi/dept filter (multi-select - doc must have at least one matching dept)
+    if (filterDivisi.length > 0) {
+      var divisiStr = p(d,'Divisi') || '';
+      var docDepts = divisiStr.split(',').map(function(x){return x.trim();});
+      var hasMatch = false;
+      for (var fd = 0; fd < filterDivisi.length; fd++) {
+        if (docDepts.indexOf(filterDivisi[fd]) >= 0) { hasMatch = true; break; }
+      }
+      if (!hasMatch) continue;
+    }
     // Search
     if (q) {
       var hay = (p(d,'Judul') + ' ' + p(d,'Deskripsi') + ' ' + p(d,'Tag') + ' ' + p(d,'Divisi')).toLowerCase();
@@ -352,7 +409,10 @@ function renderDocs() {
     html += '</div>';
     html += '<div class="dc-meta">';
     html += '<span class="pill k-' + slug(kat) + '">' + kat + '</span>';
-    if (p(d,'Divisi')) html += '<span class="pill d-divisi">' + p(d,'Divisi') + '</span>';
+    if (p(d,'Divisi')) {
+      var depts2 = p(d,'Divisi').split(',').map(function(x){return x.trim();}).filter(function(x){return x;});
+      for (var dp = 0; dp < depts2.length; dp++) html += '<span class="pill d-divisi">' + depts2[dp] + '</span>';
+    }
     if (p(d,'Versi')) html += '<span>v' + p(d,'Versi') + '</span>';
     html += '</div>';
     if (p(d,'Deskripsi')) html += '<div class="dc-desc">' + p(d,'Deskripsi') + '</div>';
@@ -379,7 +439,8 @@ function renderDocs() {
 function openForm() {
   editingId = null;
   document.getElementById('form-title').textContent = 'Dokumen Baru';
-  ['df-judul','df-kategori','df-divisi','df-deskripsi','df-link','df-tag'].forEach(function(id){ document.getElementById(id).value = ''; });
+  ['df-judul','df-kategori','df-deskripsi','df-link','df-tag'].forEach(function(id){ document.getElementById(id).value = ''; });
+  document.querySelectorAll('.df-dept').forEach(function(el){ el.checked = false; });
   document.getElementById('df-versi').value = '1.0';
   document.getElementById('divisi-wrap').style.display = 'none';
   document.getElementById('del-btn').style.display = 'none';

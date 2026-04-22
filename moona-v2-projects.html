@@ -363,6 +363,10 @@ textarea.form-input{resize:vertical;min-height:60px;line-height:1.5}
         <div class="form-group"><label class="form-label">Target selesai <span class="req">*</span></label><input id="pf-target" class="form-input" type="date"></div>
       </div>
       <div class="form-group"><label class="form-label">Catatan</label><textarea id="pf-catatan" class="form-input"></textarea></div>
+      <div class="form-group"><label class="form-label">Link folder foto Drive (opsional)</label>
+        <input id="pf-folder-foto" class="form-input" placeholder="https://drive.google.com/drive/folders/...">
+        <div class="form-hint">Folder Drive untuk semua foto laporan. Akan muncul otomatis di form laporan harian tim.</div>
+      </div>
     </div>
     <div class="modal-footer">
       <button class="btn" onclick="closeModal('modal-proj')">Batal</button>
@@ -383,7 +387,9 @@ textarea.form-input{resize:vertical;min-height:60px;line-height:1.5}
       </div>
       <div id="rab-items-wrap"></div>
       <button class="add-row-btn" onclick="addRABRow()">+ Tambah item</button>
-      <div class="form-group" style="margin-top:12px"><label class="form-label">Bobot pekerjaan (%)</label><input id="rab-bobot" class="form-input" type="number" min="0" max="100" placeholder="Bobot % terhadap total proyek"><div class="form-hint">Jumlah semua bobot sebaiknya = 100%</div></div>
+      <div style="background:var(--teal-bg);border-radius:6px;padding:8px 10px;margin-top:10px;font-size:11px;color:var(--teal);line-height:1.5">
+        ✓ <strong>Bobot dihitung otomatis</strong> — berdasarkan total harga tiap item ÷ total RAB × 100%. Tidak perlu input manual.
+      </div>
     </div>
     <div class="modal-footer">
       <button class="btn" onclick="closeModal('modal-rab')">Batal</button>
@@ -607,7 +613,11 @@ function selectProj(id){
   document.getElementById('dtab-lapdesign').style.display=hasDesign?'block':'none';
   document.getElementById('dtab-lapbuild').style.display=hasRAB?'block':'none';
   // Sembunyikan tombol + RAB Item kalau tipe Design
-  document.querySelectorAll('.btn-amber').forEach(b=>{if(b.textContent.includes('RAB'))b.style.display=hasRAB?'inline-block':'none';});
+  // Show/hide RAB tab button based on project type
+  var detailRabBtns = document.querySelectorAll('#detail-panel .btn-amber');
+  for (var bi = 0; bi < detailRabBtns.length; bi++) {
+    if (detailRabBtns[bi].textContent.indexOf('RAB') >= 0) detailRabBtns[bi].style.display = hasRAB ? 'inline-block' : 'none';
+  }
   // Reset to info tab
   switchDTab('info',document.querySelector('.dtab'));
   document.getElementById('detail-panel').scrollIntoView({behavior:'smooth',block:'nearest'});
@@ -688,7 +698,7 @@ function renderLapBuild(){
 
 // PROYEK FORM
 function openProjForm(){
-  ['pf-nama','pf-klien','pf-nilai','pf-catatan'].forEach(id=>document.getElementById(id).value='');
+  ['pf-nama','pf-klien','pf-nilai','pf-catatan','pf-folder-foto'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   ['pf-tipe','pf-layanan','pf-segmen'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('pf-mulai').value=new Date().toISOString().split('T')[0];
   document.getElementById('pf-target').value='';
@@ -706,7 +716,7 @@ async function saveProj(){
   if(!nama||!klien||!tipe||!layanan||!segmen||!pic||!mulai||!target){showToast('Lengkapi semua field wajib');return;}
   const btn=document.getElementById('save-proj-btn');btn.textContent='Menyimpan...';btn.disabled=true;
   try{
-    const r=await fetch(API,{method:'POST',body:JSON.stringify({action:'addProject',nama,klien,tipeProyek:tipe,tipeLayanan:layanan,segmen,pic,mulai,target,nilai:document.getElementById('pf-nilai').value||'',catatan:document.getElementById('pf-catatan').value.trim()})});
+    const r=await fetch(API,{method:'POST',body:JSON.stringify({action:'addProject',nama,klien,tipeProyek:tipe,tipeLayanan:layanan,segmen,pic,mulai,target,nilai:document.getElementById('pf-nilai').value||'',catatan:document.getElementById('pf-catatan').value.trim(),folderFoto:document.getElementById('pf-folder-foto')?.value.trim()||''})});
     const d=await r.json();
     if(d.status==='ok'){closeModal('modal-proj');showToast('Proyek berhasil disimpan!');await loadProjects();}
     else showToast('Gagal: '+d.message);
@@ -717,7 +727,6 @@ async function saveProj(){
 // RAB FORM
 function openRABForm(){
   document.getElementById('rab-kelompok').value='';
-  document.getElementById('rab-bobot').value='';
   document.getElementById('rab-items-wrap').innerHTML='';
   rabRowCount=0;addRABRow();addRABRow();addRABRow();
   document.getElementById('modal-rab').classList.add('open');
@@ -730,7 +739,7 @@ function addRABRow(){
   div.innerHTML=`
     <input class="form-input" placeholder="Nama item pekerjaan" id="ri-nama-${i}">
     <input class="form-input" placeholder="Vol" type="number" id="ri-vol-${i}" oninput="calcRowTotal(${i})">
-    <input class="form-input" placeholder="Satuan" id="ri-sat-${i}">
+    <select class="form-input" id="ri-sat-${i}"><option value="">Sat</option><option>m'</option><option>m²</option><option>m³</option><option>kg</option><option>set</option><option>unit</option><option>ttk</option><option>ls</option></select>
     <input class="form-input" placeholder="Harga/sat" type="number" id="ri-harga-${i}" oninput="calcRowTotal(${i})">
     <button style="width:24px;height:32px;border-radius:4px;border:0.5px solid var(--border2);background:none;cursor:pointer;color:var(--text3);font-size:13px" onclick="document.getElementById('rab-r-${i}').remove()">✕</button>`;
   document.getElementById('rab-items-wrap').appendChild(div);
@@ -741,7 +750,7 @@ function calcRowTotal(i){
 }
 async function saveRABItems(){
   const kelompok=document.getElementById('rab-kelompok').value.trim();
-  const bobot=document.getElementById('rab-bobot').value||'0';
+  // bobot dihitung otomatis di server
   const rows=document.querySelectorAll('[id^="rab-r-"]');
   const items=[];
   rows.forEach(row=>{
@@ -757,7 +766,7 @@ async function saveRABItems(){
   let saved=0;
   for(const item of items){
     try{
-      const r=await fetch(API,{method:'POST',body:JSON.stringify({action:'addRABItem',projectId:selectedId,kelompok,nama:item.nama,volume:item.vol,satuan:item.sat,harga:item.harga,bobot:items.length>1?Math.round(parseFloat(bobot)/items.length):bobot})});
+      const r=await fetch(API,{method:'POST',body:JSON.stringify({action:'addRABItem',projectId:selectedId,kelompok,nama:item.nama,volume:item.vol,satuan:item.sat,harga:item.harga})});
       const d=await r.json();if(d.status==='ok')saved++;
     }catch(e){}
   }

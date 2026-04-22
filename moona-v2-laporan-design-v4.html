@@ -230,6 +230,43 @@ function getSession() { try { return JSON.parse(localStorage.getItem('moona_v2_s
 function logout() { localStorage.removeItem('moona_v2_session'); location.href = 'moona-v2-login.html'; }
 function go(u) { location.href = u; }
 var S = getSession();
+
+var BOBOT_FASE = {
+  'Design eksisting': 5,
+  'Denah': 20,
+  'Moodboard': 5,
+  'Design 3D': 35,
+  'Gambar kerja': 35
+};
+
+function calcWeightedProgress(reports) {
+  var faseMax = {};
+  for (var f in BOBOT_FASE) faseMax[f] = 0;
+  for (var i = 0; i < reports.length; i++) {
+    var fase = p(reports[i], 'FaseDesign');
+    var pct = parseFloat(p(reports[i], 'Persentase') || 0);
+    if (faseMax[fase] !== undefined && pct > faseMax[fase]) faseMax[fase] = pct;
+  }
+  var total = 0;
+  for (var f2 in BOBOT_FASE) {
+    total += (faseMax[f2] / 100) * BOBOT_FASE[f2];
+  }
+  return Math.round(total);
+}
+
+
+function showFaseBobot() {
+  var fase = document.getElementById('ldf-fase') ? document.getElementById('ldf-fase').value : '';
+  var hint = document.getElementById('fase-bobot-hint');
+  if (!hint) return;
+  if (BOBOT_FASE[fase]) {
+    hint.textContent = 'Bobot fase ini: ' + BOBOT_FASE[fase] + '% dari total progress proyek';
+  } else {
+    hint.textContent = '';
+  }
+}
+
+
 if (!S) { location.href = 'moona-v2-login.html'; }
 else { document.getElementById('sf-name').textContent = S.nama + ' - ' + S.role; }
 

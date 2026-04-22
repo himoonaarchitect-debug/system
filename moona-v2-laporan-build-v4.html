@@ -414,6 +414,15 @@ function loadRABItems() {
   var opts = getRABOptions(pid);
   if (!opts) { warn.style.display = 'block'; itemsSec.style.display = 'none'; sharedSec.style.display = 'none'; return; }
   warn.style.display = 'none'; itemsSec.style.display = 'block'; sharedSec.style.display = 'block';
+  // Show folder foto dari proyek
+  var proj = null;
+  for (var px = 0; px < projects.length; px++) { if (p(projects[px],'ID') === pid) { proj = projects[px]; break; } }
+  var fotoHint = document.getElementById('lf-foto-hint');
+  var fotoLink = document.getElementById('lf-foto-link');
+  if (proj && p(proj,'FolderFoto') && fotoHint && fotoLink) {
+    fotoHint.style.display = 'block';
+    fotoLink.href = p(proj,'FolderFoto');
+  } else if (fotoHint) { fotoHint.style.display = 'none'; }
   document.getElementById('items-wrap').innerHTML = '';
   itemRowCount = 0;
   addItemRow();
@@ -443,12 +452,19 @@ function addItemRow() {
 function onItemRABSelect(i) {
   var el = document.getElementById('ir-rab-' + i);
   var opt = el.options[el.selectedIndex];
-  if (!opt.value) { document.getElementById('ir-info-' + i).textContent = ''; return; }
-  var real = opt.getAttribute('data-real') || 0;
+  var infoEl = document.getElementById('ir-info-' + i);
+  var progEl = document.getElementById('ir-prog-' + i);
+  if (!opt || !opt.value) { infoEl.innerHTML = ''; return; }
+  var real = parseFloat(opt.getAttribute('data-real') || 0);
   var vol = opt.getAttribute('data-vol');
   var sat = opt.getAttribute('data-sat');
-  document.getElementById('ir-info-' + i).textContent = 'Progress saat ini: ' + real + '% - Volume: ' + vol + ' ' + sat;
-  document.getElementById('ir-prog-' + i).value = real;
+  // Set progress to previous value
+  progEl.value = real;
+  // Show clear info about last recorded progress
+  var color = real >= 100 ? 'var(--green)' : real > 0 ? 'var(--teal)' : 'var(--text3)';
+  infoEl.innerHTML = '<span style="color:' + color + ';font-weight:600">Record terakhir: ' + real + '%</span>'
+    + '<span style="color:var(--text3)"> · ' + vol + ' ' + sat + '</span>'
+    + (real > 0 ? '<span style="color:var(--text3)"> · Update dari ' + real + '% ke progress baru</span>' : '');
 }
 
 function saveLap() {

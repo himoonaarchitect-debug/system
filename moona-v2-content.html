@@ -247,16 +247,34 @@ textarea.form-input{resize:vertical;min-height:50px;line-height:1.5}
   <div id="tab-metrics" style="display:none">
     <div class="filter-bar">
       <span style="font-size:11px;color:var(--text3);margin-right:6px">Periode:</span>
+      <div class="fpill" onclick="setMetricPeriod('7',this)">7 hari</div>
       <div class="fpill active" onclick="setMetricPeriod('30',this)">30 hari</div>
       <div class="fpill" onclick="setMetricPeriod('90',this)">90 hari</div>
       <div class="fpill" onclick="setMetricPeriod('all',this)">Semua</div>
     </div>
     <div class="metric-grid" id="metric-grid"></div>
+    <div class="card" style="margin-bottom:10px">
+      <div class="card-header" style="justify-content:space-between">
+        <span class="card-title">Tren performa</span>
+        <div style="display:flex;gap:5px">
+          <select id="chart-platform" class="form-input" style="font-size:11px;padding:3px 8px;width:auto" onchange="renderChart()">
+            <option>Instagram</option><option>TikTok</option><option>Facebook</option><option>Threads</option>
+          </select>
+          <select id="chart-metric" class="form-input" style="font-size:11px;padding:3px 8px;width:auto" onchange="renderChart()">
+            <option value="Followers">Followers</option>
+            <option value="Reach">Reach</option>
+            <option value="Impressions">Impressions</option>
+            <option value="Engagement">Engagement</option>
+          </select>
+        </div>
+      </div>
+      <div style="padding:12px 14px"><canvas id="trend-chart" height="120"></canvas></div>
+    </div>
     <div class="card">
-      <div class="card-header"><span class="card-title">Riwayat input metrik</span></div>
+      <div class="card-header"><span class="card-title">Riwayat input metrik</span><span style="font-size:10px;color:var(--text3)">Klik baris untuk edit</span></div>
       <div style="overflow-x:auto">
         <table>
-          <thead><tr><th>Tanggal</th><th>Platform</th><th class="td-right">Followers</th><th class="td-right">Reach</th><th class="td-right">Impression</th><th class="td-right">Engagement</th><th>Catatan</th></tr></thead>
+          <thead><tr><th>Tanggal</th><th>Platform</th><th class="td-right">Followers</th><th class="td-right">Reach</th><th class="td-right">Impression</th><th class="td-right">Engagement</th><th>Catatan</th><th></th></tr></thead>
           <tbody id="metric-history"></tbody>
         </table>
       </div>
@@ -278,10 +296,14 @@ textarea.form-input{resize:vertical;min-height:50px;line-height:1.5}
       </div>
       <div class="form-row3">
         <div class="form-group"><label class="form-label">Platform <span class="req">*</span></label>
-          <select id="cf-platform" class="form-input">
-            <option value="">Pilih</option>
-            <option>Instagram</option><option>TikTok</option><option>Facebook</option><option>Threads</option>
-          </select></div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;padding:7px 9px;border:0.5px solid var(--border2);border-radius:var(--radius-sm);background:var(--card)" id="cf-platform-wrap">
+            <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer"><input type="checkbox" class="cf-plat-chk" value="Instagram"> Instagram</label>
+            <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer"><input type="checkbox" class="cf-plat-chk" value="TikTok"> TikTok</label>
+            <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer"><input type="checkbox" class="cf-plat-chk" value="Facebook"> Facebook</label>
+            <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer"><input type="checkbox" class="cf-plat-chk" value="Threads"> Threads</label>
+          </div>
+          <div class="form-hint">Centang semua platform untuk konten yang sama (mirror posting)</div>
+        </div>
         <div class="form-group"><label class="form-label">Jenis konten</label>
           <select id="cf-jenis" class="form-input">
             <option value="">Pilih</option>
@@ -428,6 +450,93 @@ function switchTab(t, el) {
 function setPlat(v, el) { filterPlat = v; var pills = el.parentNode.querySelectorAll('.fpill'); for (var i = 0; i < pills.length; i++) pills[i].classList.remove('active'); el.classList.add('active'); renderBoard(); }
 function setMetricPeriod(v, el) { metricPeriod = v; var pills = el.parentNode.querySelectorAll('.fpill'); for (var i = 0; i < pills.length; i++) pills[i].classList.remove('active'); el.classList.add('active'); renderMetrics(); }
 
+
+function renderChart() {
+  var platform = document.getElementById('chart-platform') ? document.getElementById('chart-platform').value : 'Instagram';
+  var metricKey = document.getElementById('chart-metric') ? document.getElementById('chart-metric').value : 'Followers';
+  var canvas = document.getElementById('trend-chart');
+  if (!canvas) return;
+  var ctx = canvas.getContext('2d');
+  // Filter by platform & period
+  var now = new Date(); var cutoff = null;
+  if (metricPeriod === '7') { cutoff = new Date(now); cutoff.setDate(cutoff.getDate()-7); }
+  else if (metricPeriod === '30') { cutoff = new Date(now); cutoff.setDate(cutoff.getDate()-30); }
+  else if (metricPeriod === '90') { cutoff = new Date(now); cutoff.setDate(cutoff.getDate()-90); }
+  var rows = [];
+  for (var i = 0; i < metrics.length; i++) {
+    if (p(metrics[i],'Platform') !== platform) continue;
+    var d = toDate(p(metrics[i],'Tanggal'));
+    if (!d) continue;
+    if (!cutoff || d >= cutoff) rows.push(metrics[i]);
+  }
+  rows.sort(function(a,b){ return toDate(p(a,'Tanggal')) - toDate(p(b,'Tanggal')); });
+  if (!rows.length) {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = '#9d9b94'; ctx.font = '12px sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText('Belum ada data untuk platform ini', canvas.width/2, canvas.height/2);
+    return;
+  }
+  var labels = rows.map(function(r){ return fmtShort(p(r,'Tanggal')); });
+  var vals = rows.map(function(r){ return parseFloat(p(r,metricKey)||0); });
+  var maxVal = Math.max.apply(null, vals) || 1;
+  var W = canvas.width = (canvas.offsetWidth > 0 ? canvas.offsetWidth : 600); var H = canvas.height = 120;
+  ctx.clearRect(0, 0, W, H);
+  var pad = { t: 10, r: 20, b: 25, l: 50 };
+  var cW = W - pad.l - pad.r; var cH = H - pad.t - pad.b;
+  // Grid lines
+  ctx.strokeStyle = '#e5e3dc'; ctx.lineWidth = 1;
+  for (var g = 0; g <= 4; g++) {
+    var gy = pad.t + (cH * (1 - g/4));
+    ctx.beginPath(); ctx.moveTo(pad.l, gy); ctx.lineTo(W-pad.r, gy); ctx.stroke();
+    ctx.fillStyle = '#9d9b94'; ctx.font = '9px sans-serif'; ctx.textAlign = 'right';
+    ctx.fillText(Math.round(maxVal*g/4).toLocaleString('id-ID'), pad.l-4, gy+3);
+  }
+  if (rows.length === 1) {
+    var cx = pad.l + cW/2; var cy = pad.t + cH * (1 - vals[0]/maxVal);
+    ctx.beginPath(); ctx.arc(cx, cy, 4, 0, Math.PI*2);
+    ctx.fillStyle = '#D85A30'; ctx.fill();
+  } else {
+    // Line
+    ctx.beginPath(); ctx.strokeStyle = '#D85A30'; ctx.lineWidth = 2;
+    for (var pli = 0; pli < rows.length; pli++) {
+      var x = pad.l + (pli / (rows.length-1)) * cW;
+      var y = pad.t + cH * (1 - vals[pli]/maxVal);
+      if (pli === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+    // Dots
+    for (var di = 0; di < rows.length; di++) {
+      var dx = pad.l + (di / (rows.length-1)) * cW;
+      var dy = pad.t + cH * (1 - vals[di]/maxVal);
+      ctx.beginPath(); ctx.arc(dx, dy, 3, 0, Math.PI*2);
+      ctx.fillStyle = '#D85A30'; ctx.fill();
+    }
+    // X labels (max 8)
+    ctx.fillStyle = '#9d9b94'; ctx.font = '9px sans-serif'; ctx.textAlign = 'center';
+    var step = Math.ceil(rows.length / 8);
+    for (var li = 0; li < rows.length; li += step) {
+      var lx = rows.length > 1 ? pad.l + (li / (rows.length-1)) * cW : pad.l + cW/2;
+      ctx.fillText(labels[li], lx, H-5);
+    }
+  }
+}
+
+var editingMetricId = null;
+function editMetric(id) {
+  editingMetricId = id;
+  var m = null;
+  for (var i = 0; i < metrics.length; i++) { if (p(metrics[i],'ID') === id) { m = metrics[i]; break; } }
+  if (!m) return;
+  document.getElementById('mf-tanggal').value = p(m,'Tanggal') ? new Date(p(m,'Tanggal')).toISOString().split('T')[0] : '';
+  document.getElementById('mf-platform').value = p(m,'Platform');
+  document.getElementById('mf-followers').value = p(m,'Followers');
+  document.getElementById('mf-reach').value = p(m,'Reach');
+  document.getElementById('mf-impressions').value = p(m,'Impressions');
+  document.getElementById('mf-engagement').value = p(m,'Engagement');
+  document.getElementById('mf-catatan').value = p(m,'Catatan');
+  document.getElementById('modal-metrics').classList.add('open');
+}
+
 window.onload = function() {
   document.getElementById('cf-tanggal').value = new Date().toISOString().split('T')[0];
   document.getElementById('mf-tanggal').value = new Date().toISOString().split('T')[0];
@@ -481,7 +590,11 @@ function renderBoard() {
   var classes = ['c-idea','c-onprogress','c-review','c-approved','c-posted'];
   var grouped = { 'Idea':[], 'On Progress':[], 'Review':[], 'Approved':[], 'Posted':[] };
   for (var i = 0; i < contents.length; i++) {
-    if (filterPlat && p(contents[i],'Platform') !== filterPlat) continue;
+    if (filterPlat) {
+      var platVal = p(contents[i],'Platform');
+      var platList = platVal.split(',').map(function(x){return x.trim();});
+      if (platList.indexOf(filterPlat) < 0) continue;
+    }
     var st = p(contents[i],'StatusKonten') || 'Idea';
     if (grouped[st]) grouped[st].push(contents[i]);
   }
@@ -509,7 +622,10 @@ function renderBoard() {
         html += '<div class="cn-card" onclick="openDetail(\'' + p(c,'ID') + '\')">';
         html += '<div class="cn-title">' + (p(c,'Judul') || '-') + '</div>';
         html += '<div class="cn-meta">';
-        if (plat) html += '<span class="cn-pill p-' + slug(plat) + '">' + plat + '</span>';
+        if (plat) {
+          var platArr = plat.split(',').map(function(x){return x.trim();});
+          for (var pa = 0; pa < platArr.length; pa++) html += '<span class="cn-pill p-' + slug(platArr[pa]) + '">' + platArr[pa] + '</span>';
+        }
         if (p(c,'JenisKonten')) html += '<span>' + p(c,'JenisKonten') + '</span>';
         html += '<span>' + fmtShort(p(c,'Tanggal')) + '</span>';
         html += '</div></div>';
@@ -567,7 +683,8 @@ function renderCalendar() {
     html += '<div class="cal-day' + (isToday ? ' today' : '') + '">';
     html += '<div class="cal-day-num">' + d + '</div>';
     for (var ev = 0; ev < Math.min(events.length, 3); ev++) {
-      var plat = p(events[ev],'Platform') || '';
+      var platRaw = p(events[ev],'Platform') || '';
+    var plat = platRaw.split(',')[0].trim(); // use first platform for color
       html += '<span class="cal-event p-' + slug(plat) + '" onclick="openDetail(\'' + p(events[ev],'ID') + '\')" title="' + p(events[ev],'Judul') + '">' + (p(events[ev],'Judul').substring(0, 22)) + '</span>';
     }
     if (events.length > 3) html += '<div class="cal-more">+' + (events.length - 3) + ' lainnya</div>';
@@ -644,10 +761,12 @@ function renderMetrics() {
       histHtml += '<td class="td-right">' + fmtNum(p(m,'Impressions')) + '</td>';
       histHtml += '<td class="td-right">' + fmtNum(p(m,'Engagement')) + '</td>';
       histHtml += '<td style="color:var(--text3);font-size:10px">' + (p(m,'Catatan') || '-') + '</td>';
+      histHtml += '<td><button class="btn-ghost" onclick="editMetric('' + p(m,'ID') + '')">✏️</button></td>';
       histHtml += '</tr>';
     }
   }
   document.getElementById('metric-history').innerHTML = histHtml;
+  setTimeout(function(){ renderChart(); }, 50);
 }
 
 // DETAIL
@@ -695,8 +814,9 @@ function setStatus(status, el) {
 
 function openContentForm(id) {
   editingId = id || null;
-  var ids = ['cf-judul','cf-platform','cf-jenis','cf-tipe','cf-brief','cf-copy','cf-caption','cf-ref','cf-file','cf-linkpost','cf-pic','cf-catatan'];
+  var ids = ['cf-judul','cf-jenis','cf-tipe','cf-brief','cf-copy','cf-caption','cf-ref','cf-file','cf-linkpost','cf-pic','cf-catatan'];
   for (var i = 0; i < ids.length; i++) document.getElementById(ids[i]).value = '';
+  var pce = document.querySelectorAll('.cf-plat-chk'); for (var i=0; i<pce.length; i++) pce[i].checked = false;
   document.getElementById('cf-tanggal').value = new Date().toISOString().split('T')[0];
   currentStatus = 'Idea';
   var spBtns = document.querySelectorAll('.sp-btn');
@@ -711,7 +831,8 @@ function openContentForm(id) {
     if (c) {
       document.getElementById('ct-modal-title').textContent = 'Edit Konten';
       document.getElementById('cf-judul').value = p(c,'Judul');
-      document.getElementById('cf-platform').value = p(c,'Platform');
+      var platVals = p(c,'Platform').split(',').map(function(x){return x.trim();});
+      var pcf = document.querySelectorAll('.cf-plat-chk'); for (var j=0; j<pcf.length; j++) pcf[j].checked = platVals.indexOf(pcf[j].value) >= 0;
       document.getElementById('cf-jenis').value = p(c,'JenisKonten');
       document.getElementById('cf-tipe').value = p(c,'TipeKonten');
       document.getElementById('cf-brief').value = p(c,'Brief');
@@ -736,8 +857,11 @@ function openContentForm(id) {
 function saveContent() {
   var judul = document.getElementById('cf-judul').value.trim();
   var tanggal = document.getElementById('cf-tanggal').value;
-  var platform = document.getElementById('cf-platform').value;
-  if (!judul || !tanggal || !platform) { showToast('Lengkapi field wajib'); return; }
+  var platChks = document.querySelectorAll('.cf-plat-chk:checked');
+  var platforms = [];
+  for (var pc = 0; pc < platChks.length; pc++) platforms.push(platChks[pc].value);
+  var platform = platforms.join(', ');
+  if (!judul || !tanggal || !platform) { showToast('Lengkapi field wajib (platform wajib dipilih)'); return; }
   var btn = document.getElementById('save-content-btn');
   btn.textContent = 'Menyimpan...'; btn.disabled = true;
   var payload = {
@@ -782,6 +906,7 @@ function deleteContent() {
 
 // METRIC
 function openMetricsForm() {
+  editingMetricId = null;
   ['mf-platform','mf-followers','mf-reach','mf-impressions','mf-engagement','mf-catatan'].forEach(function(id){ document.getElementById(id).value = ''; });
   document.getElementById('mf-tanggal').value = new Date().toISOString().split('T')[0];
   document.getElementById('modal-metrics').classList.add('open');
@@ -792,8 +917,11 @@ function saveMetric() {
   if (!tanggal || !platform) { showToast('Tanggal & platform wajib'); return; }
   var btn = document.getElementById('save-metric-btn');
   btn.textContent = 'Menyimpan...'; btn.disabled = true;
+  var isEdit = !!editingMetricId;
   fetch(API, { method: 'POST', body: JSON.stringify({
-    action: 'addSosmedMetrics', tanggal: tanggal, platform: platform,
+    action: isEdit ? 'updateSosmedMetric' : 'addSosmedMetrics',
+    id: editingMetricId,
+    tanggal: tanggal, platform: platform,
     followers: document.getElementById('mf-followers').value || '0',
     reach: document.getElementById('mf-reach').value || '0',
     impressions: document.getElementById('mf-impressions').value || '0',
