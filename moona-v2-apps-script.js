@@ -61,6 +61,7 @@ function doPost(e) {
     if (action === 'addTaskAssign') return addTaskAssign(data);
     if (action === 'updateTaskAssign') return updateTaskAssign(data);
     if (action === 'updateTaskStatus') return updateTaskStatus(data);
+    if (action === 'pauseTaskAssign') return pauseTaskAssign(data);
     if (action === 'deleteTaskAssign') return deleteTaskAssign(data);
     return response({ status: 'error', message: 'Action tidak dikenal: ' + action });
   } catch (err) {
@@ -760,7 +761,11 @@ function addTaskAssign(data) {
     id, data.projectId, data.staffNama, data.faseDesign || '',
     data.tanggalMulai, data.tanggalSelesai,
     data.durasi || '', data.status || 'Belum mulai',
-    data.assignedBy, nowStr()
+    data.assignedBy, nowStr(),
+    data.parentId || '',           // Parent_ID
+    data.urutanSegment || 1,       // UrutanSegment
+    '',                            // PausedAt
+    ''                             // PauseReason
   ]);
   return response({ status: 'ok', id });
 }
@@ -800,5 +805,96 @@ function deleteTaskAssign(data) {
     if (String(rows[i][0]) === String(data.id)) { sh.deleteRow(i + 1); break; }
   }
   return response({ status: 'ok' });
+}
+
+// ── PAUSE & SPLIT TASK ──
+function pauseTaskAssign(data) {
+  const sh = sheet('TaskAssign');
+  const rows = sh.getDataRange().getValues();
+  const headers = rows[0];
+
+  let oldTask = null;
+  for (let i = 1; i < rows.length; i++) {
+    if (String(rows[i][0]) === String(data.id)) {
+      oldTask = {};
+      headers.forEach((h, idx) => oldTask[h] = rows[i][idx]);
+      break;
+    }
+  }
+  if (!oldTask) return response({ status: 'error', message: 'Tugas tidak ditemukan' });
+
+  const curStatus = String(oldTask['Status']);
+  if (curStatus === 'Paused') return response({ status: 'error', message: 'Tugas ini sudah dalam status Paused' });
+  if (curStatus === 'Selesai') return response({ status: 'error', message: 'Tugas yang sudah Selesai tidak bisa di-pause' });
+
+  const tglPauseStr = String(data.tanggalPause).substring(0, 10);
+  const tglResumeStr = String(data.tanggalResume).substring(0, 10);
+  const tglSelesaiOld = formatDateOnly(oldTask['TanggalSelesai']);
+  const tglMulaiOld = formatDateOnly(oldTask['TanggalMulai']);
+
+  if (diffDaysISO(tglPauseStr, tglResumeStr) <= 0) {
+    return response({ status: 'error', message: 'Tanggal resume harus setelah tanggal pause' });
+  }
+  if (diffDaysISO(tglMulaiOld, tglPauseStr) < 0) {
+    return response({ status: 'error', message: 'Tanggal pause tidak boleh sebelum tanggal mulai tugas' });
+  }
+  if (diffDaysISO(tglPauseStr, tglSelesaiOld) < 0) {
+    return response({ status: 'error', message: 'Tanggal pause tidak boleh setelah tanggal selesai tugas' });
+  }
+
+  const sisaHari = Math.max(1, diffDaysISO(tglPauseStr, tglSelesaiOld) + 1);
+  const durasiLama = Math.max(1, diffDaysISO(tglMulaiOld, tglPauseStr) + 1);
+  const tglSelesaiBaru = addDaysISO(tglResumeStr, sisaHari - 1);
+  const parentId = oldTask['Parent_ID'] ? String(oldTask['Parent_ID']) : String(oldTask['ID']);
+  const newUrut = (parseFloat(oldTask['UrutanSegment']) || 1) + 1;
+
+  // 1) Update tugas lama: status Paused, TanggalSelesai jadi tglPause, simpan alasan
+  updateCols('TaskAssign', data.id, {
+    Status: 'Paused',
+    TanggalSelesai: tglPauseStr,
+    Durasi: durasiLama,
+    PausedAt: nowStr(),
+    PauseReason: data.alasan || ''
+  });
+
+  // 2) Buat segment baru sebagai lanjutan
+  const newId = 'TSK-' + nowId();
+  sh.appendRow([
+    newId,
+    String(oldTask['Project_ID']),
+    String(oldTask['StaffNama']),
+    String(oldTask['FaseDesign']),
+    tglResumeStr,
+    tglSelesaiBaru,
+    sisaHari,
+    'Belum mulai',
+    String(oldTask['AssignedBy']),
+    nowStr(),
+    parentId,
+    newUrut,
+    '',
+    ''
+  ]);
+
+  return response({ status: 'ok', newId: newId, sisaHari: sisaHari, parentId: parentId });
+}
+
+function formatDateOnly(val) {
+  if (!val) return '';
+  if (val instanceof Date) return Utilities.formatDate(val, 'Asia/Jakarta', 'yyyy-MM-dd');
+  return String(val).substring(0, 10);
+}
+
+function diffDaysISO(d1, d2) {
+  const [y1, m1, dd1] = d1.split('-').map(Number);
+  const [y2, m2, dd2] = d2.split('-').map(Number);
+  return Math.round((Date.UTC(y2, m2 - 1, dd2) - Date.UTC(y1, m1 - 1, dd1)) / 86400000);
+}
+
+function addDaysISO(d, n) {
+  const [y, m, dd] = d.split('-').map(Number);
+  const dt = new Date(Date.UTC(y, m - 1, dd));
+  dt.setUTCDate(dt.getUTCDate() + n);
+  return dt.toISOString().substring(0, 10);
 }
 

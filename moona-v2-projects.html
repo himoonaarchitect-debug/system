@@ -333,14 +333,14 @@ textarea.form-input{resize:vertical;min-height:60px;line-height:1.5}
       </div>
       <div id="lapbuild-rows"><div class="loading">Memuat...</div></div>
     </div>
+
+    <!-- TIMELINE / GANTT TAB -->
+    <div class="dpanel" id="dp-gantt" style="display:none">
+      <div id="gantt-container" style="padding:6px 0;min-height:220px"></div>
+    </div>
   </div>
 </div>
 </div>
-
-    <!-- GANTT PANEL -->
-    <div class="dpanel" id="dp-gantt" style="display:none">
-      <div id="gantt-container" style="padding:12px 8px;overflow-x:auto;min-height:200px"></div>
-    </div>
 
 <!-- MODAL PROYEK BARU -->
 <div class="modal-overlay" id="modal-proj">
@@ -471,7 +471,7 @@ function switchDTab(t,el){
 
 // ── TASK ASSIGN & GANTT ──
 var taskData = [];
-var canAssign = () => S && (S.role === 'HeadStudio' || S.role === 'Operasional');
+var canAssign = () => S && ['Owner','Admin','HeadStudio','Operasional'].indexOf(S.role) >= 0;
 
 async function loadTasksForProject(projId) {
   try {
@@ -501,137 +501,358 @@ function _renderBuildGantt(pr, container) {
   const start = new Date(p(pr,'TanggalMulai'));
   const end = new Date(p(pr,'TargetSelesai'));
   const today = new Date(); today.setHours(0,0,0,0);
-  const prog = parseFloat(p(pr,'ProgressTotal') || 0);
 
   if (isNaN(start) || isNaN(end)) {
-    container.innerHTML = '<div style="text-align:center;padding:30px;color:var(--text3);font-size:12px">Tanggal mulai / target belum diisi di Info Proyek.</div>';
+    container.innerHTML = `<div style="text-align:center;padding:42px 20px;color:var(--text3);font-size:12px;background:var(--bg);border-radius:var(--radius);border:1px dashed var(--border2)">
+      Tanggal mulai / target belum diisi.<br>
+      <span style="font-size:11px;display:inline-block;margin-top:4px">Lengkapi di tab <strong>Info Proyek</strong> dulu.</span>
+    </div>`;
     return;
   }
+  start.setHours(0,0,0,0); end.setHours(0,0,0,0);
+
+  // Hitung progress dari realisasi RAB (bukan field yg tidak pernah di-write)
+  const rabItems = rabData.filter(r => p(r,'Project_ID') === selectedId);
+  let prog = 0, totalBobot = 0, realBobot = 0;
+  rabItems.forEach(r => {
+    const b = parseFloat(p(r,'Bobot')||0);
+    const re = parseFloat(p(r,'Realisasi')||0);
+    totalBobot += b;
+    realBobot += b * re / 100;
+  });
+  prog = totalBobot > 0 ? Math.round(realBobot/totalBobot*100) : 0;
 
   const totalDays = Math.ceil((end - start) / 86400000) + 1;
   const todayDays = Math.max(0, Math.ceil((today - start) / 86400000));
-  const todayPct = Math.min(100, Math.round(todayDays / totalDays * 100));
-  const isLate = today > end && prog < 100;
+  const todayPct = totalDays > 0 ? Math.min(100, Math.round(todayDays/totalDays*100)) : 0;
+  const isFinished = prog >= 100;
+  const isLate = today > end && !isFinished;
+  const remainingDays = Math.ceil((end - today) / 86400000);
+
+  // Group RAB by kelompok pekerjaan
+  const byKelompok = {};
+  rabItems.forEach(r => {
+    const k = p(r,'KelompokPekerjaan') || 'Umum';
+    if (!byKelompok[k]) byKelompok[k] = { items: [], totalBobot: 0, realBobot: 0 };
+    const b = parseFloat(p(r,'Bobot')||0);
+    const re = parseFloat(p(r,'Realisasi')||0);
+    byKelompok[k].items.push(r);
+    byKelompok[k].totalBobot += b;
+    byKelompok[k].realBobot += b * re / 100;
+  });
+
+  let kelompokRows = '';
+  Object.entries(byKelompok).forEach(([k, info]) => {
+    const kPct = info.totalBobot > 0 ? Math.round(info.realBobot / info.totalBobot * 100) : 0;
+    const kColor = kPct >= 100 ? 'var(--teal)' : kPct > 0 ? 'var(--brand)' : 'var(--text3)';
+    kelompokRows += `<div style="padding:11px 14px;border-top:0.5px solid var(--border);display:grid;grid-template-columns:1.3fr auto 1.5fr 50px;gap:14px;align-items:center;font-size:11px">
+      <div style="font-weight:500;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${k}</div>
+      <div style="color:var(--text3);font-size:10px;white-space:nowrap">${info.items.length} item · ${info.totalBobot.toFixed(1)}%</div>
+      <div style="height:6px;background:var(--bg);border-radius:3px;overflow:hidden">
+        <div style="height:100%;width:${kPct}%;background:${kColor};transition:width .4s;border-radius:3px"></div>
+      </div>
+      <div style="font-weight:600;color:${kColor};text-align:right">${kPct}%</div>
+    </div>`;
+  });
+
+  if (!kelompokRows) {
+    kelompokRows = '<div style="padding:18px;text-align:center;color:var(--text3);font-size:11px;border-top:0.5px solid var(--border)">Belum ada item RAB. Tambahkan dulu di tab <strong>RAB</strong>.</div>';
+  }
+
+  const overallColor = isFinished ? 'var(--teal)' : isLate ? 'var(--red)' : 'var(--brand)';
+  const statusLabel = isFinished ? '✓ Selesai'
+    : isLate ? `⚠ Terlambat ${Math.abs(remainingDays)} hari`
+    : remainingDays === 0 ? 'Tenggat hari ini'
+    : remainingDays > 0 ? `${remainingDays} hari lagi`
+    : `Lewat tenggat ${Math.abs(remainingDays)} hari`;
 
   container.innerHTML = `
-    <div style="padding:12px 8px">
-      <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:12px">Timeline Pembangunan</div>
-      <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text3);margin-bottom:4px">
+    <div style="margin-bottom:14px">
+      <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:2px">Timeline pembangunan</div>
+      <div style="font-size:10px;color:var(--text3)">${start.toLocaleDateString('id-ID',{day:'numeric',month:'long',year:'numeric'})} – ${end.toLocaleDateString('id-ID',{day:'numeric',month:'long',year:'numeric'})} · ${totalDays} hari</div>
+    </div>
+
+    <div style="background:var(--card);border:0.5px solid var(--border);border-radius:var(--radius);padding:14px 16px;margin-bottom:14px">
+      <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:14px">
+        <div>
+          <div style="font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.05em">Progress overall</div>
+          <div style="font-size:11px;color:var(--text3);margin-top:2px">Berdasarkan realisasi RAB tertimbang bobot</div>
+        </div>
+        <div style="font-size:24px;font-weight:600;color:${overallColor};line-height:1">${prog}%</div>
+      </div>
+      <div style="position:relative;height:30px;background:var(--bg);border-radius:6px;overflow:visible;border:0.5px solid var(--border);margin-top:18px">
+        <div style="position:absolute;left:0;top:0;height:100%;width:${prog}%;background:${overallColor};border-radius:6px;transition:width .5s"></div>
+        <div style="position:absolute;left:${todayPct}%;top:-6px;bottom:-6px;width:2px;background:var(--coral-mid);z-index:2"></div>
+        <div style="position:absolute;left:${todayPct}%;top:-22px;transform:translateX(-50%);font-size:9px;font-weight:600;color:var(--coral);white-space:nowrap;background:var(--card);padding:1px 5px;border-radius:3px;border:0.5px solid var(--coral-mid)">Hari ini</div>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text3);margin-top:10px;align-items:center">
         <span>${start.toLocaleDateString('id-ID',{day:'numeric',month:'short',year:'numeric'})}</span>
+        <span style="color:${isLate?'var(--red)':isFinished?'var(--teal)':'var(--text2)'};font-weight:500">${statusLabel}</span>
         <span>${end.toLocaleDateString('id-ID',{day:'numeric',month:'short',year:'numeric'})}</span>
       </div>
-      <div style="position:relative;height:40px;background:var(--bg);border-radius:8px;overflow:hidden;border:0.5px solid var(--border)">
-        <div style="position:absolute;left:0;top:0;height:100%;width:${prog}%;background:${isLate?'var(--red)':'#406EB6'};border-radius:8px;transition:width .5s;display:flex;align-items:center;padding-left:10px">
-          <span style="font-size:11px;font-weight:600;color:#fff">${prog}%</span>
-        </div>
-        <div style="position:absolute;left:${todayPct}%;top:0;bottom:0;width:2px;background:var(--coral-mid);z-index:2"></div>
-      </div>
-      <div style="display:flex;justify-content:space-between;font-size:10px;margin-top:6px">
-        <span style="color:var(--text3)">Durasi: ${totalDays} hari</span>
-        <span style="color:${isLate?'var(--red)':'var(--text3)'}">${isLate?'⚠️ Terlambat':'Hari ini: '+todayPct+'%'}</span>
-        <span style="color:var(--teal)">Progress: ${prog}%</span>
-      </div>
+    </div>
+
+    <div style="background:var(--card);border:0.5px solid var(--border);border-radius:var(--radius);overflow:hidden">
+      <div style="padding:11px 14px;font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.05em;background:var(--bg)">Progress per kelompok pekerjaan</div>
+      ${kelompokRows}
     </div>`;
 }
 
 function _renderDesignGantt(pr, container) {
-  const assignBtn = canAssign()
-    ? `<button class="btn btn-sm btn-primary" style="float:right;margin-bottom:8px" onclick="openAssignForm()">+ Assign Tugas</button>`
-    : '';
+  const canEdit = canAssign();
+  const headerHtml = (extraNote) => `
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;gap:10px;flex-wrap:wrap">
+      <div>
+        <div style="font-size:13px;font-weight:600;color:var(--text)">Timeline tugas tim design</div>
+        <div style="font-size:10px;color:var(--text3);margin-top:2px">${extraNote||''}</div>
+      </div>
+      ${canEdit ? `<button class="btn btn-sm btn-primary" onclick="openAssignForm()">+ Assign Tugas</button>` : ''}
+    </div>`;
 
   if (!taskData.length) {
-    container.innerHTML = `<div style="padding:12px">${assignBtn}<div style="clear:both"></div><div style="text-align:center;padding:30px;color:var(--text3);font-size:12px;background:var(--bg);border-radius:8px;border:1px dashed var(--border2)">Belum ada tugas di-assign untuk proyek ini.<br>${canAssign() ? 'Klik "+ Assign Tugas" untuk mulai.' : ''}</div></div>`;
+    container.innerHTML = headerHtml('Belum ada tugas yang di-assign')
+      + `<div style="text-align:center;padding:42px 20px;color:var(--text3);font-size:12px;background:var(--bg);border-radius:var(--radius);border:1px dashed var(--border2)">
+          Belum ada tugas yang di-assign untuk proyek ini.
+          ${canEdit ? '<br><span style="font-size:11px;margin-top:4px;display:inline-block">Klik <strong>+ Assign Tugas</strong> di kanan atas untuk mulai.</span>' : ''}
+        </div>`;
     return;
   }
 
-  // Build Gantt per staff
+  // ── Date range
   const today = new Date(); today.setHours(0,0,0,0);
-  // Date range from all tasks
-  let minD = new Date(), maxD = new Date();
+  let minD = null, maxD = null;
   taskData.forEach(t => {
     const s = new Date(p(t,'TanggalMulai')), e = new Date(p(t,'TanggalSelesai'));
-    if (!isNaN(s) && s < minD) minD = new Date(s);
-    if (!isNaN(e) && e > maxD) maxD = new Date(e);
+    if (!isNaN(s)) { if (!minD || s < minD) minD = new Date(s); }
+    if (!isNaN(e)) { if (!maxD || e > maxD) maxD = new Date(e); }
   });
-  minD.setDate(minD.getDate() - 2);
-  maxD.setDate(maxD.getDate() + 2);
+  if (!minD || !maxD) {
+    container.innerHTML = headerHtml('') + '<div style="padding:20px;text-align:center;color:var(--text3);font-size:11px">Tanggal tugas tidak valid.</div>';
+    return;
+  }
+  minD.setHours(0,0,0,0); maxD.setHours(0,0,0,0);
+  // Padding kiri-kanan + pastikan today masuk range
+  minD.setDate(minD.getDate() - 3);
+  maxD.setDate(maxD.getDate() + 3);
+  if (today < minD) minD = new Date(today.getTime() - 3*86400000);
+  if (today > maxD) maxD = new Date(today.getTime() + 3*86400000);
 
   const totalDays = Math.ceil((maxD - minD) / 86400000) + 1;
-  const DAY_W = Math.max(18, Math.min(32, Math.floor(700 / totalDays)));
-  const LEFT_W = 130;
-  const STATUS_COLORS = { 'Belum mulai': '#9d9b94', 'On Progress': '#406EB6', 'Selesai': '#0F6E56' };
+  const DAY_W = 28;
+  const LEFT_W = 150;
+  const ROW_H = 32;
 
-  // Group tasks by staff
+  const STATUS_STY = {
+    'Belum mulai': { bg:'#F1EFE8', border:'#888780', text:'#5F5E5A', solid:true },
+    'On Progress': { bg:'#E8F0FA', border:'#406EB6', text:'#185FA5', solid:true },
+    'Paused':      { bg:'#FAEEDA', border:'#854F0B', text:'#854F0B', solid:false },
+    'Selesai':     { bg:'#E1F5EE', border:'#0F6E56', text:'#0F6E56', solid:true }
+  };
+
+  // ── Group by staff
   const byStaff = {};
   taskData.forEach(t => {
-    const staff = p(t,'StaffNama');
+    const staff = p(t,'StaffNama') || '—';
     if (!byStaff[staff]) byStaff[staff] = [];
     byStaff[staff].push(t);
   });
 
-  // Build month header
-  let months = '';
+  // ── Build month strip + day strip
+  let monthCells = '', dayCells = '';
+  let curMonth = -1, curMonthCount = 0, curMonthLabel = '';
   const tmp = new Date(minD);
   while (tmp <= maxD) {
-    const y = tmp.getFullYear(), m = tmp.getMonth();
-    let cnt = 0;
-    const check = new Date(tmp);
-    while (check.getFullYear()===y && check.getMonth()===m && check<=maxD) { cnt++; check.setDate(check.getDate()+1); }
-    months += `<div style="display:inline-block;width:${cnt*DAY_W}px;font-size:9px;font-weight:600;color:var(--text3);text-align:center;border-right:1px solid var(--border);padding:3px 0;overflow:hidden">
-      ${tmp.toLocaleDateString('id-ID',{month:'short',year:'2-digit'})}</div>`;
-    tmp.setMonth(tmp.getMonth()+1); tmp.setDate(1);
+    const m = tmp.getMonth();
+    if (m !== curMonth) {
+      if (curMonthCount > 0) {
+        monthCells += `<div style="display:inline-block;width:${curMonthCount*DAY_W}px;font-size:10px;font-weight:600;color:var(--text2);padding:5px 8px;border-right:0.5px solid var(--border);box-sizing:border-box;text-transform:uppercase;letter-spacing:.04em">${curMonthLabel}</div>`;
+      }
+      curMonth = m;
+      curMonthLabel = tmp.toLocaleDateString('id-ID',{month:'long',year:'numeric'});
+      curMonthCount = 0;
+    }
+    curMonthCount++;
+    const dow = tmp.getDay();
+    const dayName = ['M','S','S','R','K','J','S'][dow];
+    const dayNum = tmp.getDate();
+    const isToday = tmp.getTime() === today.getTime();
+    const isWeekend = dow === 0 || dow === 6;
+    const cellBg = isToday ? '#FAECE7' : (isWeekend ? 'var(--bg)' : 'transparent');
+    const cellColor = isToday ? '#993C1D' : (isWeekend ? 'var(--text3)' : 'var(--text2)');
+    dayCells += `<div style="display:inline-block;width:${DAY_W}px;text-align:center;padding:3px 0;border-right:0.5px solid var(--border);background:${cellBg};box-sizing:border-box">
+      <div style="font-size:9px;color:${cellColor};line-height:1.1;text-transform:uppercase">${dayName}</div>
+      <div style="font-size:11px;font-weight:${isToday?600:500};color:${cellColor};line-height:1.2;margin-top:1px">${dayNum}</div>
+    </div>`;
+    tmp.setDate(tmp.getDate()+1);
+  }
+  if (curMonthCount > 0) {
+    monthCells += `<div style="display:inline-block;width:${curMonthCount*DAY_W}px;font-size:10px;font-weight:600;color:var(--text2);padding:5px 8px;border-right:0.5px solid var(--border);box-sizing:border-box;text-transform:uppercase;letter-spacing:.04em">${curMonthLabel}</div>`;
   }
 
-  // Today line position
-  const todayLeft = LEFT_W + Math.max(0, Math.ceil((today-minD)/86400000)) * DAY_W;
-
-  // Build rows
-  let rows = '';
+  // ── Build body rows
+  let rowsHtml = '';
   Object.entries(byStaff).forEach(([staff, tasks]) => {
-    const rowH = Math.max(44, tasks.length * 30 + 10);
-    let bars = '';
-    tasks.forEach((t, i) => {
-      const s = new Date(p(t,'TanggalMulai')), e = new Date(p(t,'TanggalSelesai'));
-      if (isNaN(s) || isNaN(e)) return;
-      const left = LEFT_W + Math.max(0, Math.ceil((s-minD)/86400000)) * DAY_W;
-      const width = Math.max(DAY_W, Math.ceil((e-s)/86400000+1) * DAY_W);
-      const color = STATUS_COLORS[p(t,'Status')] || '#9d9b94';
-      const fase = p(t,'FaseDesign') || 'Tugas';
-      const isLate = e < today && p(t,'Status') !== 'Selesai';
-      bars += `<div style="position:absolute;left:${left}px;top:${6+i*30}px;height:22px;width:${width}px;background:${color};border-radius:4px;display:flex;align-items:center;padding:0 6px;cursor:pointer;title='${fase}'" onclick="openEditTaskForm('${p(t,'ID')}')" title="${fase} — ${p(t,'Status')}">
-        <span style="font-size:9px;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:${width-12}px">${isLate?'⚠️ ':''  }${fase}</span>
-      </div>`;
+    // Group segments by parent (Parent_ID) — kalau kosong, dia parent sendiri
+    const taskGroups = {};
+    const groupOrder = [];
+    tasks.forEach(t => {
+      const parentKey = p(t,'Parent_ID') || p(t,'ID');
+      if (!taskGroups[parentKey]) {
+        taskGroups[parentKey] = [];
+        groupOrder.push(parentKey);
+      }
+      taskGroups[parentKey].push(t);
     });
-    rows += `<div style="display:flex;min-height:${rowH}px;border-bottom:1px solid var(--border);position:relative">
-      <div style="width:${LEFT_W}px;min-width:${LEFT_W}px;padding:8px;font-size:11px;font-weight:500;color:var(--text);border-right:1px solid var(--border);display:flex;align-items:flex-start">${staff}</div>
-      <div style="position:relative;flex:1;overflow:hidden">${bars}
-        <div style="position:absolute;left:${todayLeft-LEFT_W}px;top:0;bottom:0;width:1.5px;background:var(--coral-mid);opacity:0.7;z-index:3"></div>
+    // Sort segments dalam group by UrutanSegment, lalu by TanggalMulai
+    Object.values(taskGroups).forEach(arr => {
+      arr.sort((a,b) => {
+        const ua = parseFloat(p(a,'UrutanSegment') || 1);
+        const ub = parseFloat(p(b,'UrutanSegment') || 1);
+        if (ua !== ub) return ua - ub;
+        return new Date(p(a,'TanggalMulai')) - new Date(p(b,'TanggalMulai'));
+      });
+    });
+    // Sort groupOrder by earliest start date
+    groupOrder.sort((a,b) => {
+      const ea = new Date(p(taskGroups[a][0],'TanggalMulai'));
+      const eb = new Date(p(taskGroups[b][0],'TanggalMulai'));
+      return ea - eb;
+    });
+
+    const staffH = groupOrder.length * ROW_H + 8;
+    const initial = staff.split(/\s+/).map(x=>x.charAt(0)).slice(0,2).join('').toUpperCase() || '?';
+
+    // Background grid: weekend stripes + today line
+    let gridBg = '';
+    let dayIdx = 0;
+    const tmp2 = new Date(minD);
+    while (tmp2 <= maxD) {
+      const dow = tmp2.getDay();
+      if (dow === 0 || dow === 6) {
+        gridBg += `<div style="position:absolute;left:${dayIdx*DAY_W}px;top:0;bottom:0;width:${DAY_W}px;background:var(--bg);opacity:.55;pointer-events:none"></div>`;
+      }
+      tmp2.setDate(tmp2.getDate()+1); dayIdx++;
+    }
+    const todayIdx = Math.round((today - minD) / 86400000);
+    if (todayIdx >= 0 && todayIdx < totalDays) {
+      gridBg += `<div style="position:absolute;left:${todayIdx*DAY_W + DAY_W/2}px;top:0;bottom:0;width:1.5px;background:var(--coral-mid);z-index:3;pointer-events:none"></div>`;
+    }
+
+    // Render bars per group (multi-segment)
+    let bars = '';
+    groupOrder.forEach((parentKey, gi) => {
+      const segments = taskGroups[parentKey];
+      const top = 4 + gi * ROW_H;
+
+      // Connector dashed antar segment (di tengah row, antara akhir segment N dan awal segment N+1)
+      for (let si = 1; si < segments.length; si++) {
+        const prev = segments[si-1];
+        const cur = segments[si];
+        const prevEnd = new Date(p(prev,'TanggalSelesai'));
+        const curStart = new Date(p(cur,'TanggalMulai'));
+        if (isNaN(prevEnd) || isNaN(curStart)) continue;
+        prevEnd.setHours(0,0,0,0); curStart.setHours(0,0,0,0);
+        const connStartIdx = Math.round((prevEnd - minD) / 86400000) + 1;
+        const connEndIdx = Math.round((curStart - minD) / 86400000) - 1;
+        if (connEndIdx < connStartIdx) continue;
+        const connLeft = connStartIdx * DAY_W + DAY_W/2;
+        const connWidth = (connEndIdx - connStartIdx + 1) * DAY_W;
+        bars += `<div style="position:absolute;left:${connLeft}px;top:${top + 11}px;width:${connWidth}px;height:0;border-top:1.5px dashed #B4B2A9;z-index:1;pointer-events:none"></div>`;
+      }
+
+      // Render bar untuk setiap segment
+      segments.forEach(seg => {
+        const s = new Date(p(seg,'TanggalMulai')), e = new Date(p(seg,'TanggalSelesai'));
+        if (isNaN(s) || isNaN(e)) return;
+        s.setHours(0,0,0,0); e.setHours(0,0,0,0);
+        const startIdx = Math.round((s - minD) / 86400000);
+        const dur = Math.round((e - s) / 86400000) + 1;
+        const left = startIdx * DAY_W;
+        const width = dur * DAY_W;
+        const status = p(seg,'Status') || 'Belum mulai';
+        const sty = STATUS_STY[status] || STATUS_STY['Belum mulai'];
+        const fase = p(seg,'FaseDesign') || 'Tugas';
+        const segIdx = parseFloat(p(seg,'UrutanSegment') || 1);
+        const isPaused = status === 'Paused';
+        const isLate = e < today && status !== 'Selesai' && status !== 'Paused';
+        const isLanjutan = segIdx > 1;
+        const clickAttr = canEdit ? `onclick="openEditTaskForm('${p(seg,'ID')}')"` : '';
+        const cur = canEdit ? 'cursor:pointer' : '';
+
+        // Tooltip
+        let tooltip = `${fase} · ${dur} hari · ${status}`;
+        if (isLanjutan) tooltip += ` · segment ke-${segIdx}`;
+        if (isPaused && p(seg,'PauseReason')) tooltip += ` · alasan: ${p(seg,'PauseReason')}`;
+        if (isLate) tooltip += ' · TERLAMBAT';
+
+        // Background: solid atau striped
+        const barBg = isPaused
+          ? `repeating-linear-gradient(45deg, ${sty.bg} 0 5px, #fff 5px 10px)`
+          : sty.bg;
+        const barBorderStyle = isPaused ? 'dashed' : 'solid';
+
+        // Mini badge di kiri bar
+        const pauseIcon = isPaused
+          ? `<span style="font-size:11px;line-height:1;color:${sty.text};margin-right:5px;flex-shrink:0">⏸</span>`
+          : '';
+        const segBadge = (isLanjutan && !isPaused)
+          ? `<span style="font-size:8px;background:rgba(83,74,183,0.15);color:#534AB7;padding:1px 4px;border-radius:3px;margin-right:5px;font-weight:700;flex-shrink:0">#${segIdx}</span>`
+          : '';
+        const lateMark = isLate
+          ? `<span style="background:#A32D2D;color:#fff;font-size:8px;padding:1px 4px;border-radius:3px;margin-left:5px;font-weight:600;letter-spacing:.05em;flex-shrink:0">LATE</span>`
+          : '';
+
+        bars += `<div ${clickAttr} title="${tooltip.replace(/"/g,'&quot;')}"
+          style="position:absolute;left:${left+2}px;top:${top}px;width:${Math.max(width-4, DAY_W-4)}px;height:24px;background:${barBg};border:1px ${barBorderStyle} ${sty.border};border-radius:4px;display:flex;align-items:center;padding:0 7px;${cur};z-index:2;overflow:hidden">
+          ${pauseIcon}${segBadge}<span style="font-size:10px;font-weight:500;color:${sty.text};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1">${fase}</span>${lateMark}
+        </div>`;
+      });
+    });
+
+    rowsHtml += `<div style="display:flex;border-bottom:0.5px solid var(--border);min-height:${staffH}px">
+      <div style="width:${LEFT_W}px;min-width:${LEFT_W}px;padding:8px 10px;border-right:0.5px solid var(--border);display:flex;align-items:center;gap:8px;background:var(--card);position:sticky;left:0;z-index:4">
+        <div style="width:26px;height:26px;border-radius:50%;background:var(--purple-bg);color:var(--purple);font-size:10px;font-weight:600;display:flex;align-items:center;justify-content:center;flex-shrink:0">${initial}</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:11px;font-weight:500;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${staff}</div>
+          <div style="font-size:9px;color:var(--text3);margin-top:1px">${groupOrder.length} tugas${tasks.length>groupOrder.length?' · '+tasks.length+' segment':''}</div>
+        </div>
       </div>
+      <div style="position:relative;flex:1;min-height:${staffH}px">${gridBg}${bars}</div>
     </div>`;
   });
 
-  const TOTAL_W = LEFT_W + totalDays * DAY_W;
-  container.innerHTML = `<div style="padding:8px">
-    ${assignBtn}<div style="clear:both"></div>
-    <div style="font-size:10px;color:var(--text3);margin-bottom:6px;display:flex;gap:12px">
-      <span><span style="display:inline-block;width:10px;height:10px;background:#9d9b94;border-radius:2px;margin-right:3px"></span>Belum mulai</span>
-      <span><span style="display:inline-block;width:10px;height:10px;background:#406EB6;border-radius:2px;margin-right:3px"></span>On Progress</span>
-      <span><span style="display:inline-block;width:10px;height:10px;background:#0F6E56;border-radius:2px;margin-right:3px"></span>Selesai</span>
-      <span><span style="color:var(--coral-mid);margin-right:3px">│</span>Hari ini</span>
-      ${canAssign() ? '<span style="margin-left:auto;color:var(--text3);font-style:italic">Klik bar untuk edit</span>' : ''}
-    </div>
-    <div style="overflow-x:auto"><div style="min-width:${TOTAL_W}px">
-      <div style="display:flex;border-bottom:1.5px solid var(--border);background:var(--bg)">
-        <div style="width:${LEFT_W}px;min-width:${LEFT_W}px;padding:3px 8px;font-size:10px;font-weight:600;color:var(--text3);border-right:1px solid var(--border)">STAFF</div>
-        <div style="flex:1;overflow:hidden">${months}</div>
+  const TOTAL_W = totalDays * DAY_W;
+  const rangeLabel = `${minD.toLocaleDateString('id-ID',{day:'numeric',month:'short'})} – ${maxD.toLocaleDateString('id-ID',{day:'numeric',month:'short',year:'numeric'})} · ${totalDays} hari`;
+
+  container.innerHTML = headerHtml(`${taskData.length} segment · ${Object.keys(byStaff).length} staff · ${rangeLabel}`)
+    + `<div style="display:flex;gap:14px;font-size:10px;color:var(--text3);margin-bottom:8px;flex-wrap:wrap;align-items:center">
+        <span style="display:flex;align-items:center;gap:5px"><span style="display:inline-block;width:11px;height:11px;background:${STATUS_STY['Belum mulai'].bg};border:1px solid ${STATUS_STY['Belum mulai'].border};border-radius:2px"></span>Belum mulai</span>
+        <span style="display:flex;align-items:center;gap:5px"><span style="display:inline-block;width:11px;height:11px;background:${STATUS_STY['On Progress'].bg};border:1px solid ${STATUS_STY['On Progress'].border};border-radius:2px"></span>On Progress</span>
+        <span style="display:flex;align-items:center;gap:5px"><span style="display:inline-block;width:11px;height:11px;background:repeating-linear-gradient(45deg, ${STATUS_STY['Paused'].bg} 0 3px, #fff 3px 6px);border:1px dashed ${STATUS_STY['Paused'].border};border-radius:2px"></span>Paused</span>
+        <span style="display:flex;align-items:center;gap:5px"><span style="display:inline-block;width:11px;height:11px;background:${STATUS_STY['Selesai'].bg};border:1px solid ${STATUS_STY['Selesai'].border};border-radius:2px"></span>Selesai</span>
+        <span style="display:flex;align-items:center;gap:5px"><span style="display:inline-block;width:1.5px;height:13px;background:var(--coral-mid)"></span>Hari ini</span>
+        <span style="display:flex;align-items:center;gap:5px"><span style="display:inline-block;width:14px;border-top:1.5px dashed #B4B2A9"></span>Lanjutan segment</span>
+        ${canEdit ? '<span style="margin-left:auto;color:var(--text3);font-style:italic">Klik bar untuk edit / pause</span>' : ''}
       </div>
-      ${rows}
-    </div></div>
-  </div>`;
+      <div style="border:0.5px solid var(--border);border-radius:var(--radius);overflow:hidden;background:var(--card)">
+        <div style="overflow-x:auto;overflow-y:auto;max-height:520px">
+          <div style="min-width:${LEFT_W + TOTAL_W}px">
+            <div style="display:flex;border-bottom:1px solid var(--border);background:var(--bg);position:sticky;top:0;z-index:6">
+              <div style="width:${LEFT_W}px;min-width:${LEFT_W}px;border-right:0.5px solid var(--border);background:var(--bg);position:sticky;left:0;z-index:7;display:flex;align-items:center;padding:0 12px;font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.05em">Staff</div>
+              <div style="flex:1">
+                <div style="height:26px;border-bottom:0.5px solid var(--border);white-space:nowrap;overflow:hidden">${monthCells}</div>
+                <div style="height:30px;white-space:nowrap;overflow:hidden">${dayCells}</div>
+              </div>
+            </div>
+            ${rowsHtml}
+          </div>
+        </div>
+      </div>`;
 }
 
 // ── ASSIGN TASK FORM ──
 var editingTaskId = null;
+var pausingTaskId = null;
 
 function openAssignForm(taskId) {
   editingTaskId = taskId || null;
@@ -649,6 +870,15 @@ function openAssignForm(taskId) {
     .map(f => `<option value="${f}">${f}</option>`).join('');
   document.getElementById('at-fase').innerHTML = '<option value="">Pilih fase</option>' + faseOpts;
 
+  // Status: Paused tidak bisa dipilih manual (hanya via pauseTaskAssign)
+  document.getElementById('at-status').innerHTML = `
+    <option value="Belum mulai">Belum mulai</option>
+    <option value="On Progress">On Progress</option>
+    <option value="Selesai">Selesai</option>`;
+
+  const infoBanner = document.getElementById('at-info-banner');
+  const pauseBtn = document.getElementById('at-pause-btn');
+
   // Reset or fill edit data
   if (isEdit) {
     const t = taskData.find(x => p(x,'ID') === taskId);
@@ -656,17 +886,49 @@ function openAssignForm(taskId) {
       staffSel.value = p(t,'StaffNama');
       document.getElementById('at-fase').value = p(t,'FaseDesign');
       document.getElementById('at-durasi').value = p(t,'Durasi');
-      document.getElementById('at-status').value = p(t,'Status') || 'Belum mulai';
+      const status = p(t,'Status') || 'Belum mulai';
+      // Kalau status Paused, tetap perlu jadi opsi temporer agar tampil di select
+      if (status === 'Paused') {
+        document.getElementById('at-status').innerHTML = `
+          <option value="Paused">Paused (di-pause)</option>
+          <option value="Belum mulai">Belum mulai</option>
+          <option value="On Progress">On Progress</option>
+          <option value="Selesai">Selesai</option>`;
+      }
+      document.getElementById('at-status').value = status;
       try { document.getElementById('at-mulai').value = new Date(p(t,'TanggalMulai')).toISOString().split('T')[0]; } catch(e){}
       try { document.getElementById('at-selesai').value = new Date(p(t,'TanggalSelesai')).toISOString().split('T')[0]; } catch(e){}
       document.getElementById('at-delete-btn').style.display = 'inline-block';
+
+      // Info banner: tampilkan kalau Paused (alasan & tanggal pause) atau segment lanjutan
+      const segIdx = parseFloat(p(t,'UrutanSegment') || 1);
+      const parentId = p(t,'Parent_ID');
+      let bannerHtml = '';
+      if (status === 'Paused') {
+        bannerHtml = `<div style="background:var(--amber-bg);color:var(--amber);padding:9px 12px;border-radius:6px;font-size:11px;line-height:1.55;margin-bottom:12px">
+          <strong>⏸ Tugas ini di-pause</strong>${p(t,'PausedAt')?' pada '+p(t,'PausedAt'):''}
+          ${p(t,'PauseReason')?'<br><span style="opacity:.85">Alasan: '+p(t,'PauseReason')+'</span>':''}
+        </div>`;
+      } else if (parentId && segIdx > 1) {
+        bannerHtml = `<div style="background:var(--purple-bg);color:var(--purple);padding:9px 12px;border-radius:6px;font-size:11px;line-height:1.55;margin-bottom:12px">
+          <strong>↪ Lanjutan segment ke-${segIdx}</strong> dari tugas yang sebelumnya di-pause.
+        </div>`;
+      }
+      if (infoBanner) infoBanner.innerHTML = bannerHtml;
+
+      // Pause button hanya tampil kalau status bukan Paused dan bukan Selesai
+      if (pauseBtn) {
+        pauseBtn.style.display = (status !== 'Paused' && status !== 'Selesai' && canAssign()) ? 'inline-block' : 'none';
+      }
     }
   } else {
-    ['at-staff','at-fase','at-durasi','at-status'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
+    ['at-staff','at-fase','at-durasi'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
     document.getElementById('at-status').value = 'Belum mulai';
     document.getElementById('at-mulai').value = new Date().toISOString().split('T')[0];
     document.getElementById('at-selesai').value = '';
     document.getElementById('at-delete-btn').style.display = 'none';
+    if (infoBanner) infoBanner.innerHTML = '';
+    if (pauseBtn) pauseBtn.style.display = 'none';
   }
   document.getElementById('modal-assign-task').classList.add('open');
 }
@@ -726,6 +988,104 @@ async function deleteTaskAssign() {
   }
 }
 
+// ── PAUSE & SPLIT ──
+function openPauseTaskForm() {
+  if (!editingTaskId) return;
+  const t = taskData.find(x => p(x,'ID') === editingTaskId);
+  if (!t) return;
+  pausingTaskId = editingTaskId;
+  closeModal('modal-assign-task');
+
+  const fase = p(t,'FaseDesign') || 'Tugas';
+  const staff = p(t,'StaffNama') || '–';
+  const tglMulai = fmtDate(p(t,'TanggalMulai'));
+  const tglSelesai = fmtDate(p(t,'TanggalSelesai'));
+  const durasi = p(t,'Durasi') || '–';
+  document.getElementById('pt-info').innerHTML = `
+    <div style="font-weight:500;color:var(--text);font-size:12px;margin-bottom:3px">${fase} · ${staff}</div>
+    <div>Periode awal: ${tglMulai} – ${tglSelesai} (${durasi} hari)</div>`;
+
+  // Default: tanggal pause = hari ini, resume = besok
+  const today = new Date();
+  const tomorrow = new Date(today.getTime() + 86400000);
+  document.getElementById('pt-tgl-pause').value = today.toISOString().split('T')[0];
+  document.getElementById('pt-tgl-resume').value = tomorrow.toISOString().split('T')[0];
+  document.getElementById('pt-alasan').value = '';
+
+  // Constrain tanggal pause: harus dalam range tugas
+  try {
+    const tMulaiISO = new Date(p(t,'TanggalMulai')).toISOString().split('T')[0];
+    const tSelesaiISO = new Date(p(t,'TanggalSelesai')).toISOString().split('T')[0];
+    document.getElementById('pt-tgl-pause').min = tMulaiISO;
+    document.getElementById('pt-tgl-pause').max = tSelesaiISO;
+  } catch(e){}
+
+  document.getElementById('pt-tgl-pause').oninput = updatePauseSummary;
+  document.getElementById('pt-tgl-resume').oninput = updatePauseSummary;
+  updatePauseSummary();
+
+  document.getElementById('modal-pause-task').classList.add('open');
+}
+
+function updatePauseSummary() {
+  if (!pausingTaskId) return;
+  const t = taskData.find(x => p(x,'ID') === pausingTaskId);
+  if (!t) return;
+  const tglPause = document.getElementById('pt-tgl-pause').value;
+  const tglResume = document.getElementById('pt-tgl-resume').value;
+  const tglSelesai = p(t,'TanggalSelesai');
+  const sumEl = document.getElementById('pt-summary');
+  if (!tglPause || !tglResume || !tglSelesai) { sumEl.style.display='none'; return; }
+
+  const dPause = new Date(tglPause), dResume = new Date(tglResume), dSelesai = new Date(tglSelesai);
+  dPause.setHours(0,0,0,0); dResume.setHours(0,0,0,0); dSelesai.setHours(0,0,0,0);
+
+  if (dResume <= dPause) {
+    sumEl.style.display = 'block';
+    sumEl.style.background = 'var(--red-bg)';
+    sumEl.style.color = 'var(--red)';
+    sumEl.textContent = '⚠ Tanggal resume harus setelah tanggal pause.';
+    return;
+  }
+
+  const sisaHari = Math.max(1, Math.round((dSelesai - dPause) / 86400000) + 1);
+  const dResumeEnd = new Date(dResume.getTime() + (sisaHari - 1) * 86400000);
+  sumEl.style.display = 'block';
+  sumEl.style.background = 'var(--amber-bg)';
+  sumEl.style.color = 'var(--amber)';
+  sumEl.innerHTML = `Sisa pekerjaan <strong>${sisaHari} hari</strong> → segment baru: ${fmtDate(tglResume)} – ${fmtDate(dResumeEnd.toISOString().split('T')[0])}`;
+}
+
+async function savePauseTask() {
+  if (!pausingTaskId) return;
+  const tglPause = document.getElementById('pt-tgl-pause').value;
+  const tglResume = document.getElementById('pt-tgl-resume').value;
+  const alasan = document.getElementById('pt-alasan').value.trim();
+  if (!tglPause || !tglResume || !alasan) { showToast('Lengkapi tanggal & alasan pause'); return; }
+  if (new Date(tglResume) <= new Date(tglPause)) { showToast('Resume harus setelah pause'); return; }
+
+  const btn = document.getElementById('save-pause-btn');
+  btn.textContent = 'Memproses...'; btn.disabled = true;
+  try {
+    const r = await fetch(API, { method:'POST', body: JSON.stringify({
+      action: 'pauseTaskAssign',
+      id: pausingTaskId,
+      tanggalPause: tglPause,
+      tanggalResume: tglResume,
+      alasan: alasan
+    })});
+    const d = await r.json();
+    if (d.status === 'ok') {
+      closeModal('modal-pause-task');
+      showToast('Tugas di-pause & segment lanjutan dibuat');
+      pausingTaskId = null;
+      await loadTasksForProject(selectedId);
+      renderGantt();
+    } else { showToast('Gagal: ' + d.message); }
+  } catch(e) { showToast('Error: ' + e.message); }
+  btn.textContent = 'Pause & Split'; btn.disabled = false;
+}
+
 function openEditNilai(){
   const pr=projects.find(x=>p(x,'ID')===selectedId);if(!pr)return;
   document.getElementById('en-nilai').value=p(pr,'NilaiKontrak')||'';
@@ -737,9 +1097,9 @@ async function saveEditNilai(){
   const btn=document.getElementById('save-en-btn');
   btn.textContent='Menyimpan...';btn.disabled=true;
   try{
-    const r=await fetch(API,{method:'POST',body:JSON.stringify({action:'updateProject',id:selectedId,nilai})});
+    const r=await fetch(API,{method:'POST',body:JSON.stringify({action:'updateProject',id:selectedId,NilaiKontrak:nilai})});
     const d=await r.json();
-    if(d.status==='ok'){closeModal('modal-edit-nilai');showToast('Nilai kontrak diperbarui!');await loadProjects();selectProject(selectedId);}
+    if(d.status==='ok'){closeModal('modal-edit-nilai');showToast('Nilai kontrak diperbarui!');await loadProjects();selectProj(selectedId);}
     else showToast('Gagal: '+d.message);
   }catch(e){showToast('Error');}
   btn.textContent='Simpan';btn.disabled=false;
@@ -824,7 +1184,8 @@ function updateStats(){
   document.getElementById('s-finish').textContent=projects.filter(x=>p(x,'StatusProyek')==='Finish').length;
 }
 
-const FASE_DESIGN_ORDER=['Design eksisting','Denah','Moodboard','Design 3D 25%','Design 3D 50%','Design 3D 75%','Design 3D 100%','Revisi 3D','Gambar kerja 25%','Gambar kerja 50%','Gambar kerja 75%','Gambar kerja 100%'];
+// Bobot fase design — harus sinkron dengan moona-v2-laporan-design-v4.html
+const BOBOT_FASE_DESIGN={'Design eksisting':5,'Denah':20,'Moodboard':5,'Design 3D':35,'Gambar kerja':35};
 
 function calcProjProgress(projId){
   const pr=projects.find(x=>p(x,'ID')===projId);
@@ -833,14 +1194,18 @@ function calcProjProgress(projId){
   if(tipe==='Design'){
     const lapItems=lapDesign.filter(l=>p(l,'Project_ID')===projId&&p(l,'StatusApproval')==='Approved');
     if(!lapItems.length)return{pct:0,totalRAB:0,totalReal:0};
+    // Ambil max persentase per fase (revisi terbaru menang)
     const faseMap={};
     lapItems.forEach(l=>{
       const f=p(l,'FaseDesign');const pct=parseFloat(p(l,'Persentase')||0);
       if(!faseMap[f]||pct>faseMap[f])faseMap[f]=pct;
     });
-    const totalFase=FASE_DESIGN_ORDER.length;
-    const achieved=FASE_DESIGN_ORDER.reduce((s,f)=>s+((faseMap[f]||0)/100),0);
-    return{pct:Math.round(achieved/totalFase*100),totalRAB:0,totalReal:0};
+    // Weighted sum: Σ (max%fase / 100) × bobot fase
+    let achieved=0;
+    for(const f in BOBOT_FASE_DESIGN){
+      achieved+=((faseMap[f]||0)/100)*BOBOT_FASE_DESIGN[f];
+    }
+    return{pct:Math.round(achieved),totalRAB:0,totalReal:0};
   }
   const items=rabData.filter(r=>p(r,'Project_ID')===projId);
   if(!items.length)return{pct:0,totalRAB:0,totalReal:0};
@@ -1146,6 +1511,7 @@ async function saveStatus(){
       <button class="modal-close" onclick="closeModal('modal-assign-task')">✕</button>
     </div>
     <div class="modal-body">
+      <div id="at-info-banner"></div>
       <div class="form-group"><label class="form-label">Staff <span class="req">*</span></label>
         <select id="at-staff" class="form-input"><option value="">Pilih staff</option></select></div>
       <div class="form-group"><label class="form-label">Fase / pekerjaan <span class="req">*</span></label>
@@ -1168,9 +1534,47 @@ async function saveStatus(){
         </select></div>
     </div>
     <div class="modal-footer">
-      <button class="btn" style="color:var(--red);border-color:var(--red)" id="at-delete-btn" onclick="deleteTaskAssign()" style="display:none;margin-right:auto">Hapus</button>
+      <button class="btn" id="at-delete-btn" onclick="deleteTaskAssign()" style="color:var(--red);border-color:var(--red);display:none;margin-right:auto">Hapus</button>
+      <button class="btn" id="at-pause-btn" onclick="openPauseTaskForm()" style="color:var(--amber);border-color:var(--amber);display:none">⏸ Pause &amp; lanjut nanti</button>
       <button class="btn" onclick="closeModal('modal-assign-task')">Batal</button>
       <button class="btn btn-primary" id="save-task-btn" onclick="saveTaskAssign()">Simpan</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL PAUSE TASK -->
+<div class="modal-overlay" id="modal-pause-task">
+  <div class="modal" style="max-width:460px">
+    <div class="modal-header">
+      <span class="modal-title">⏸ Pause &amp; Split Tugas</span>
+      <button class="modal-close" onclick="closeModal('modal-pause-task')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="pt-info" style="background:var(--bg);padding:10px 12px;border-radius:6px;margin-bottom:14px;font-size:11px;line-height:1.6;color:var(--text2)"></div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Tanggal pause <span class="req">*</span></label>
+          <input id="pt-tgl-pause" class="form-input" type="date">
+          <div class="form-hint">Hari terakhir tugas dikerjakan.</div>
+        </div>
+        <div class="form-group"><label class="form-label">Tanggal resume <span class="req">*</span></label>
+          <input id="pt-tgl-resume" class="form-input" type="date">
+          <div class="form-hint">Tanggal mulai melanjutkan.</div>
+        </div>
+      </div>
+      <div id="pt-summary" style="background:var(--amber-bg);color:var(--amber);padding:8px 11px;border-radius:6px;font-size:11px;margin-bottom:12px;display:none"></div>
+      <div class="form-group"><label class="form-label">Alasan pause <span class="req">*</span></label>
+        <textarea id="pt-alasan" class="form-input" placeholder="Misal: dialihkan ke proyek X (urgent), revisi klien dadakan, dll." style="min-height:64px;resize:vertical"></textarea>
+      </div>
+      <div style="font-size:10px;color:var(--text3);line-height:1.55;background:var(--bg);padding:8px 10px;border-radius:6px">
+        <strong>Apa yang akan terjadi:</strong><br>
+        1. Tugas saat ini di-set <strong>Paused</strong> dengan tanggal selesai = tanggal pause.<br>
+        2. Sistem otomatis buat segment lanjutan (Belum mulai) dengan sisa hari yang belum dikerjakan, mulai tanggal resume.<br>
+        3. Laporan harian yang sudah ada tetap di-link ke tugas yang sama.
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('modal-pause-task')">Batal</button>
+      <button class="btn" id="save-pause-btn" onclick="savePauseTask()" style="background:var(--amber);color:#fff;border-color:var(--amber)">Pause &amp; Split</button>
     </div>
   </div>
 </div>
