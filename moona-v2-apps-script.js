@@ -18,6 +18,8 @@ function doPost(e) {
     // RAB
     if (action === 'addRABItem') return addRABItem(data);
     if (action === 'updateRABRealisasi') return updateRABRealisasi(data);
+    if (action === 'updateRABItem') return updateRABItem(data);
+    if (action === 'deleteRABItem') return deleteRABItem(data);
     // LAPORAN
     if (action === 'addLaporanDesign') return addLaporanDesign(data);
     if (action === 'approvalLaporanDesign') return approvalLaporanDesign(data);
@@ -27,6 +29,7 @@ function doPost(e) {
     if (action === 'uploadFoto') return uploadFoto(data);
     // MEETINGS
     if (action === 'addMeeting') return addMeeting(data);
+    if (action === 'deleteMeeting') return deleteMeeting(data);
     if (action === 'updateMeeting') return updateMeeting(data);
     if (action === 'addActionItem') return addActionItem(data);
     if (action === 'updateActionStatus') return updateActionStatus(data);
@@ -41,6 +44,8 @@ function doPost(e) {
     if (action === 'updateContentStatus') return updateContentStatus(data);
     if (action === 'deleteContent') return deleteContent(data);
     if (action === 'addSosmedMetrics') return addSosmedMetrics(data);
+    if (action === 'updateSosmedMetric') return updateSosmedMetric(data);
+    if (action === 'deleteSosmedMetric') return deleteSosmedMetric(data);
     // CLIENT FILES
     if (action === 'addClientFile') return addClientFile(data);
     if (action === 'addSOP') return addSOP(data);
@@ -53,6 +58,10 @@ function doPost(e) {
     if (action === 'deleteClientAccess') return deleteClientAccess(data);
     if (action === 'addClientChat') return addClientChat(data);
     if (action === 'markChatRead') return markChatRead(data);
+    if (action === 'addTaskAssign') return addTaskAssign(data);
+    if (action === 'updateTaskAssign') return updateTaskAssign(data);
+    if (action === 'updateTaskStatus') return updateTaskStatus(data);
+    if (action === 'deleteTaskAssign') return deleteTaskAssign(data);
     return response({ status: 'error', message: 'Action tidak dikenal: ' + action });
   } catch (err) {
     return response({ status: 'error', message: err.toString() });
@@ -81,6 +90,7 @@ function doGet(e) {
   if (action === 'getSosmedMetrics') return getSosmedMetrics();
   if (action === 'getSOP') return getSOP();
   if (action === 'getClientFiles') return getClientFiles(e.parameter);
+  if (action === 'getTaskAssign') return getTaskAssign(e.parameter);
   return response({ status: 'ok', message: 'Moona API v2 aktif' });
 }
 
@@ -235,7 +245,7 @@ function addProject(data) {
     id, data.leadId || '', data.nama, data.klien,
     data.tipeProyek, data.tipeLayanan, data.segmen,
     data.pic, data.mulai, data.target, data.nilai || '',
-    'Aktif', data.catatan || '', nowStr()
+    'Aktif', data.catatan || '', nowStr(), data.folderFoto || ''
   ]);
   return response({ status: 'ok', id });
 }
@@ -246,7 +256,7 @@ function getProjects() {
 
 function updateProject(data) {
   const updates = { TanggalUpdate: nowStr() };
-  ['StatusProyek','PIC','TargetSelesai','CatatanProyek','NilaiKontrak'].forEach(k => {
+  ['StatusProyek','PIC','TargetSelesai','CatatanProyek','NilaiKontrak','FolderFoto'].forEach(k => {
     if (data[k] !== undefined) updates[k] = data[k];
   });
   updateCols('Projects', data.id, updates);
@@ -259,9 +269,67 @@ function addRABItem(data) {
   const total = (parseFloat(data.volume) || 0) * (parseFloat(data.harga) || 0);
   sheet('RAB').appendRow([
     id, data.projectId, data.kelompok || '', data.nama,
-    data.volume, data.satuan, data.harga, total, data.bobot || '0', '0'
+    data.volume, data.satuan, data.harga, total, 0, 0
   ]);
+  // Recalculate all bobot for this project
+  recalcRABBobot(data.projectId);
   return response({ status: 'ok', id, total });
+}
+
+
+function updateRABItem(data) {
+  updateCols('RAB', data.id, {
+    NamaItem: data.nama,
+    KelompokPekerjaan: data.kelompok || '',
+    Volume: data.volume,
+    Satuan: data.satuan,
+    HargaSatuan: data.harga,
+    Total: (parseFloat(data.volume)||0) * (parseFloat(data.harga)||0)
+  });
+  // Recalculate bobot for all items in this project
+  const rows = norm(sheet('RAB').getDataRange().getValues());
+  const item = rows.find(r => r['ID'] === data.id);
+  if(item) recalcRABBobot(item['Project_ID']);
+  return response({ status: 'ok' });
+}
+function recalcRABBobot(projectId) {
+  const sh = sheet('RAB');
+  const rows = sh.getDataRange().getValues();
+  const headers = rows[0];
+  const pidCol = headers.indexOf('Project_ID');
+  const totalCol = headers.indexOf('Total');
+  const bobotCol = headers.indexOf('Bobot');
+  // Sum total for project
+  let sumTotal = 0;
+  for (let i = 1; i < rows.length; i++) {
+    if (String(rows[i][pidCol]) === String(projectId)) {
+      sumTotal += parseFloat(rows[i][totalCol]) || 0;
+    }
+  }
+  if (sumTotal === 0) return;
+  // Update bobot for each row
+  for (let i = 1; i < rows.length; i++) {
+    if (String(rows[i][pidCol]) === String(projectId)) {
+      const rowTotal = parseFloat(rows[i][totalCol]) || 0;
+      const bobot = sumTotal > 0 ? Math.round((rowTotal / sumTotal) * 10000) / 100 : 0;
+      sh.getRange(i + 1, bobotCol + 1).setValue(bobot);
+    }
+  }
+}
+
+function deleteRABItem(data) {
+  const sh = sheet('RAB');
+  const rows = sh.getDataRange().getValues();
+  let projectId = '';
+  for (let i = 1; i < rows.length; i++) {
+    if (String(rows[i][0]) === String(data.id)) {
+      projectId = String(rows[i][1]);
+      sh.deleteRow(i + 1);
+      break;
+    }
+  }
+  if (projectId) recalcRABBobot(projectId);
+  return response({ status: 'ok' });
 }
 
 function getRAB(params) {
@@ -452,6 +520,25 @@ function deleteContent(data) {
   return response({ status: 'ok' });
 }
 
+function updateSosmedMetric(data) {
+  updateCols('SosmedMetrics', data.id, {
+    Tanggal: data.tanggal, Platform: data.platform,
+    Followers: data.followers, Reach: data.reach,
+    Impressions: data.impressions, Engagement: data.engagement,
+    Catatan: data.catatan || ''
+  });
+  return response({ status: 'ok' });
+}
+
+function deleteSosmedMetric(data) {
+  const sh = sheet('SosmedMetrics');
+  const rows = sh.getDataRange().getValues();
+  for (let i = 1; i < rows.length; i++) {
+    if (String(rows[i][0]) === String(data.id)) { sh.deleteRow(i + 1); break; }
+  }
+  return response({ status: 'ok' });
+}
+
 function addSosmedMetrics(data) {
   const id = 'SM-' + nowId();
   sheet('SosmedMetrics').appendRow([
@@ -528,6 +615,15 @@ function deleteSOP(data) {
 }
 
 
+
+function deleteMeeting(data) {
+  const sh = sheet('Meetings');
+  const rows = sh.getDataRange().getValues();
+  for (let i = 1; i < rows.length; i++) {
+    if (String(rows[i][0]) === String(data.id)) { sh.deleteRow(i + 1); break; }
+  }
+  return response({ status: 'ok' });
+}
 // ── CLIENT PORTAL ──
 function generateClientToken(data) {
   const id = 'CLA-' + nowId();
@@ -654,5 +750,55 @@ function addClientFileUpdated(data) {
     data.linkFile, nowStr(), data.keterangan || ''
   ]);
   return response({ status: 'ok', id: id });
+}
+
+
+// ── TASK ASSIGN ──
+function addTaskAssign(data) {
+  const id = 'TSK-' + nowId();
+  sheet('TaskAssign').appendRow([
+    id, data.projectId, data.staffNama, data.faseDesign || '',
+    data.tanggalMulai, data.tanggalSelesai,
+    data.durasi || '', data.status || 'Belum mulai',
+    data.assignedBy, nowStr()
+  ]);
+  return response({ status: 'ok', id });
+}
+
+function getTaskAssign(params) {
+  const rows = norm(sheet('TaskAssign').getDataRange().getValues());
+  if (params && params.staffNama) {
+    return response({ status: 'ok', data: rows.filter(r => r['StaffNama'] === params.staffNama) });
+  }
+  if (params && params.projectId) {
+    return response({ status: 'ok', data: rows.filter(r => r['Project_ID'] === params.projectId) });
+  }
+  return response({ status: 'ok', data: rows });
+}
+
+function updateTaskAssign(data) {
+  updateCols('TaskAssign', data.id, {
+    StaffNama: data.staffNama,
+    FaseDesign: data.faseDesign || '',
+    TanggalMulai: data.tanggalMulai,
+    TanggalSelesai: data.tanggalSelesai,
+    Durasi: data.durasi || '',
+    Status: data.status || 'Belum mulai'
+  });
+  return response({ status: 'ok' });
+}
+
+function updateTaskStatus(data) {
+  updateCols('TaskAssign', data.id, { Status: data.status });
+  return response({ status: 'ok' });
+}
+
+function deleteTaskAssign(data) {
+  const sh = sheet('TaskAssign');
+  const rows = sh.getDataRange().getValues();
+  for (let i = 1; i < rows.length; i++) {
+    if (String(rows[i][0]) === String(data.id)) { sh.deleteRow(i + 1); break; }
+  }
+  return response({ status: 'ok' });
 }
 

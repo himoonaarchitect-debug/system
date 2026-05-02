@@ -175,6 +175,16 @@ textarea.form-input{resize:vertical;min-height:64px;line-height:1.5}
   .stats{grid-template-columns:1fr 1fr}.board-cols{flex-direction:column}
   .detail-grid{grid-template-columns:1fr 1fr}.form-row{grid-template-columns:1fr}
 }
+
+.crm-cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:1px;background:var(--border);border:0.5px solid var(--border);border-radius:var(--radius);overflow:hidden}
+.crm-cal-dayhead{background:var(--bg);padding:5px 4px;font-size:10px;font-weight:600;color:var(--text3);text-align:center;text-transform:uppercase}
+.crm-cal-day{background:var(--card);min-height:80px;padding:5px 6px;font-size:10px}
+.crm-cal-day.faded{opacity:.4}
+.crm-cal-day.today{background:var(--brand-bg,#E8F0FA)}
+.crm-cal-daynum{font-size:10px;font-weight:600;color:var(--text2);margin-bottom:3px}
+.crm-cal-day.today .crm-cal-daynum{color:var(--brand,#406EB6)}
+.crm-cal-event{display:block;font-size:9px;padding:2px 4px;margin-bottom:2px;border-radius:3px;background:var(--purple-bg);color:var(--purple);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer}
+.crm-cal-event:hover{opacity:.85}
 </style>
 </head>
 <body>
@@ -242,6 +252,7 @@ textarea.form-input{resize:vertical;min-height:64px;line-height:1.5}
   <div class="tabs">
     <div class="tab active" onclick="switchTab('pipeline',this)">Pipeline Board</div>
     <div class="tab" onclick="switchTab('list',this)">Daftar Lead</div>
+    <div class="tab" onclick="switchTab('calendar',this)">Kalender Meeting</div>
     <div class="tab" onclick="switchTab('analytics',this)">Analitik</div>
   </div>
 
@@ -267,6 +278,20 @@ textarea.form-input{resize:vertical;min-height:64px;line-height:1.5}
     </div>
   </div>
 
+
+  <!-- CALENDAR TAB -->
+  <div id="tab-calendar" style="display:none">
+    <div style="display:flex;align-items:center;justify-content:center;gap:12px;margin-bottom:10px">
+      <button class="btn" style="width:26px;height:26px;padding:0;font-size:14px" onclick="calPrev()">‹</button>
+      <div id="crm-cal-label" style="font-size:13px;font-weight:600;min-width:160px;text-align:center"></div>
+      <button class="btn" style="width:26px;height:26px;padding:0;font-size:14px" onclick="calNext()">›</button>
+      <button class="btn btn-sm" onclick="calToday()">Hari ini</button>
+    </div>
+    <div id="crm-calendar"></div>
+    <div style="font-size:10px;color:var(--text3);margin-top:8px;padding-left:2px">
+      Menampilkan meeting klien dari tab Meeting Tracker yang terkait leads aktif.
+    </div>
+  </div>
   <!-- ANALYTICS TAB -->
   <div id="tab-analytics" style="display:none">
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
@@ -298,6 +323,7 @@ textarea.form-input{resize:vertical;min-height:64px;line-height:1.5}
       </div>
       <div style="display:flex;gap:6px;flex-wrap:wrap">
         <button class="btn btn-sm" onclick="openFollowUpForm()">+ Follow-up</button>
+        <button class="btn btn-sm" style="background:var(--purple);color:#fff;border-color:var(--purple)" onclick="openMeetingFromCRM()">+ Meeting</button>
         <button class="btn btn-sm" onclick="openStageForm()">Ubah tahap</button>
         <button class="btn btn-sm" onclick="closeDetail()">✕</button>
       </div>
@@ -343,15 +369,15 @@ textarea.form-input{resize:vertical;min-height:64px;line-height:1.5}
       <div class="form-group"><label class="form-label">Alamat / lokasi proyek</label><input id="f-alamat" class="form-input" placeholder="Kota, area, atau alamat lengkap"></div>
       <div class="form-row">
         <div class="form-group"><label class="form-label">Sumber lead <span class="req">*</span></label>
-          <select id="f-sumber" class="form-input"><option value="">Pilih sumber</option><option>Instagram</option><option>TikTok</option><option>Threads</option><option>Referral</option><option>Website</option><option>Pameran</option><option>Lainnya</option></select>
+          <select id="f-sumber" class="form-input"><option value="">Pilih sumber</option><option>Instagram</option><option>TikTok</option><option>Threads</option><option>Referral</option><option>Owner</option><option>Website</option><option>Pameran</option><option>Lainnya</option></select>
         </div>
         <div class="form-group"><label class="form-label">Tipe layanan <span class="req">*</span></label>
-          <select id="f-layanan" class="form-input" onchange="updateStages()"><option value="">Pilih layanan</option><option>Interior</option><option>Eksterior</option></select>
+          <select id="f-layanan" class="form-input" onchange="updateStages()"><option value="">Pilih layanan</option><option>Interior</option><option>Eksterior</option><option>Belum diketahui</option></select>
         </div>
       </div>
       <div class="form-row">
         <div class="form-group"><label class="form-label">Tipe proyek <span class="req">*</span></label>
-          <select id="f-proyek" class="form-input"><option value="">Pilih tipe</option><option>Residensial</option><option>Komersial</option></select>
+          <select id="f-proyek" class="form-input"><option value="">Pilih tipe</option><option>Residensial</option><option>Komersial</option><option>Belum diketahui</option></select>
         </div>
         <div class="form-group"><label class="form-label">Follow-up berikutnya <span class="req">*</span></label><input id="f-followup" class="form-input" type="date"></div>
       </div>
@@ -490,9 +516,10 @@ function closeModal(id){document.getElementById(id).classList.remove('open');}
 // TABS
 function switchTab(tab,el){
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));el.classList.add('active');
-  ['pipeline','list','analytics'].forEach(t=>document.getElementById('tab-'+t).style.display=t===tab?'block':'none');
+  ['pipeline','list','calendar','analytics'].forEach(t=>document.getElementById('tab-'+t).style.display=t===tab?'block':'none');
   if(tab==='list')renderList();
   if(tab==='analytics')renderAnalytics();
+  if(tab==='calendar')renderMeetingCalendar();
 }
 
 // FILTER
@@ -768,6 +795,263 @@ async function saveStage(){
   }catch(e){showToast('Error');}
   btn.textContent='Simpan';btn.disabled=false;
 }
+
+var crmCalYear=new Date().getFullYear();
+var crmCalMonth=new Date().getMonth();
+var crmMeetings=[];
+
+
+// ── MEETING FROM CRM ──
+
+function showMeetingDetail(id){
+  const m = crmMeetings.find(x=>p(x,'ID')===id);
+  if(!m) return;
+  const judul=p(m,'Judul')||'Meeting';
+  const tanggal=p(m,'TanggalMeeting')||p(m,'Tanggal')||'';
+  const lokasi=p(m,'Lokasi')||'';
+  const peserta=p(m,'Peserta')||'';
+  const catatan=p(m,'Catatan')||'';
+  const keputusan=p(m,'Keputusan')||'';
+  let info = judul + '\n' + (tanggal?'Tanggal: '+new Date(tanggal).toLocaleDateString('id-ID',{day:'numeric',month:'long',year:'numeric'}):'');
+  if(lokasi) info += '\nLokasi: '+lokasi;
+  if(peserta) info += '\nPeserta: '+peserta;
+  if(keputusan) info += '\nKeputusan: '+keputusan;
+  if(catatan) info += '\nCatatan: '+catatan;
+  alert(info);
+}
+function openMeetingFromCRM(){
+  const lead = leads.find(x=>p(x,'ID')===selectedId);
+  if(!lead) return;
+  // Pre-fill nama klien
+  document.getElementById('crm-mtg-klien').value = p(lead,'NamaKlien');
+  document.getElementById('crm-mtg-judul').value = 'Meeting ' + p(lead,'NamaKlien');
+  document.getElementById('crm-mtg-tanggal').value = new Date().toISOString().split('T')[0];
+  document.getElementById('crm-mtg-jam').value = '';
+  document.getElementById('crm-mtg-lokasi').value = '';
+  document.getElementById('crm-mtg-catatan').value = '';
+  document.getElementById('modal-crm-meeting').classList.add('open');
+}
+
+async function saveCRMMeeting(){
+  const judul = document.getElementById('crm-mtg-judul').value.trim();
+  const tanggal = document.getElementById('crm-mtg-tanggal').value;
+  const jam = document.getElementById('crm-mtg-jam').value;
+  const klien = document.getElementById('crm-mtg-klien').value.trim();
+  const lokasi = document.getElementById('crm-mtg-lokasi').value.trim();
+  const catatan = document.getElementById('crm-mtg-catatan').value.trim();
+  if(!judul||!tanggal) { showToast('Judul dan tanggal wajib diisi'); return; }
+  // Combine date + time into ISO string for TanggalMeeting
+  const tanggalFull = jam ? (tanggal + 'T' + jam + ':00') : tanggal;
+  const btn = document.getElementById('save-crm-mtg-btn');
+  btn.textContent='Menyimpan...'; btn.disabled=true;
+  try{
+    const r = await fetch(API, {method:'POST', body:JSON.stringify({
+      action:'addMeeting',
+      judul, tipe:'Klien',
+      tanggalMeeting: tanggalFull,
+      lokasi,
+      peserta: klien,
+      pesertaHadir: '',
+      keputusan: '',
+      catatan,
+      visibleToClient: 'Yes',
+      namaKlien: klien
+    })});
+    const d = await r.json();
+    if(d.status==='ok'){
+      closeModal('modal-crm-meeting');
+      showToast('Meeting berhasil dibuat!');
+      crmMeetings = []; // reset cache so calendar reloads
+    } else showToast('Gagal: '+d.message);
+  }catch(e){ showToast('Error: '+e.message); }
+  btn.textContent='Simpan'; btn.disabled=false;
+}
+function calPrev(){crmCalMonth--;if(crmCalMonth<0){crmCalMonth=11;crmCalYear--;}renderMeetingCalendar();}
+function calNext(){crmCalMonth++;if(crmCalMonth>11){crmCalMonth=0;crmCalYear++;}renderMeetingCalendar();}
+function calToday(){crmCalYear=new Date().getFullYear();crmCalMonth=new Date().getMonth();renderMeetingCalendar();}
+
+function renderMeetingCalendar(){
+  const label=document.getElementById('crm-cal-label');
+  const grid=document.getElementById('crm-calendar');
+  if(!label||!grid) return;
+  const MONTHS=['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+  label.textContent=MONTHS[crmCalMonth]+' '+crmCalYear;
+  grid.innerHTML='<div style="text-align:center;padding:30px;color:var(--text3);font-size:11px">Memuat...</div>';
+  fetch(API+'?action=getMeetings')
+    .then(r=>r.json())
+    .then(d=>{
+      if(d.status==='ok'){ crmMeetings=d.data; _drawCrmCal(); }
+      else grid.innerHTML='<div style="text-align:center;padding:20px;color:var(--red);font-size:11px">Gagal memuat meeting.</div>';
+    })
+    .catch(()=>{ grid.innerHTML='<div style="text-align:center;padding:20px;color:var(--red);font-size:11px">Koneksi gagal.</div>'; });
+}
+
+function _drawCrmCal(){
+  const DAYS=['Min','Sen','Sel','Rab','Kam','Jum','Sab'];
+  const grid=document.getElementById('crm-calendar');
+  if(!grid) return;
+  const first=new Date(crmCalYear,crmCalMonth,1);
+  const last=new Date(crmCalYear,crmCalMonth+1,0);
+  const startWeekday=first.getDay();
+  const daysInMonth=last.getDate();
+  const prevLast=new Date(crmCalYear,crmCalMonth,0).getDate();
+  const today=new Date(); today.setHours(0,0,0,0);
+
+  // Group meetings by date key
+  const byDate={};
+  crmMeetings.forEach(m=>{
+    const tipe=p(m,'Tipe');
+    if(tipe!=='Klien'&&tipe!=='Proyek') return;
+    const rawDate=p(m,'TanggalMeeting')||p(m,'Tanggal');
+    if(!rawDate) return;
+    try{
+      const d=new Date(rawDate);
+      if(isNaN(d.getTime())) return;
+      const key=d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate();
+      if(!byDate[key]) byDate[key]=[];
+      byDate[key].push(m);
+    }catch(e){}
+  });
+
+  let html='<div class="crm-cal-grid">';
+  // Day headers
+  DAYS.forEach(d=>html+=`<div class="crm-cal-dayhead">${d}</div>`);
+  // Prev month faded
+  for(let i=startWeekday-1;i>=0;i--){
+    html+=`<div class="crm-cal-day faded"><div class="crm-cal-daynum">${prevLast-i}</div></div>`;
+  }
+  // Current month
+  for(let d=1;d<=daysInMonth;d++){
+    const dateObj=new Date(crmCalYear,crmCalMonth,d);
+    const isToday=dateObj.getTime()===today.getTime();
+    const key=crmCalYear+'-'+(crmCalMonth+1)+'-'+d;
+    const events=byDate[key]||[];
+    html+=`<div class="crm-cal-day${isToday?' today':''}${events.length?' has-event':''}">`;
+    html+=`<div class="crm-cal-daynum">${d}</div>`;
+    events.slice(0,3).forEach(ev=>{
+      const id=p(ev,'ID');
+      const judul=p(ev,'Judul')||'Meeting';
+      const klien=p(ev,'NamaKlien')||p(ev,'Peserta')||'';
+      const label=(klien||judul).substring(0,20);
+      html+=`<div class="crm-cal-event" onclick="showMeetingDetail('${id}')" title="${klien?klien+' — ':''  }${judul}">${label}</div>`;
+    });
+    if(events.length>3) html+=`<div style="font-size:9px;color:var(--text3);padding:1px 3px">+${events.length-3} lagi</div>`;
+    html+='</div>';
+  }
+  // Next month filler
+  const rem=(7-(startWeekday+daysInMonth)%7)%7;
+  for(let n=1;n<=rem;n++) html+=`<div class="crm-cal-day faded"><div class="crm-cal-daynum">${n}</div></div>`;
+  html+='</div>';
+  grid.innerHTML=html;
+}
+
+function showMeetingDetail(id){
+  const m=crmMeetings.find(x=>p(x,'ID')===id);
+  if(!m) return;
+  const judul=p(m,'Judul')||'Meeting';
+  const klien=p(m,'NamaKlien')||p(m,'Peserta')||'–';
+  const rawDate=p(m,'TanggalMeeting')||p(m,'Tanggal')||'';
+  const lokasi=p(m,'Lokasi')||'–';
+  const tipe=p(m,'Tipe')||'–';
+  const keputusan=p(m,'Keputusan')||'';
+  const catatan=p(m,'Catatan')||'';
+  let tanggalStr='–', jamStr='';
+  if(rawDate){
+    try{
+      const d=new Date(rawDate);
+      if(!isNaN(d)){
+        tanggalStr=d.toLocaleDateString('id-ID',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+        const jam=d.toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'});
+        if(jam!=='00.00'&&jam!=='00:00') jamStr=jam;
+      }
+    }catch(e){}
+  }
+  const detailEl=document.getElementById('cm-detail-body');
+  const titleEl=document.getElementById('cm-detail-title');
+  if(!detailEl||!titleEl){
+    // Fallback if modal not found
+    let info=judul+'\n'+tanggalStr+(jamStr?' · '+jamStr:'')+'\nKlien: '+klien+'\nLokasi: '+lokasi;
+    if(keputusan) info+='\nKeputusan: '+keputusan;
+    alert(info);
+    return;
+  }
+  titleEl.textContent=judul;
+  detailEl.innerHTML=`
+    <div style="display:grid;grid-template-columns:90px 1fr;gap:8px 12px;font-size:12px">
+      <div style="color:var(--text3);font-size:10px;font-weight:600;letter-spacing:.04em;padding-top:2px">KLIEN</div>
+      <div style="font-weight:600;color:var(--text)">${klien}</div>
+      <div style="color:var(--text3);font-size:10px;font-weight:600;letter-spacing:.04em;padding-top:2px">TANGGAL</div>
+      <div>${tanggalStr}</div>
+      ${jamStr?`<div style="color:var(--text3);font-size:10px;font-weight:600;letter-spacing:.04em;padding-top:2px">JAM</div><div style="font-weight:600;color:var(--brand,#406EB6)">${jamStr}</div>`:''}
+      <div style="color:var(--text3);font-size:10px;font-weight:600;letter-spacing:.04em;padding-top:2px">LOKASI</div>
+      <div>${lokasi}</div>
+      <div style="color:var(--text3);font-size:10px;font-weight:600;letter-spacing:.04em;padding-top:2px">TIPE</div>
+      <div><span style="background:var(--purple-bg);color:var(--purple);padding:2px 8px;border-radius:6px;font-size:10px">${tipe}</span></div>
+      ${keputusan?`<div style="color:var(--text3);font-size:10px;font-weight:600;letter-spacing:.04em;padding-top:2px">KEPUTUSAN</div><div style="line-height:1.5">${keputusan}</div>`:''}
+      ${catatan?`<div style="color:var(--text3);font-size:10px;font-weight:600;letter-spacing:.04em;padding-top:2px">CATATAN</div><div style="line-height:1.5;color:var(--text2)">${catatan}</div>`:''}
+    </div>`;
+  document.getElementById('modal-meeting-detail').classList.add('open');
+}
+
 </script>
+
+
+<!-- MODAL MEETING DETAIL -->
+<div class="modal-overlay" id="modal-meeting-detail">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-header">
+      <span class="modal-title" id="cm-detail-title">Detail Meeting</span>
+      <button class="modal-close" onclick="closeModal('modal-meeting-detail')">✕</button>
+    </div>
+    <div class="modal-body" id="cm-detail-body"></div>
+    <div class="modal-footer">
+      <button class="btn btn-primary" onclick="closeModal('modal-meeting-detail')">Tutup</button>
+    </div>
+  </div>
+</div>
+<!-- MODAL MEETING FROM CRM -->
+<div class="modal-overlay" id="modal-crm-meeting">
+  <div class="modal" style="max-width:440px">
+    <div class="modal-header">
+      <span class="modal-title">Buat Meeting Klien</span>
+      <button class="modal-close" onclick="closeModal('modal-crm-meeting')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">Nama Klien</label>
+        <input id="crm-mtg-klien" class="form-input" readonly style="background:var(--bg);color:var(--text2)">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Judul meeting <span class="req">*</span></label>
+        <input id="crm-mtg-judul" class="form-input" placeholder="Contoh: Presentasi proposal Villa Pak Andi">
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Tanggal <span class="req">*</span></label>
+          <input id="crm-mtg-tanggal" class="form-input" type="date">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Jam</label>
+          <input id="crm-mtg-jam" class="form-input" type="time" placeholder="09:00">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Lokasi</label>
+        <input id="crm-mtg-lokasi" class="form-input" placeholder="Zoom, Kantor, On-site, dll">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Catatan (opsional)</label>
+        <textarea id="crm-mtg-catatan" class="form-input" placeholder="Agenda atau catatan meeting"></textarea>
+      </div>
+      <div style="background:var(--purple-bg);border-radius:6px;padding:8px 10px;font-size:11px;color:var(--purple)">
+        Meeting ini akan otomatis muncul di <strong>Meeting Tracker</strong> dan <strong>Kalender Meeting CRM</strong>.
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('modal-crm-meeting')">Batal</button>
+      <button class="btn" id="save-crm-mtg-btn" style="background:var(--purple);color:#fff;border-color:var(--purple)" onclick="saveCRMMeeting()">Simpan Meeting</button>
+    </div>
+  </div>
+</div>
 </body>
 </html>

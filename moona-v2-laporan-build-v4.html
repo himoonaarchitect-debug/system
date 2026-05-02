@@ -205,8 +205,11 @@ textarea.form-input{resize:vertical;min-height:56px;line-height:1.5}
           <textarea id="lf-kendala" class="form-input" style="min-height:44px" placeholder="Material telat, cuaca buruk, dll"></textarea>
         </div>
         <div class="form-group"><label class="form-label">Link foto lapangan (Drive)</label>
+          <div id="lf-foto-hint" style="font-size:11px;color:var(--teal);margin-bottom:4px;display:none">
+            📁 Folder proyek: <a id="lf-foto-link" href="#" target="_blank" style="color:var(--teal)">Buka folder</a>
+          </div>
           <input id="lf-foto" class="form-input" placeholder="https://drive.google.com/..." type="url">
-          <div class="form-hint">Upload foto ke Drive/Google Photos, atur share = Anyone with link, paste di sini</div>
+          <div class="form-hint">Paste link foto lapangan dari folder Drive proyek di atas.</div>
         </div>
       </div>
     </div>
@@ -246,7 +249,7 @@ var S = getSession();
 if (!S) { location.href = 'moona-v2-login.html'; }
 else { document.getElementById('sf-name').textContent = S.nama + ' - ' + S.role; }
 
-function canApprove() { return S && ['Operasional','Owner','Admin'].indexOf(S.role) >= 0; }
+function canApprove() { return S && S.role === 'Operasional'; }
 
 function p(o) {
   for (var i = 1; i < arguments.length; i++) {
@@ -418,6 +421,23 @@ function loadRABItems() {
   var opts = getRABOptions(pid);
   if (!opts) { warn.style.display = 'block'; itemsSec.style.display = 'none'; sharedSec.style.display = 'none'; return; }
   warn.style.display = 'none'; itemsSec.style.display = 'block'; sharedSec.style.display = 'block';
+  // Auto-fill & lock folder foto from project
+  var fProj = null;
+  for (var px = 0; px < projects.length; px++) { if (p(projects[px],'ID') === pid) { fProj = projects[px]; break; } }
+  var fHint = document.getElementById('lf-foto-hint');
+  var fLink = document.getElementById('lf-foto-link');
+  var fInput = document.getElementById('lf-foto');
+  if (fProj && p(fProj,'FolderFoto') && fHint && fLink) {
+    fHint.style.display = 'block'; 
+    fLink.href = p(fProj,'FolderFoto');
+    if (fInput) {
+      fInput.value = p(fProj,'FolderFoto');
+      fInput.setAttribute('data-locked', 'true');
+    }
+  } else if (fHint) { 
+    fHint.style.display = 'none'; 
+    if (fInput) { fInput.value = ''; fInput.removeAttribute('data-locked'); }
+  }
   // Show folder foto dari proyek
   var proj = null;
   for (var px = 0; px < projects.length; px++) { if (p(projects[px],'ID') === pid) { proj = projects[px]; break; } }

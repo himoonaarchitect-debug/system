@@ -6,7 +6,7 @@
 <title>Moona v2 — Login</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-:root{--bg:#f8f7f4;--card:#fff;--border:#e5e3dc;--border2:#d0cec7;--text:#1a1a18;--text2:#6b6a64;--text3:#9d9b94;--coral:#993C1D;--coral-mid:#D85A30;--red:#A32D2D;--red-bg:#FCEBEB;--radius:12px;--radius-sm:8px;}
+:root{--bg:#f8f7f4;--card:#fff;--border:#e5e3dc;--border2:#d0cec7;--text:#1a1a18;--text2:#6b6a64;--text3:#9d9b94;--coral:#993C1D;--coral-mid:#D85A30;--red:#A32D2D;--red-bg:#FCEBEB;--radius:12px;--radius-sm:8px;--brand:#406EB6;--brand-bg:#E8F0FA;}
 body{background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:var(--text);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
 .wrap{width:100%;max-width:380px}
 .brand{text-align:center;margin-bottom:28px}
@@ -47,7 +47,7 @@ const API='https://script.google.com/macros/s/AKfycbwkjBr_opT5V05KY6fQG3Aa2i7URg
 function getSession(){try{return JSON.parse(localStorage.getItem('moona_v2_session'));}catch(e){return null;}}
 window.onload=()=>{const s=getSession();if(s)redirectByRole(s.role);}
 function redirectByRole(role){
-  const map={'Owner':'moona-v2-dashboard.html','Admin':'moona-v2-dashboard.html','Sales':'moona-v2-crm.html','Operasional':'moona-v2-projects.html','Finance':'moona-v2-finance.html','Marketing':'moona-v2-content.html','HeadStudio':'moona-v2-laporan-design-v4.html'};
+  const map={'Owner':'moona-v2-dashboard.html','Admin':'moona-v2-dashboard.html','Sales':'moona-v2-crm.html','Operasional':'moona-v2-projects.html','Finance':'moona-v2-finance.html','Marketing':'moona-v2-content.html','HeadStudio':'moona-v2-laporan-design-v4.html','Design':'moona-v2-laporan-design-v4.html'};
   location.href=map[role]||'moona-v2-dashboard.html';
 }
 async function doLogin(){

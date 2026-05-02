@@ -169,7 +169,7 @@ textarea.form-input{resize:vertical;min-height:60px;line-height:1.5}
     <div class="modal-header"><span class="modal-title">Buat Laporan Harian Design</span><button class="modal-close" onclick="closeModal('modal-lap')">&times;</button></div>
     <div class="modal-body">
       <div class="form-group"><label class="form-label">Proyek <span class="req">*</span></label>
-        <select id="lf-project" class="form-input"><option value="">Pilih proyek design</option></select>
+        <select id="lf-project" class="form-input" onchange="onDesignProjectChange()"><option value="">Pilih proyek design</option></select>
       </div>
       <div class="form-row">
         <div class="form-group"><label class="form-label">Fase yang dikerjakan <span class="req">*</span></label>
@@ -261,6 +261,23 @@ function calcWeightedProgress(reports) {
 }
 
 
+
+function onDesignProjectChange() {
+  var pid = document.getElementById('lf-project').value;
+  var proj = null;
+  for (var px = 0; px < projects.length; px++) { if (p(projects[px],'ID') === pid) { proj = projects[px]; break; } }
+  var hint = document.getElementById('lf-foto-hint');
+  var link = document.getElementById('lf-foto-link');
+  var fotoInput = document.getElementById('lf-foto');
+  if (proj && p(proj,'FolderFoto')) {
+    if (hint) { hint.style.display = 'block'; }
+    if (link) { link.href = p(proj,'FolderFoto'); }
+    if (fotoInput) { fotoInput.value = p(proj,'FolderFoto'); }
+  } else {
+    if (hint) hint.style.display = 'none';
+    if (fotoInput) fotoInput.value = '';
+  }
+}
 function showFaseBobot() {
   var fase = document.getElementById('lf-fase') ? document.getElementById('lf-fase').value : '';
   var hint = document.getElementById('fase-bobot-hint');
@@ -276,7 +293,7 @@ function showFaseBobot() {
 if (!S) { location.href = 'moona-v2-login.html'; }
 else { document.getElementById('sf-name').textContent = S.nama + ' - ' + S.role; }
 
-function isHOS() { return S && (S.role === 'HeadStudio' || S.role === 'Owner'); }
+function isHOS() { return S && S.role === 'HeadStudio'; }
 
 function p(o) {
   for (var i = 1; i < arguments.length; i++) {

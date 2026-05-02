@@ -471,6 +471,9 @@ function selectMtg(id) {
   html += '<div class="d-actions">';
   html += '<button class="btn btn-sm" onclick="openMeetingForm(\'' + id + '\')">Edit</button>';
   html += '<button class="btn btn-sm btn-primary" onclick="openActionForm()">+ Action Item</button>';
+  html += '<button class="btn btn-sm" style="background:var(--amber-bg);color:var(--amber);border-color:var(--amber)" onclick="rescheduleMeeting(\'' + id + '\')">Reschedule</button>';
+  html += '<button class="btn btn-sm" style="background:var(--red-bg);color:var(--red);border-color:var(--red)" onclick="cancelMeeting(\'' + id + '\')">Batalkan</button>';
+  html += '<button class="btn btn-sm" style="color:var(--red)" onclick="deleteMeeting(\'' + id + '\')">Hapus</button>';
   html += '</div></div>';
 
   if (proj) {
@@ -634,6 +637,116 @@ function toggleAction(id, done) {
     .then(function(r){return r.json();})
     .then(function(d){ if (d.status === 'ok') loadActions(); });
 }
+
+// ── MEETING ACTIONS ──
+function rescheduleMeeting(id) {
+  var m = null;
+  for (var i = 0; i < meetings.length; i++) { if (p(meetings[i],'ID') === id) { m = meetings[i]; break; } }
+  if (!m) return;
+  // Open reschedule modal
+  document.getElementById('rs-id').value = id;
+  document.getElementById('rs-judul').textContent = p(m,'Judul');
+  var tgl = p(m,'TanggalMeeting');
+  try { document.getElementById('rs-tanggal').value = new Date(tgl).toISOString().split('T')[0]; } catch(e) { document.getElementById('rs-tanggal').value = ''; }
+  // Extract time
+  try {
+    var d = new Date(tgl);
+    var hh = String(d.getHours()).padStart(2,'0');
+    var mm2 = String(d.getMinutes()).padStart(2,'0');
+    document.getElementById('rs-jam').value = hh + ':' + mm2;
+  } catch(e) { document.getElementById('rs-jam').value = ''; }
+  document.getElementById('rs-lokasi').value = p(m,'Lokasi');
+  document.getElementById('modal-reschedule').classList.add('open');
+}
+
+async function saveReschedule() {
+  var id = document.getElementById('rs-id').value;
+  var tanggal = document.getElementById('rs-tanggal').value;
+  var jam = document.getElementById('rs-jam').value;
+  var lokasi = document.getElementById('rs-lokasi').value.trim();
+  if (!tanggal) { showToast('Tanggal wajib diisi'); return; }
+  var tanggalFull = jam ? (tanggal + 'T' + jam + ':00') : tanggal;
+  var btn = document.getElementById('save-rs-btn');
+  btn.textContent = 'Menyimpan...'; btn.disabled = true;
+  try {
+    var r = await fetch(API, { method: 'POST', body: JSON.stringify({
+      action: 'updateMeeting', id: id,
+      tanggalMeeting: tanggalFull,
+      lokasi: lokasi
+    })});
+    var d = await r.json();
+    if (d.status === 'ok') {
+      closeModal('modal-reschedule');
+      showToast('Meeting di-reschedule!');
+      loadMeetings().then(function(){ selectMtg(id); });
+    } else showToast('Gagal: ' + d.message);
+  } catch(e) { showToast('Error: ' + e.message); }
+  btn.textContent = 'Simpan'; btn.disabled = false;
+}
+
+async function cancelMeeting(id) {
+  if (!confirm('Batalkan meeting ini? Status akan diubah menjadi Cancelled.')) return;
+  try {
+    var r = await fetch(API, { method: 'POST', body: JSON.stringify({
+      action: 'updateMeeting', id: id,
+      catatan: '[CANCELLED] ' + new Date().toLocaleDateString('id-ID')
+    })});
+    var d = await r.json();
+    if (d.status === 'ok') {
+      showToast('Meeting dibatalkan');
+      loadMeetings().then(function(){ selectedId = null; document.getElementById('detail-wrap').innerHTML = '<div class="card"><div class="empty" style="padding:40px 20px">Pilih meeting untuk lihat detail</div></div>'; });
+    } else showToast('Gagal: ' + d.message);
+  } catch(e) { showToast('Error'); }
+}
+
+async function deleteMeeting(id) {
+  if (!confirm('Hapus meeting ini permanen? Data tidak bisa dikembalikan.')) return;
+  try {
+    var r = await fetch(API, { method: 'POST', body: JSON.stringify({ action: 'deleteMeeting', id: id }) });
+    var d = await r.json();
+    if (d.status === 'ok') {
+      showToast('Meeting dihapus');
+      selectedId = null;
+      document.getElementById('detail-wrap').innerHTML = '<div class="card"><div class="empty" style="padding:40px 20px">Pilih meeting untuk lihat detail</div></div>';
+      loadMeetings();
+    } else showToast('Gagal: ' + d.message);
+  } catch(e) { showToast('Error'); }
+}
 </script>
+
+<!-- MODAL RESCHEDULE -->
+<div class="modal-overlay" id="modal-reschedule">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-header">
+      <span class="modal-title">Reschedule Meeting</span>
+      <button class="modal-close" onclick="closeModal('modal-reschedule')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="rs-id">
+      <div class="form-group">
+        <label class="form-label">Meeting</label>
+        <div id="rs-judul" style="font-size:12px;font-weight:500;color:var(--text);padding:6px 0"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Tanggal baru <span class="req">*</span></label>
+          <input id="rs-tanggal" class="form-input" type="date">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Jam</label>
+          <input id="rs-jam" class="form-input" type="time">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Lokasi (opsional)</label>
+        <input id="rs-lokasi" class="form-input" placeholder="Zoom, Kantor, On-site, dll">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('modal-reschedule')">Batal</button>
+      <button class="btn" id="save-rs-btn" style="background:var(--amber);color:#fff;border-color:var(--amber)" onclick="saveReschedule()">Simpan Jadwal Baru</button>
+    </div>
+  </div>
+</div>
 </body>
 </html>

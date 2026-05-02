@@ -213,7 +213,7 @@ textarea.form-input{resize:vertical;min-height:60px;line-height:1.5}
   </div>
 </div>
 
-<div class="main">
+<div class="main" id="main-content">
   <div class="topbar">
     <div><div class="page-title">Project Management</div><div class="page-sub">Semua proyek · RAB · Progress lapangan</div></div>
     <button class="btn btn-primary" onclick="openProjForm()">+ Proyek Baru</button>
@@ -279,6 +279,7 @@ textarea.form-input{resize:vertical;min-height:60px;line-height:1.5}
       <div class="dtab" id="dtab-rab" onclick="switchDTab('rab',this)">RAB</div>
       <div class="dtab" id="dtab-lapdesign" onclick="switchDTab('lapdesign',this)">Laporan Design</div>
       <div class="dtab" id="dtab-lapbuild" onclick="switchDTab('lapbuild',this)">Laporan Build</div>
+      <div class="dtab" id="dtab-gantt" onclick="switchDTab('gantt',this)">Timeline</div>
     </div>
 
     <!-- INFO TAB -->
@@ -286,7 +287,7 @@ textarea.form-input{resize:vertical;min-height:60px;line-height:1.5}
       <div class="info-grid">
         <div><div class="d-label">Klien</div><div class="d-val" id="dp-klien">–</div></div>
         <div><div class="d-label">PIC</div><div class="d-val" id="dp-pic">–</div></div>
-        <div><div class="d-label">Nilai kontrak</div><div class="d-val" id="dp-nilai">–</div></div>
+        <div><div class="d-label">Nilai kontrak <button class="btn btn-sm" style="padding:1px 6px;font-size:10px;margin-left:4px" onclick="openEditNilai()">✏️</button></div><div class="d-val" id="dp-nilai">–</div></div>
         <div><div class="d-label">Tanggal mulai</div><div class="d-val" id="dp-mulai">–</div></div>
         <div><div class="d-label">Target selesai</div><div class="d-val" id="dp-target">–</div></div>
         <div><div class="d-label">Status</div><div class="d-val" id="dp-status">–</div></div>
@@ -335,6 +336,11 @@ textarea.form-input{resize:vertical;min-height:60px;line-height:1.5}
   </div>
 </div>
 </div>
+
+    <!-- GANTT PANEL -->
+    <div class="dpanel" id="dp-gantt" style="display:none">
+      <div id="gantt-container" style="padding:12px 8px;overflow-x:auto;min-height:200px"></div>
+    </div>
 
 <!-- MODAL PROYEK BARU -->
 <div class="modal-overlay" id="modal-proj">
@@ -433,7 +439,13 @@ function logout(){localStorage.removeItem('moona_v2_session');location.href='moo
 function go(u){location.href=u;}
 const S=getSession();
 if(!S){location.href='moona-v2-login.html';}
-else document.getElementById('sf-name').textContent=S.nama+' — '+S.role;
+else {
+  document.getElementById('sf-name').textContent=S.nama+' — '+S.role;
+  const ALLOWED_PROJ=['Owner','Admin','Operasional','HeadStudio','Finance'];
+  if(ALLOWED_PROJ.indexOf(S.role)<0){
+    document.getElementById('main-content').innerHTML='<div style="text-align:center;padding:80px 20px;color:#9d9b94"><h3 style="color:#A32D2D;margin-bottom:8px">Akses ditolak</h3><p style="font-size:12px">Modul Project Management hanya bisa diakses oleh Manajer Operasional, Head Studio, dan Owner.</p></div>';
+  }
+}
 
 function p(o,...ks){for(const k of ks){if(o[k]!==undefined&&o[k]!==null&&String(o[k]).trim()!='')return String(o[k]);}return '';}
 function showToast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2800);}
@@ -441,8 +453,327 @@ function fmtDate(s){if(!s)return'–';try{return new Date(s).toLocaleDateString(
 function rp(n){if(!n||isNaN(n))return'–';const v=parseFloat(n);if(v>=1e9)return'Rp '+(v/1e9).toFixed(1)+' M';if(v>=1e6)return'Rp '+Math.round(v/1e6)+' jt';if(v>=1e3)return'Rp '+Math.round(v/1e3)+'rb';return'Rp '+v.toLocaleString('id-ID');}
 function closeModal(id){document.getElementById(id).classList.remove('open');}
 function switchTab(t,el){document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));el.classList.add('active');document.getElementById('tab-board').style.display=t==='board'?'block':'none';document.getElementById('tab-list').style.display=t==='list'?'block':'none';if(t==='list')renderList();}
-function switchDTab(t,el){document.querySelectorAll('.dtab').forEach(x=>x.classList.remove('active'));el.classList.add('active');['info','rab','lapdesign','lapbuild'].forEach(id=>document.getElementById('dp-'+id).style.display=id===t?'block':'none');if(t==='rab')renderRAB();if(t==='lapdesign')renderLapDesign();if(t==='lapbuild')renderLapBuild();}
+function switchDTab(t,el){
+  document.querySelectorAll('.dtab').forEach(x=>x.classList.remove('active'));
+  el.classList.add('active');
+  ['info','rab','lapdesign','lapbuild','gantt'].forEach(id=>{
+    const el2=document.getElementById('dp-'+id);
+    if(el2) el2.style.display=id===t?'block':'none';
+  });
+  if(t==='rab') renderRAB();
+  if(t==='lapdesign') renderLapDesign();
+  if(t==='lapbuild') renderLapBuild();
+  if(t==='gantt') loadTasksForProject(selectedId).then(()=>renderGantt());
+}
 
+
+
+
+// ── TASK ASSIGN & GANTT ──
+var taskData = [];
+var canAssign = () => S && (S.role === 'HeadStudio' || S.role === 'Operasional');
+
+async function loadTasksForProject(projId) {
+  try {
+    const r = await fetch(API + '?action=getTaskAssign&projectId=' + encodeURIComponent(projId));
+    const d = await r.json();
+    if (d.status === 'ok') taskData = d.data;
+  } catch(e) { taskData = []; }
+}
+
+function renderGantt() {
+  const container = document.getElementById('gantt-container');
+  if (!container) return;
+  const pr = projects.find(x => p(x,'ID') === selectedId);
+  if (!pr) return;
+
+  const tipe = p(pr,'TipeProyek');
+  const isBuild = tipe === 'Build';
+
+  if (isBuild) {
+    _renderBuildGantt(pr, container);
+  } else {
+    _renderDesignGantt(pr, container);
+  }
+}
+
+function _renderBuildGantt(pr, container) {
+  const start = new Date(p(pr,'TanggalMulai'));
+  const end = new Date(p(pr,'TargetSelesai'));
+  const today = new Date(); today.setHours(0,0,0,0);
+  const prog = parseFloat(p(pr,'ProgressTotal') || 0);
+
+  if (isNaN(start) || isNaN(end)) {
+    container.innerHTML = '<div style="text-align:center;padding:30px;color:var(--text3);font-size:12px">Tanggal mulai / target belum diisi di Info Proyek.</div>';
+    return;
+  }
+
+  const totalDays = Math.ceil((end - start) / 86400000) + 1;
+  const todayDays = Math.max(0, Math.ceil((today - start) / 86400000));
+  const todayPct = Math.min(100, Math.round(todayDays / totalDays * 100));
+  const isLate = today > end && prog < 100;
+
+  container.innerHTML = `
+    <div style="padding:12px 8px">
+      <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:12px">Timeline Pembangunan</div>
+      <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text3);margin-bottom:4px">
+        <span>${start.toLocaleDateString('id-ID',{day:'numeric',month:'short',year:'numeric'})}</span>
+        <span>${end.toLocaleDateString('id-ID',{day:'numeric',month:'short',year:'numeric'})}</span>
+      </div>
+      <div style="position:relative;height:40px;background:var(--bg);border-radius:8px;overflow:hidden;border:0.5px solid var(--border)">
+        <div style="position:absolute;left:0;top:0;height:100%;width:${prog}%;background:${isLate?'var(--red)':'#406EB6'};border-radius:8px;transition:width .5s;display:flex;align-items:center;padding-left:10px">
+          <span style="font-size:11px;font-weight:600;color:#fff">${prog}%</span>
+        </div>
+        <div style="position:absolute;left:${todayPct}%;top:0;bottom:0;width:2px;background:var(--coral-mid);z-index:2"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:10px;margin-top:6px">
+        <span style="color:var(--text3)">Durasi: ${totalDays} hari</span>
+        <span style="color:${isLate?'var(--red)':'var(--text3)'}">${isLate?'⚠️ Terlambat':'Hari ini: '+todayPct+'%'}</span>
+        <span style="color:var(--teal)">Progress: ${prog}%</span>
+      </div>
+    </div>`;
+}
+
+function _renderDesignGantt(pr, container) {
+  const assignBtn = canAssign()
+    ? `<button class="btn btn-sm btn-primary" style="float:right;margin-bottom:8px" onclick="openAssignForm()">+ Assign Tugas</button>`
+    : '';
+
+  if (!taskData.length) {
+    container.innerHTML = `<div style="padding:12px">${assignBtn}<div style="clear:both"></div><div style="text-align:center;padding:30px;color:var(--text3);font-size:12px;background:var(--bg);border-radius:8px;border:1px dashed var(--border2)">Belum ada tugas di-assign untuk proyek ini.<br>${canAssign() ? 'Klik "+ Assign Tugas" untuk mulai.' : ''}</div></div>`;
+    return;
+  }
+
+  // Build Gantt per staff
+  const today = new Date(); today.setHours(0,0,0,0);
+  // Date range from all tasks
+  let minD = new Date(), maxD = new Date();
+  taskData.forEach(t => {
+    const s = new Date(p(t,'TanggalMulai')), e = new Date(p(t,'TanggalSelesai'));
+    if (!isNaN(s) && s < minD) minD = new Date(s);
+    if (!isNaN(e) && e > maxD) maxD = new Date(e);
+  });
+  minD.setDate(minD.getDate() - 2);
+  maxD.setDate(maxD.getDate() + 2);
+
+  const totalDays = Math.ceil((maxD - minD) / 86400000) + 1;
+  const DAY_W = Math.max(18, Math.min(32, Math.floor(700 / totalDays)));
+  const LEFT_W = 130;
+  const STATUS_COLORS = { 'Belum mulai': '#9d9b94', 'On Progress': '#406EB6', 'Selesai': '#0F6E56' };
+
+  // Group tasks by staff
+  const byStaff = {};
+  taskData.forEach(t => {
+    const staff = p(t,'StaffNama');
+    if (!byStaff[staff]) byStaff[staff] = [];
+    byStaff[staff].push(t);
+  });
+
+  // Build month header
+  let months = '';
+  const tmp = new Date(minD);
+  while (tmp <= maxD) {
+    const y = tmp.getFullYear(), m = tmp.getMonth();
+    let cnt = 0;
+    const check = new Date(tmp);
+    while (check.getFullYear()===y && check.getMonth()===m && check<=maxD) { cnt++; check.setDate(check.getDate()+1); }
+    months += `<div style="display:inline-block;width:${cnt*DAY_W}px;font-size:9px;font-weight:600;color:var(--text3);text-align:center;border-right:1px solid var(--border);padding:3px 0;overflow:hidden">
+      ${tmp.toLocaleDateString('id-ID',{month:'short',year:'2-digit'})}</div>`;
+    tmp.setMonth(tmp.getMonth()+1); tmp.setDate(1);
+  }
+
+  // Today line position
+  const todayLeft = LEFT_W + Math.max(0, Math.ceil((today-minD)/86400000)) * DAY_W;
+
+  // Build rows
+  let rows = '';
+  Object.entries(byStaff).forEach(([staff, tasks]) => {
+    const rowH = Math.max(44, tasks.length * 30 + 10);
+    let bars = '';
+    tasks.forEach((t, i) => {
+      const s = new Date(p(t,'TanggalMulai')), e = new Date(p(t,'TanggalSelesai'));
+      if (isNaN(s) || isNaN(e)) return;
+      const left = LEFT_W + Math.max(0, Math.ceil((s-minD)/86400000)) * DAY_W;
+      const width = Math.max(DAY_W, Math.ceil((e-s)/86400000+1) * DAY_W);
+      const color = STATUS_COLORS[p(t,'Status')] || '#9d9b94';
+      const fase = p(t,'FaseDesign') || 'Tugas';
+      const isLate = e < today && p(t,'Status') !== 'Selesai';
+      bars += `<div style="position:absolute;left:${left}px;top:${6+i*30}px;height:22px;width:${width}px;background:${color};border-radius:4px;display:flex;align-items:center;padding:0 6px;cursor:pointer;title='${fase}'" onclick="openEditTaskForm('${p(t,'ID')}')" title="${fase} — ${p(t,'Status')}">
+        <span style="font-size:9px;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:${width-12}px">${isLate?'⚠️ ':''  }${fase}</span>
+      </div>`;
+    });
+    rows += `<div style="display:flex;min-height:${rowH}px;border-bottom:1px solid var(--border);position:relative">
+      <div style="width:${LEFT_W}px;min-width:${LEFT_W}px;padding:8px;font-size:11px;font-weight:500;color:var(--text);border-right:1px solid var(--border);display:flex;align-items:flex-start">${staff}</div>
+      <div style="position:relative;flex:1;overflow:hidden">${bars}
+        <div style="position:absolute;left:${todayLeft-LEFT_W}px;top:0;bottom:0;width:1.5px;background:var(--coral-mid);opacity:0.7;z-index:3"></div>
+      </div>
+    </div>`;
+  });
+
+  const TOTAL_W = LEFT_W + totalDays * DAY_W;
+  container.innerHTML = `<div style="padding:8px">
+    ${assignBtn}<div style="clear:both"></div>
+    <div style="font-size:10px;color:var(--text3);margin-bottom:6px;display:flex;gap:12px">
+      <span><span style="display:inline-block;width:10px;height:10px;background:#9d9b94;border-radius:2px;margin-right:3px"></span>Belum mulai</span>
+      <span><span style="display:inline-block;width:10px;height:10px;background:#406EB6;border-radius:2px;margin-right:3px"></span>On Progress</span>
+      <span><span style="display:inline-block;width:10px;height:10px;background:#0F6E56;border-radius:2px;margin-right:3px"></span>Selesai</span>
+      <span><span style="color:var(--coral-mid);margin-right:3px">│</span>Hari ini</span>
+      ${canAssign() ? '<span style="margin-left:auto;color:var(--text3);font-style:italic">Klik bar untuk edit</span>' : ''}
+    </div>
+    <div style="overflow-x:auto"><div style="min-width:${TOTAL_W}px">
+      <div style="display:flex;border-bottom:1.5px solid var(--border);background:var(--bg)">
+        <div style="width:${LEFT_W}px;min-width:${LEFT_W}px;padding:3px 8px;font-size:10px;font-weight:600;color:var(--text3);border-right:1px solid var(--border)">STAFF</div>
+        <div style="flex:1;overflow:hidden">${months}</div>
+      </div>
+      ${rows}
+    </div></div>
+  </div>`;
+}
+
+// ── ASSIGN TASK FORM ──
+var editingTaskId = null;
+
+function openAssignForm(taskId) {
+  editingTaskId = taskId || null;
+  const isEdit = !!editingTaskId;
+  document.getElementById('at-modal-title').textContent = isEdit ? 'Edit Tugas' : 'Assign Tugas';
+  // Populate staff dropdown
+  const staffSel = document.getElementById('at-staff');
+  const canAssignRoles = ['Design','HeadStudio'];
+  const staffOpts = users.filter(u => canAssignRoles.indexOf(u.role) >= 0)
+    .map(u => `<option value="${u.nama}">${u.nama} (${u.role})</option>`).join('');
+  staffSel.innerHTML = '<option value="">Pilih staff</option>' + staffOpts;
+
+  // Populate fase options
+  const faseOpts = ['Design eksisting','Denah','Moodboard','Design 3D','Gambar kerja','Revisi']
+    .map(f => `<option value="${f}">${f}</option>`).join('');
+  document.getElementById('at-fase').innerHTML = '<option value="">Pilih fase</option>' + faseOpts;
+
+  // Reset or fill edit data
+  if (isEdit) {
+    const t = taskData.find(x => p(x,'ID') === taskId);
+    if (t) {
+      staffSel.value = p(t,'StaffNama');
+      document.getElementById('at-fase').value = p(t,'FaseDesign');
+      document.getElementById('at-durasi').value = p(t,'Durasi');
+      document.getElementById('at-status').value = p(t,'Status') || 'Belum mulai';
+      try { document.getElementById('at-mulai').value = new Date(p(t,'TanggalMulai')).toISOString().split('T')[0]; } catch(e){}
+      try { document.getElementById('at-selesai').value = new Date(p(t,'TanggalSelesai')).toISOString().split('T')[0]; } catch(e){}
+      document.getElementById('at-delete-btn').style.display = 'inline-block';
+    }
+  } else {
+    ['at-staff','at-fase','at-durasi','at-status'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
+    document.getElementById('at-status').value = 'Belum mulai';
+    document.getElementById('at-mulai').value = new Date().toISOString().split('T')[0];
+    document.getElementById('at-selesai').value = '';
+    document.getElementById('at-delete-btn').style.display = 'none';
+  }
+  document.getElementById('modal-assign-task').classList.add('open');
+}
+
+function openEditTaskForm(taskId) {
+  if (!canAssign()) return;
+  openAssignForm(taskId);
+}
+
+// Auto-calc tanggal selesai from durasi
+function calcSelesai() {
+  const mulai = document.getElementById('at-mulai').value;
+  const dur = parseInt(document.getElementById('at-durasi').value);
+  if (mulai && dur > 0) {
+    const d = new Date(mulai);
+    d.setDate(d.getDate() + dur - 1);
+    document.getElementById('at-selesai').value = d.toISOString().split('T')[0];
+  }
+}
+
+async function saveTaskAssign() {
+  const staff = document.getElementById('at-staff').value;
+  const fase = document.getElementById('at-fase').value;
+  const mulai = document.getElementById('at-mulai').value;
+  const selesai = document.getElementById('at-selesai').value;
+  const status = document.getElementById('at-status').value;
+  if (!staff || !fase || !mulai || !selesai) { showToast('Lengkapi semua field wajib'); return; }
+  const dur = Math.ceil((new Date(selesai) - new Date(mulai)) / 86400000) + 1;
+  const btn = document.getElementById('save-task-btn');
+  btn.textContent = 'Menyimpan...'; btn.disabled = true;
+  try {
+    const payload = editingTaskId
+      ? { action:'updateTaskAssign', id:editingTaskId, staffNama:staff, faseDesign:fase, tanggalMulai:mulai, tanggalSelesai:selesai, durasi:dur, status }
+      : { action:'addTaskAssign', projectId:selectedId, staffNama:staff, faseDesign:fase, tanggalMulai:mulai, tanggalSelesai:selesai, durasi:dur, status, assignedBy:S.nama };
+    const r = await fetch(API, { method:'POST', body:JSON.stringify(payload) });
+    const d = await r.json();
+    if (d.status === 'ok') {
+      closeModal('modal-assign-task');
+      showToast(editingTaskId ? 'Tugas diperbarui!' : 'Tugas di-assign!');
+      await loadTasksForProject(selectedId);
+      renderGantt();
+    } else showToast('Gagal: ' + d.message);
+  } catch(e) { showToast('Error: '+e.message); }
+  btn.textContent = 'Simpan'; btn.disabled = false;
+}
+
+async function deleteTaskAssign() {
+  if (!editingTaskId) return;
+  if (!confirm('Hapus tugas ini?')) return;
+  const r = await fetch(API, { method:'POST', body:JSON.stringify({ action:'deleteTaskAssign', id:editingTaskId }) });
+  const d = await r.json();
+  if (d.status === 'ok') {
+    closeModal('modal-assign-task');
+    showToast('Tugas dihapus');
+    await loadTasksForProject(selectedId);
+    renderGantt();
+  }
+}
+
+function openEditNilai(){
+  const pr=projects.find(x=>p(x,'ID')===selectedId);if(!pr)return;
+  document.getElementById('en-nilai').value=p(pr,'NilaiKontrak')||'';
+  document.getElementById('modal-edit-nilai').classList.add('open');
+}
+async function saveEditNilai(){
+  const nilai=document.getElementById('en-nilai').value;
+  if(!nilai){showToast('Masukkan nilai kontrak');return;}
+  const btn=document.getElementById('save-en-btn');
+  btn.textContent='Menyimpan...';btn.disabled=true;
+  try{
+    const r=await fetch(API,{method:'POST',body:JSON.stringify({action:'updateProject',id:selectedId,nilai})});
+    const d=await r.json();
+    if(d.status==='ok'){closeModal('modal-edit-nilai');showToast('Nilai kontrak diperbarui!');await loadProjects();selectProject(selectedId);}
+    else showToast('Gagal: '+d.message);
+  }catch(e){showToast('Error');}
+  btn.textContent='Simpan';btn.disabled=false;
+}
+// ── EDIT RAB ──
+function openEditRAB(id){
+  const r=rabData.find(x=>p(x,'ID')===id);
+  if(!r)return;
+  document.getElementById('er-id').value=id;
+  document.getElementById('er-nama').value=p(r,'NamaItem');
+  document.getElementById('er-kelompok').value=p(r,'KelompokPekerjaan');
+  document.getElementById('er-vol').value=p(r,'Volume');
+  document.getElementById('er-sat').value=p(r,'Satuan');
+  document.getElementById('er-harga').value=p(r,'HargaSatuan');
+  document.getElementById('modal-edit-rab').classList.add('open');
+}
+async function saveEditRAB(){
+  const id=document.getElementById('er-id').value;
+  const nama=document.getElementById('er-nama').value.trim();
+  const kelompok=document.getElementById('er-kelompok').value.trim();
+  const vol=document.getElementById('er-vol').value;
+  const sat=document.getElementById('er-sat').value;
+  const harga=document.getElementById('er-harga').value;
+  if(!nama||!vol||!sat||!harga){showToast('Lengkapi semua field');return;}
+  const btn=document.getElementById('save-edit-rab-btn');
+  btn.textContent='Menyimpan...';btn.disabled=true;
+  try{
+    const r=await fetch(API,{method:'POST',body:JSON.stringify({action:'updateRABItem',id,nama,kelompok,volume:vol,satuan:sat,harga})});
+    const d=await r.json();
+    if(d.status==='ok'){closeModal('modal-edit-rab');showToast('RAB diperbarui!');await loadProjects();switchDetailTab('rab');}
+    else showToast('Gagal: '+d.message);
+  }catch(e){showToast('Error: '+e.message);}
+  btn.textContent='Simpan';btn.disabled=false;
+}
 window.onload=async()=>{
   document.getElementById('pf-mulai').value=new Date().toISOString().split('T')[0];
   await Promise.all([loadProjects(),loadUsers()]);
@@ -641,6 +972,7 @@ function renderRAB(){
       const total=parseFloat(p(r,'Total')||0);const real=parseFloat(p(r,'Realisasi')||0);
       const bobot=parseFloat(p(r,'Bobot')||0);
       grandTotal+=total;grandReal+=total*real/100;
+      const canEditRAB=S&&['Owner','Admin','Operasional','HeadStudio'].indexOf(S.role)>=0;
       html+=`<tr>
         <td style="padding:8px 10px;font-weight:500">${p(r,'NamaItem')}</td>
         <td style="padding:8px 10px;color:var(--text3)">${g}</td>
@@ -652,12 +984,13 @@ function renderRAB(){
           <div style="font-size:10px;font-weight:500">${bobot}%</div>
           <div class="bobot-bar"><div class="bobot-fill" style="width:${Math.min(bobot,100)}%"></div></div>
         </td>
-        <td style="padding:8px 10px;min-width:100px">
+        <td style="padding:8px 10px;min-width:120px">
           <div style="display:flex;align-items:center;gap:6px">
             <div style="flex:1">
               <div style="font-size:11px;font-weight:600;color:${real>=100?'var(--teal)':real>0?'var(--amber)':'var(--text3)'}">${real}%</div>
               <div class="prog-rab"><div class="prog-rab-fill" style="width:${real}%"></div></div>
             </div>
+            ${canEditRAB?`<button class="btn btn-sm" style="padding:2px 7px;font-size:10px" onclick="openEditRAB('${p(r,'ID')}')">✏️</button>`:''}
           </div>
         </td>
       </tr>`;
@@ -803,5 +1136,91 @@ async function saveStatus(){
   btn.textContent='Simpan';btn.disabled=false;
 }
 </script>
+
+
+<!-- MODAL ASSIGN TASK -->
+<div class="modal-overlay" id="modal-assign-task">
+  <div class="modal" style="max-width:460px">
+    <div class="modal-header">
+      <span class="modal-title" id="at-modal-title">Assign Tugas</span>
+      <button class="modal-close" onclick="closeModal('modal-assign-task')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group"><label class="form-label">Staff <span class="req">*</span></label>
+        <select id="at-staff" class="form-input"><option value="">Pilih staff</option></select></div>
+      <div class="form-group"><label class="form-label">Fase / pekerjaan <span class="req">*</span></label>
+        <select id="at-fase" class="form-input"><option value="">Pilih fase</option></select></div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Tanggal mulai <span class="req">*</span></label>
+          <input id="at-mulai" class="form-input" type="date" onchange="calcSelesai()"></div>
+        <div class="form-group"><label class="form-label">Durasi (hari)</label>
+          <input id="at-durasi" class="form-input" type="number" min="1" placeholder="hari" oninput="calcSelesai()"></div>
+      </div>
+      <div class="form-group"><label class="form-label">Tanggal selesai <span class="req">*</span></label>
+        <input id="at-selesai" class="form-input" type="date">
+        <div class="form-hint">Isi durasi untuk hitung otomatis, atau isi tanggal selesai langsung.</div>
+      </div>
+      <div class="form-group"><label class="form-label">Status</label>
+        <select id="at-status" class="form-input">
+          <option value="Belum mulai">Belum mulai</option>
+          <option value="On Progress">On Progress</option>
+          <option value="Selesai">Selesai</option>
+        </select></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" style="color:var(--red);border-color:var(--red)" id="at-delete-btn" onclick="deleteTaskAssign()" style="display:none;margin-right:auto">Hapus</button>
+      <button class="btn" onclick="closeModal('modal-assign-task')">Batal</button>
+      <button class="btn btn-primary" id="save-task-btn" onclick="saveTaskAssign()">Simpan</button>
+    </div>
+  </div>
+</div>
+<!-- MODAL EDIT RAB -->
+<!-- MODAL EDIT NILAI KONTRAK -->
+<div class="modal-overlay" id="modal-edit-nilai">
+  <div class="modal" style="max-width:380px">
+    <div class="modal-header"><span class="modal-title">Edit Nilai Kontrak</span><button class="modal-close" onclick="closeModal('modal-edit-nilai')">✕</button></div>
+    <div class="modal-body">
+      <div class="form-group"><label class="form-label">Nilai Kontrak (Rp) <span class="req">*</span></label>
+        <input id="en-nilai" class="form-input" type="number" placeholder="0"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('modal-edit-nilai')">Batal</button>
+      <button class="btn btn-primary" id="save-en-btn" onclick="saveEditNilai()">Simpan</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-edit-rab">
+  <div class="modal" style="max-width:460px">
+    <div class="modal-header"><span class="modal-title">Edit Item RAB</span><button class="modal-close" onclick="closeModal('modal-edit-rab')">✕</button></div>
+    <div class="modal-body">
+      <input type="hidden" id="er-id">
+      <div class="form-group"><label class="form-label">Nama item <span class="req">*</span></label>
+        <input id="er-nama" class="form-input" placeholder="Nama pekerjaan"></div>
+      <div class="form-group"><label class="form-label">Kelompok pekerjaan</label>
+        <input id="er-kelompok" class="form-input" placeholder="Contoh: Pekerjaan Dinding"></div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Volume <span class="req">*</span></label>
+          <input id="er-vol" class="form-input" type="number" placeholder="0"></div>
+        <div class="form-group"><label class="form-label">Satuan <span class="req">*</span></label>
+          <select id="er-sat" class="form-input">
+            <option value="">Pilih</option>
+            <option>m'</option><option>m²</option><option>m³</option>
+            <option>kg</option><option>set</option><option>unit</option>
+            <option>ttk</option><option>ls</option>
+          </select></div>
+      </div>
+      <div class="form-group"><label class="form-label">Harga satuan (Rp) <span class="req">*</span></label>
+        <input id="er-harga" class="form-input" type="number" placeholder="0"></div>
+      <div style="background:var(--teal-bg);padding:8px 10px;border-radius:6px;font-size:11px;color:var(--teal)">
+        ✓ Bobot akan dihitung ulang otomatis setelah disimpan.
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('modal-edit-rab')">Batal</button>
+      <button class="btn btn-primary" id="save-edit-rab-btn" onclick="saveEditRAB()">Simpan</button>
+    </div>
+  </div>
+</div>
 </body>
 </html>

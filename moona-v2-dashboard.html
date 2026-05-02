@@ -190,6 +190,18 @@ body{background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI
       </div>
     </div>
   </div>
+
+  <!-- MY TASKS SECTION -->
+  <div id="my-tasks-section" style="display:none;margin-top:14px">
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">📋 Tugas saya</span>
+        <span style="font-size:10px;color:var(--text3)" id="task-filter-label">Semua</span>
+      </div>
+      <div id="my-tasks-list"><div class="loading">Memuat...</div></div>
+    </div>
+  </div>
+
 </div>
 </div>
 
@@ -211,21 +223,25 @@ function fmtDate(s){if(!s)return'–';try{return new Date(s).toLocaleDateString(
 function rp(n){if(!n||isNaN(n))return'–';const v=parseFloat(n);if(v>=1e9)return'Rp '+(v/1e9).toFixed(1)+' M';if(v>=1e6)return'Rp '+Math.round(v/1e6)+' jt';return'Rp '+v.toLocaleString('id-ID');}
 
 window.onload=async()=>{
-  const [leadsRes,projRes,actRes,meetRes]=await Promise.allSettled([
+  const staffName=S?S.nama:'';
+  const [leadsRes,projRes,actRes,meetRes,taskRes]=await Promise.allSettled([
     fetch(API+'?action=getLeads').then(r=>r.json()),
     fetch(API+'?action=getProjects').then(r=>r.json()),
     fetch(API+'?action=getActionItems').then(r=>r.json()),
     fetch(API+'?action=getMeetings').then(r=>r.json()),
+    fetch(API+'?action=getTaskAssign&staffNama='+encodeURIComponent(staffName)).then(r=>r.json()),
   ]);
   const leads=leadsRes.status==='fulfilled'&&leadsRes.value.status==='ok'?leadsRes.value.data:[];
   const projects=projRes.status==='fulfilled'&&projRes.value.status==='ok'?projRes.value.data:[];
   const actions=actRes.status==='fulfilled'&&actRes.value.status==='ok'?actRes.value.data:[];
   const meetings=meetRes.status==='fulfilled'&&meetRes.value.status==='ok'?meetRes.value.data:[];
+  window._dashProjects=projects;
   renderStats(leads,projects,actions);
   renderActions(actions,meetings);
   renderFU(leads);
   renderProjects(projects);
   renderMeetings(meetings);
+  if(taskRes&&taskRes.status==='fulfilled'&&taskRes.value.status==='ok') renderMyTasks(taskRes.value.data);
 };
 
 function renderStats(leads,projects,actions){
@@ -290,6 +306,52 @@ function renderProjects(projects){
   </div>`).join('');
 }
 
+
+function renderMyTasks(tasks){
+  const section=document.getElementById('my-tasks-section');
+  const list=document.getElementById('my-tasks-list');
+  if(!section||!list)return;
+  if(!tasks||!tasks.length){section.style.display='none';return;}
+  section.style.display='block';
+
+  // Sort: Belum mulai first, then On Progress, then Selesai; within group by date
+  const ORDER={'On Progress':0,'Belum mulai':1,'Selesai':2};
+  const sorted=[...tasks].sort((a,b)=>{
+    const oa=ORDER[p(a,'Status')]??3, ob=ORDER[p(b,'Status')]??3;
+    if(oa!==ob)return oa-ob;
+    return new Date(p(a,'TanggalMulai'))-new Date(p(b,'TanggalMulai'));
+  });
+
+  const today=new Date();today.setHours(0,0,0,0);
+  const STATUS_COLOR={'Belum mulai':'var(--gray)','On Progress':'var(--brand,#406EB6)','Selesai':'var(--teal)'};
+  const STATUS_BG={'Belum mulai':'var(--gray-bg)','On Progress':'var(--brand-bg,#E8F0FA)','Selesai':'var(--teal-bg)'};
+
+  list.innerHTML=sorted.map(t=>{
+    const st=p(t,'Status')||'Belum mulai';
+    const mulai=new Date(p(t,'TanggalMulai'));
+    const selesai=new Date(p(t,'TanggalSelesai'));
+    const isLate=selesai<today&&st!=='Selesai';
+    const daysLeft=Math.ceil((selesai-today)/86400000);
+    // Get project name from data if available
+    const projName=(window._dashProjects||[]).find(x=>p(x,'ID')===p(t,'Project_ID'));
+    const projLabel=projName?p(projName,'NamaProyek'):p(t,'Project_ID');
+    const daysInfo=isLate
+      ?`<span style="color:var(--red);font-weight:500">Terlambat ${Math.abs(daysLeft)} hari</span>`
+      :st==='Selesai'?'<span style="color:var(--teal)">✓ Selesai</span>'
+      :daysLeft===0?'<span style="color:var(--amber);font-weight:500">Tenggat hari ini</span>'
+      :`<span style="color:var(--text3)">${daysLeft} hari lagi</span>`;
+    return `<div style="padding:10px 14px;border-bottom:0.5px solid var(--border);display:flex;align-items:center;gap:10px">
+      <div style="flex:1;min-width:0">
+        <div style="font-size:12px;font-weight:500;color:var(--text)">${p(t,'FaseDesign')||'Tugas'}</div>
+        <div style="font-size:10px;color:var(--text3);margin-top:2px">${projLabel} · ${mulai.toLocaleDateString('id-ID',{day:'numeric',month:'short'})} – ${selesai.toLocaleDateString('id-ID',{day:'numeric',month:'short',year:'numeric'})}</div>
+      </div>
+      <div style="text-align:right">
+        <span style="display:inline-block;padding:2px 8px;border-radius:6px;font-size:10px;font-weight:500;background:${STATUS_BG[st]};color:${STATUS_COLOR[st]}">${st}</span>
+        <div style="font-size:10px;margin-top:3px">${daysInfo}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
 function renderMeetings(meetings){
   const recent=[...meetings].slice(0,4);
   const el=document.getElementById('meeting-list');
