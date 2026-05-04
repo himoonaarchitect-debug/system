@@ -47,7 +47,17 @@ const API='https://script.google.com/macros/s/AKfycbwkjBr_opT5V05KY6fQG3Aa2i7URg
 function getSession(){try{return JSON.parse(localStorage.getItem('moona_v2_session'));}catch(e){return null;}}
 window.onload=()=>{const s=getSession();if(s)redirectByRole(s.role);}
 function redirectByRole(role){
-  const map={'Owner':'moona-v2-dashboard.html','Admin':'moona-v2-dashboard.html','Sales':'moona-v2-crm.html','Operasional':'moona-v2-projects.html','Finance':'moona-v2-finance.html','Marketing':'moona-v2-content.html','HeadStudio':'moona-v2-laporan-design-v4.html','Design':'moona-v2-laporan-design-v4.html'};
+  const map={
+    'Owner':'moona-v2-dashboard.html',
+    'OperasionalManager':'moona-v2-dashboard.html',
+    'StudioHead':'moona-v2-dashboard.html',
+    'Designer':'moona-v2-laporan-design-v4.html',
+    'Estimator':'moona-v2-projects.html',
+    'SiteEngineer':'moona-v2-laporan-build-v4.html',
+    'Sales':'moona-v2-crm.html',
+    'Marketing':'moona-v2-content.html',
+    'Finance':'moona-v2-finance.html'
+  };
   location.href=map[role]||'moona-v2-dashboard.html';
 }
 async function doLogin(){
@@ -60,7 +70,7 @@ async function doLogin(){
   try{
     const r=await fetch(`${API}?action=login&username=${encodeURIComponent(u)}&password=${encodeURIComponent(pw)}`);
     const d=await r.json();
-    if(d.status==='ok'){localStorage.setItem('moona_v2_session',JSON.stringify({id:d.id,nama:d.nama,role:d.role,username:d.username}));redirectByRole(d.role);}
+    if(d.status==='ok'){localStorage.setItem('moona_v2_session',JSON.stringify({id:d.id,nama:d.nama,role:d.role,username:d.username,jobTitle:d.jobTitle||''}));redirectByRole(d.role);}
     else{err.textContent='Username atau password salah.';err.classList.add('show');btn.disabled=false;btn.textContent='Masuk';}
   }catch(e){err.textContent='Gagal terhubung. Coba lagi.';err.classList.add('show');btn.disabled=false;btn.textContent='Masuk';}
 }

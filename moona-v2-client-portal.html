@@ -266,10 +266,50 @@ var currentTab = 'access';
 
 function getSession() { try { return JSON.parse(localStorage.getItem('moona_v2_session')); } catch(e) { return null; } }
 function logout() { localStorage.removeItem('moona_v2_session'); location.href = 'moona-v2-login.html'; }
+// ── MOONA PERMS v1 ──
+const MOONA_ACCESS = {
+  Owner:               ['dashboard','crm','client-portal','projects','laporan-design','laporan-build','meetings','finance','content','sop'],
+  OperasionalManager:  ['dashboard','crm','client-portal','projects','laporan-design','laporan-build','meetings','finance','sop'],
+  StudioHead:          ['dashboard','client-portal','projects','laporan-design','laporan-build','meetings','sop'],
+  Designer:            ['dashboard','laporan-design','laporan-build','meetings','sop'],
+  Estimator:           ['dashboard','projects','laporan-design','laporan-build','meetings','sop'],
+  SiteEngineer:        ['dashboard','laporan-design','laporan-build','meetings','sop'],
+  Sales:               ['dashboard','crm','client-portal','projects','meetings','sop'],
+  Marketing:           ['dashboard','crm','client-portal','content','meetings','sop'],
+  Finance:             ['dashboard','client-portal','finance','meetings','sop']
+};
+const MOONA_DEFAULT_MODULE = {
+  Owner:'moona-v2-dashboard.html', OperasionalManager:'moona-v2-dashboard.html', StudioHead:'moona-v2-dashboard.html',
+  Designer:'moona-v2-laporan-design-v4.html', Estimator:'moona-v2-projects.html', SiteEngineer:'moona-v2-laporan-build-v4.html',
+  Sales:'moona-v2-crm.html', Marketing:'moona-v2-content.html', Finance:'moona-v2-finance.html'
+};
+function moonaRequireAccess(currentModule) {
+  let s = null;
+  try { s = JSON.parse(localStorage.getItem('moona_v2_session')); } catch(e){}
+  if (!s) { location.href = 'moona-v2-login.html'; return false; }
+  const allowed = MOONA_ACCESS[s.role] || [];
+  if (allowed.indexOf(currentModule) >= 0) return true;
+  const defFile = MOONA_DEFAULT_MODULE[s.role] || 'moona-v2-dashboard.html';
+  document.body.innerHTML = `<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:#f8f7f4;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;padding:20px">
+    <div style="max-width:420px;background:#fff;border:0.5px solid #e5e3dc;border-radius:12px;padding:32px;text-align:center">
+      <div style="font-size:42px;margin-bottom:14px;line-height:1">🔒</div>
+      <div style="font-size:18px;font-weight:600;color:#1a1a18;margin-bottom:6px">Akses ditolak</div>
+      <div style="font-size:13px;color:#6b6a64;line-height:1.55;margin-bottom:18px">Modul ini tidak tersedia untuk role <strong>${s.jobTitle || s.role}</strong>.<br>Silakan kembali ke modul yang sesuai.</div>
+      <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
+        <a href="${defFile}" style="display:inline-block;padding:9px 18px;background:#406EB6;color:#fff;text-decoration:none;border-radius:8px;font-size:12px;font-weight:600">Buka modul utama saya →</a>
+        <button onclick="localStorage.removeItem('moona_v2_session');location.href='moona-v2-login.html'" style="padding:9px 18px;background:#fff;color:#6b6a64;border:0.5px solid #d0cec7;border-radius:8px;font-size:12px;cursor:pointer;font-family:inherit">Logout</button>
+      </div>
+      <div style="font-size:10px;color:#9d9b94;margin-top:14px">Login sebagai: <strong>${s.nama}</strong></div>
+    </div>
+  </div>`;
+  return false;
+}
+if (!moonaRequireAccess('client-portal')) throw new Error('Akses ditolak');
+
 function go(u) { location.href = u; }
 var S = getSession();
 if (!S) { location.href = 'moona-v2-login.html'; }
-else { document.getElementById('sf-name').textContent = S.nama + ' - ' + S.role; }
+else { document.getElementById('sf-name').textContent = S.nama + ' - ' + (S.jobTitle || S.role); }
 
 function p(o) {
   for (var i = 1; i < arguments.length; i++) {
