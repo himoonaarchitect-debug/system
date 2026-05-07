@@ -15,6 +15,7 @@ function doPost(e) {
     // PROJECTS
     if (action === 'addProject') return addProject(data);
     if (action === 'updateProject') return updateProject(data);
+    if (action === 'deleteProject') return deleteProject(data);
     // RAB
     if (action === 'addRABItem') return addRABItem(data);
     if (action === 'addRABItemsBatch') return addRABItemsBatch(data);
@@ -262,11 +263,46 @@ function getProjects() {
 
 function updateProject(data) {
   const updates = { TanggalUpdate: nowStr() };
-  ['StatusProyek','PIC','TargetSelesai','CatatanProyek','NilaiKontrak','FolderFoto','NamaProyek','TanggalMulai','NamaKlien'].forEach(k => {
+  ['StatusProyek','PIC','TargetSelesai','CatatanProyek','NilaiKontrak','FolderFoto','NamaProyek','TanggalMulai','NamaKlien','TipeLayanan','Segmen','TipeProyek'].forEach(k => {
     if (data[k] !== undefined) updates[k] = data[k];
   });
   updateCols('Projects', data.id, updates);
   return response({ status: 'ok' });
+}
+
+// Hapus proyek + cascade delete data terkait (RAB, TaskAssign, LaporanDesign, LaporanBuild)
+function deleteProject(data) {
+  const projectId = data.id;
+  if (!projectId) return response({ status: 'error', message: 'Project ID kosong.' });
+  const summary = { rab: 0, task: 0, lapDesign: 0, lapBuild: 0, project: 0 };
+  // 1) Hapus item RAB
+  summary.rab = deleteRowsByCol('RAB', 'Project_ID', projectId);
+  // 2) Hapus task assignments
+  summary.task = deleteRowsByCol('TaskAssign', 'Project_ID', projectId);
+  // 3) Hapus laporan design
+  summary.lapDesign = deleteRowsByCol('LaporanDesign', 'Project_ID', projectId);
+  // 4) Hapus laporan build
+  summary.lapBuild = deleteRowsByCol('LaporanBuild', 'Project_ID', projectId);
+  // 5) Hapus baris proyeknya sendiri
+  summary.project = deleteRowsByCol('Projects', 'ID', projectId);
+  return response({ status: 'ok', summary });
+}
+
+// Helper: hapus semua row di sheet tertentu yang kolomnya cocok dengan value tertentu.
+// Iterasi dari belakang biar deleteRow tidak shift index baris di atasnya.
+function deleteRowsByCol(sheetName, colName, value) {
+  let s;
+  try { s = sheet(sheetName); } catch (e) { return 0; }
+  const rows = s.getDataRange().getValues();
+  if (!rows.length) return 0;
+  const headers = rows[0];
+  const colIdx = headers.indexOf(colName);
+  if (colIdx < 0) return 0;
+  let count = 0;
+  for (let i = rows.length - 1; i >= 1; i--) {
+    if (String(rows[i][colIdx]) === String(value)) { s.deleteRow(i + 1); count++; }
+  }
+  return count;
 }
 
 // ── RAB ──

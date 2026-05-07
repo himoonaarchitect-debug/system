@@ -269,11 +269,15 @@ textarea.form-input{resize:vertical;min-height:60px;line-height:1.5}
           <div class="dp-name" id="dp-name">–</div>
           <button class="btn btn-sm" style="padding:2px 7px;font-size:11px" onclick="openEditNama()" title="Edit nama proyek & klien">✏️</button>
         </div>
-        <div style="display:flex;gap:5px;margin-top:5px;flex-wrap:wrap" id="dp-badges"></div>
+        <div style="display:flex;gap:5px;margin-top:5px;flex-wrap:wrap;align-items:center" id="dp-badges-wrap">
+          <div style="display:flex;gap:5px;flex-wrap:wrap" id="dp-badges"></div>
+          <button class="btn btn-sm" style="padding:2px 7px;font-size:10px" onclick="openEditLayanan()" title="Edit jenis layanan">✏️</button>
+        </div>
       </div>
       <div style="display:flex;gap:5px;flex-wrap:wrap">
         <button class="btn btn-sm btn-amber" onclick="openRABForm()">+ RAB Item</button>
         <button class="btn btn-sm btn-primary" onclick="openStatusForm()">Update status</button>
+        <button class="btn btn-sm" style="color:var(--red);border-color:var(--red)" onclick="confirmDeleteProject()" title="Hapus proyek">🗑</button>
         <button class="btn btn-sm" onclick="closeDetail()">✕</button>
       </div>
     </div>
@@ -1236,6 +1240,67 @@ async function saveEditTanggal(){
   btn.textContent='Simpan';btn.disabled=false;
 }
 
+// ── EDIT JENIS LAYANAN ──
+function openEditLayanan(){
+  const pr=projects.find(x=>p(x,'ID')===selectedId);if(!pr)return;
+  document.getElementById('el-tipelayanan').value=p(pr,'TipeLayanan')||'';
+  document.getElementById('el-segmen').value=p(pr,'Segmen')||'';
+  document.getElementById('el-tipeproyek').value=p(pr,'TipeProyek')||'';
+  document.getElementById('modal-edit-layanan').classList.add('open');
+}
+async function saveEditLayanan(){
+  const tipeLayanan=document.getElementById('el-tipelayanan').value;
+  const segmen=document.getElementById('el-segmen').value;
+  const tipeProyek=document.getElementById('el-tipeproyek').value;
+  if(!tipeLayanan||!segmen||!tipeProyek){showToast('Semua field wajib diisi');return;}
+  const btn=document.getElementById('save-el-btn');btn.textContent='Menyimpan...';btn.disabled=true;
+  try{
+    const r=await fetch(API,{method:'POST',body:JSON.stringify({action:'updateProject',id:selectedId,TipeLayanan:tipeLayanan,Segmen:segmen,TipeProyek:tipeProyek})});
+    const d=await r.json();
+    if(d.status==='ok'){closeModal('modal-edit-layanan');showToast('Jenis layanan diperbarui!');await loadProjects();selectProj(selectedId);}
+    else showToast('Gagal: '+d.message);
+  }catch(e){showToast('Error: '+e.message);}
+  btn.textContent='Simpan';btn.disabled=false;
+}
+
+// ── HAPUS PROYEK (cascade) ──
+function confirmDeleteProject(){
+  const pr=projects.find(x=>p(x,'ID')===selectedId);if(!pr)return;
+  const nama=p(pr,'NamaProyek')||'(tanpa nama)';
+  document.getElementById('dp-del-name').textContent=nama;
+  // Hitung data terkait yang akan ikut dihapus
+  const rabCount=rabData.filter(r=>p(r,'Project_ID')===selectedId).length;
+  document.getElementById('dp-del-rab').textContent=rabCount;
+  // task/lapdesign/lapbuild count diambil dari window cache kalau ada, jika tidak '?' biarkan 0
+  const taskCount=(window._allTasks||[]).filter(t=>p(t,'Project_ID')===selectedId).length;
+  const lapDesignCount=(lapDesign||[]).filter(r=>p(r,'Project_ID')===selectedId).length;
+  const lapBuildCount=(lapBuild||[]).filter(r=>p(r,'Project_ID')===selectedId).length;
+  document.getElementById('dp-del-task').textContent=taskCount;
+  document.getElementById('dp-del-lapdesign').textContent=lapDesignCount;
+  document.getElementById('dp-del-lapbuild').textContent=lapBuildCount;
+  document.getElementById('dp-del-confirm').value='';
+  document.getElementById('dp-del-confirm').dataset.expected=nama;
+  document.getElementById('modal-del-project').classList.add('open');
+}
+async function doDeleteProject(){
+  const inp=document.getElementById('dp-del-confirm');
+  const expected=inp.dataset.expected;
+  if(inp.value.trim()!==expected){showToast('Nama proyek belum cocok. Ketik persis untuk konfirmasi.');return;}
+  const btn=document.getElementById('del-project-btn');btn.textContent='Menghapus...';btn.disabled=true;
+  try{
+    const r=await fetch(API,{method:'POST',body:JSON.stringify({action:'deleteProject',id:selectedId})});
+    const d=await r.json();
+    if(d.status==='ok'){
+      closeModal('modal-del-project');
+      const sm=d.summary||{};
+      showToast('Proyek dihapus. RAB: '+(sm.rab||0)+', task: '+(sm.task||0)+', laporan: '+((sm.lapDesign||0)+(sm.lapBuild||0)));
+      closeDetail();
+      await loadProjects();
+    }else{showToast('Gagal: '+(d.message||'unknown'));}
+  }catch(e){showToast('Error: '+e.message);}
+  btn.textContent='Ya, hapus permanen';btn.disabled=false;
+}
+
 // ── RENAME / DELETE KELOMPOK RAB ──
 function openRenameKelompok(oldName){
   document.getElementById('rk-old').value=oldName;
@@ -1356,8 +1421,13 @@ const BOBOT_FASE_DESIGN={'Design eksisting':5,'Denah':20,'Moodboard':5,'Design 3
 function calcProjProgress(projId){
   const pr=projects.find(x=>p(x,'ID')===projId);
   if(!pr)return{pct:0,totalRAB:0,totalReal:0};
-  const tipe=p(pr,'TipeProyek');
-  if(tipe==='Design'){
+  // Robust deteksi layanan: data lama bisa punya kolom TipeProyek/TipeLayanan yang swap.
+  // Cek keyword "design"/"build" di gabungan kedua field.
+  const layananStr = ((p(pr,'TipeProyek')||'') + '|' + (p(pr,'TipeLayanan')||'')).toLowerCase();
+  const hasBuild = layananStr.indexOf('build') >= 0;
+  const hasDesign = layananStr.indexOf('design') >= 0;
+  const isDesignOnly = hasDesign && !hasBuild;
+  if(isDesignOnly){
     const lapItems=lapDesign.filter(l=>p(l,'Project_ID')===projId&&p(l,'StatusApproval')==='Approved');
     if(!lapItems.length)return{pct:0,totalRAB:0,totalReal:0};
     // Ambil max persentase per fase (revisi terbaru menang)
@@ -1472,9 +1542,13 @@ function selectProj(id){
   document.getElementById('dp-target').textContent=fmtDate(p(pr,'TargetSelesai'));
   document.getElementById('dp-status').textContent=status;
   document.getElementById('dp-catatan').textContent=p(pr,'CatatanProyek')||'–';
-  // Show/hide tabs sesuai tipe proyek
-  const hasRAB=['Build','Design+Build'].includes(tipe);
-  const hasDesign=['Design','Design+Build'].includes(tipe);
+  // Show/hide tabs sesuai jenis layanan.
+  // Robust terhadap data lama (yang kolom Projects-nya pernah swap antara TipeProyek/TipeLayanan/Segmen)
+  // maupun data baru (yang sudah clean lewat modal Edit Layanan): cek keyword 'design'/'build'
+  // di gabungan kedua field agar tetap match meski value-nya tidak di posisi yang "benar".
+  const layananCheck = ((tipe||'') + '|' + (layanan||'')).toLowerCase();
+  const hasRAB = layananCheck.indexOf('build') >= 0;
+  const hasDesign = layananCheck.indexOf('design') >= 0;
   document.getElementById('dtab-rab').style.display=hasRAB?'block':'none';
   document.getElementById('dtab-lapdesign').style.display=hasDesign?'block':'none';
   document.getElementById('dtab-lapbuild').style.display=hasRAB?'block':'none';
@@ -1878,6 +1952,68 @@ async function saveStatus(){
     <div class="modal-footer">
       <button class="btn" onclick="closeModal('modal-edit-tanggal')">Batal</button>
       <button class="btn btn-primary" id="save-etg-btn" onclick="saveEditTanggal()">Simpan</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL EDIT JENIS LAYANAN -->
+<div class="modal-overlay" id="modal-edit-layanan">
+  <div class="modal" style="max-width:440px">
+    <div class="modal-header"><span class="modal-title">Edit Jenis Layanan</span><button class="modal-close" onclick="closeModal('modal-edit-layanan')">✕</button></div>
+    <div class="modal-body">
+      <div class="form-group"><label class="form-label">Tipe layanan <span class="req">*</span></label>
+        <select id="el-tipelayanan" class="form-input">
+          <option value="">Pilih</option>
+          <option value="Design">Design</option>
+          <option value="Build">Build</option>
+          <option value="Design+Build">Design + Build</option>
+        </select></div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Segmen <span class="req">*</span></label>
+          <select id="el-segmen" class="form-input">
+            <option value="">Pilih</option>
+            <option value="Interior">Interior</option>
+            <option value="Eksterior">Eksterior</option>
+          </select></div>
+        <div class="form-group"><label class="form-label">Tipe proyek <span class="req">*</span></label>
+          <select id="el-tipeproyek" class="form-input">
+            <option value="">Pilih</option>
+            <option value="Residensial">Residensial</option>
+            <option value="Komersial">Komersial</option>
+          </select></div>
+      </div>
+      <div style="background:var(--amber-bg);border-radius:6px;padding:8px 10px;font-size:11px;color:var(--amber);line-height:1.5">
+        ⚠ Mengubah jenis layanan tidak menghapus data RAB, laporan, atau task yang sudah ada. Hanya badge kategorinya yang berubah.
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('modal-edit-layanan')">Batal</button>
+      <button class="btn btn-primary" id="save-el-btn" onclick="saveEditLayanan()">Simpan</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL HAPUS PROYEK -->
+<div class="modal-overlay" id="modal-del-project">
+  <div class="modal" style="max-width:440px">
+    <div class="modal-header"><span class="modal-title">Hapus Proyek</span><button class="modal-close" onclick="closeModal('modal-del-project')">✕</button></div>
+    <div class="modal-body">
+      <div style="font-size:13px;color:var(--text);line-height:1.6;margin-bottom:10px">Hapus proyek <strong id="dp-del-name"></strong>?</div>
+      <div style="background:#fff3f0;border:0.5px solid var(--red);border-radius:6px;padding:10px;font-size:11px;color:var(--text);line-height:1.6">
+        <strong style="color:var(--red)">⚠ Aksi ini tidak bisa di-undo.</strong> Yang akan ikut terhapus:
+        <ul style="margin:6px 0 0 16px;padding:0">
+          <li><span id="dp-del-rab">0</span> item RAB</li>
+          <li><span id="dp-del-task">0</span> task assignment</li>
+          <li><span id="dp-del-lapdesign">0</span> laporan design</li>
+          <li><span id="dp-del-lapbuild">0</span> laporan build</li>
+        </ul>
+        <div style="margin-top:8px">Ketik nama proyek di bawah untuk konfirmasi:</div>
+      </div>
+      <input id="dp-del-confirm" class="form-input" style="margin-top:10px" placeholder="Ketik nama proyek persis…" autocomplete="off">
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('modal-del-project')">Batal</button>
+      <button class="btn" style="background:var(--red);color:#fff;border-color:var(--red)" id="del-project-btn" onclick="doDeleteProject()">Ya, hapus permanen</button>
     </div>
   </div>
 </div>
