@@ -265,7 +265,10 @@ textarea.form-input{resize:vertical;min-height:60px;line-height:1.5}
   <div class="detail-panel" id="detail-panel" style="display:none">
     <div class="dp-head">
       <div style="flex:1">
-        <div class="dp-name" id="dp-name">–</div>
+        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+          <div class="dp-name" id="dp-name">–</div>
+          <button class="btn btn-sm" style="padding:2px 7px;font-size:11px" onclick="openEditNama()" title="Edit nama proyek & klien">✏️</button>
+        </div>
         <div style="display:flex;gap:5px;margin-top:5px;flex-wrap:wrap" id="dp-badges"></div>
       </div>
       <div style="display:flex;gap:5px;flex-wrap:wrap">
@@ -288,7 +291,7 @@ textarea.form-input{resize:vertical;min-height:60px;line-height:1.5}
         <div><div class="d-label">Klien</div><div class="d-val" id="dp-klien">–</div></div>
         <div><div class="d-label">PIC</div><div class="d-val" id="dp-pic">–</div></div>
         <div><div class="d-label">Nilai kontrak <button class="btn btn-sm" style="padding:1px 6px;font-size:10px;margin-left:4px" onclick="openEditNilai()">✏️</button></div><div class="d-val" id="dp-nilai">–</div></div>
-        <div><div class="d-label">Tanggal mulai</div><div class="d-val" id="dp-mulai">–</div></div>
+        <div><div class="d-label">Tanggal mulai <button class="btn btn-sm" style="padding:1px 6px;font-size:10px;margin-left:4px" onclick="openEditTanggal()">✏️</button></div><div class="d-val" id="dp-mulai">–</div></div>
         <div><div class="d-label">Target selesai</div><div class="d-val" id="dp-target">–</div></div>
         <div><div class="d-label">Status</div><div class="d-val" id="dp-status">–</div></div>
       </div>
@@ -390,7 +393,12 @@ textarea.form-input{resize:vertical;min-height:60px;line-height:1.5}
   <div class="modal modal-lg">
     <div class="modal-header"><span class="modal-title" id="rab-modal-title">Tambah Item RAB</span><button class="modal-close" onclick="closeModal('modal-rab')">✕</button></div>
     <div class="modal-body">
-      <div class="form-group"><label class="form-label">Kelompok pekerjaan</label><input id="rab-kelompok" class="form-input" placeholder="Contoh: Pekerjaan Lantai, Pekerjaan Dinding, Mekanikal..."></div>
+      <div class="form-group">
+        <label class="form-label">Kelompok pekerjaan</label>
+        <input id="rab-kelompok" class="form-input" list="rab-kelompok-list" placeholder="Pilih dari yang sudah ada atau ketik baru…" autocomplete="off">
+        <datalist id="rab-kelompok-list"></datalist>
+        <div id="rab-kelompok-hint" style="font-size:10px;color:var(--text3);margin-top:4px;display:none"></div>
+      </div>
       <div style="font-size:11px;font-weight:500;color:var(--text2);margin-bottom:8px">Item pekerjaan <span class="req">*</span></div>
       <div style="display:grid;grid-template-columns:2.5fr 0.8fr 0.8fr 1.2fr auto;gap:6px;margin-bottom:6px;font-size:10px;font-weight:600;color:var(--text3);padding:0 2px">
         <span>Nama item</span><span>Volume</span><span>Satuan</span><span>Harga/satuan</span><span></span>
@@ -1150,6 +1158,9 @@ function openEditRAB(id){
   document.getElementById('er-vol').value=p(r,'Volume');
   document.getElementById('er-sat').value=p(r,'Satuan');
   document.getElementById('er-harga').value=p(r,'HargaSatuan');
+  // Refresh datalist kelompok pada modal edit
+  const dl=document.getElementById('er-kelompok-list');
+  if(dl){const list=getKelompokListForCurrent();dl.innerHTML=list.map(k=>`<option value="${k.replace(/"/g,'&quot;')}">`).join('');}
   document.getElementById('modal-edit-rab').classList.add('open');
 }
 async function saveEditRAB(){
@@ -1165,10 +1176,129 @@ async function saveEditRAB(){
   try{
     const r=await fetch(API,{method:'POST',body:JSON.stringify({action:'updateRABItem',id,nama,kelompok,volume:vol,satuan:sat,harga})});
     const d=await r.json();
-    if(d.status==='ok'){closeModal('modal-edit-rab');showToast('RAB diperbarui!');await loadProjects();switchDetailTab('rab');}
+    if(d.status==='ok'){closeModal('modal-edit-rab');showToast('RAB diperbarui!');await loadProjects();const dtabs=document.querySelectorAll('.dtab');if(dtabs.length>1)switchDTab('rab',dtabs[1]);}
     else showToast('Gagal: '+d.message);
   }catch(e){showToast('Error: '+e.message);}
   btn.textContent='Simpan';btn.disabled=false;
+}
+
+// ── EDIT NAMA PROYEK + KLIEN ──
+function openEditNama(){
+  const pr=projects.find(x=>p(x,'ID')===selectedId);if(!pr)return;
+  document.getElementById('enm-proyek').value=p(pr,'NamaProyek')||'';
+  document.getElementById('enm-klien').value=p(pr,'NamaKlien')||'';
+  document.getElementById('modal-edit-nama').classList.add('open');
+}
+async function saveEditNama(){
+  const namaProyek=document.getElementById('enm-proyek').value.trim();
+  const namaKlien=document.getElementById('enm-klien').value.trim();
+  if(!namaProyek){showToast('Nama proyek wajib diisi');return;}
+  const btn=document.getElementById('save-enm-btn');btn.textContent='Menyimpan...';btn.disabled=true;
+  try{
+    const payload={action:'updateProject',id:selectedId,NamaProyek:namaProyek,NamaKlien:namaKlien};
+    const r=await fetch(API,{method:'POST',body:JSON.stringify(payload)});
+    const d=await r.json();
+    if(d.status==='ok'){closeModal('modal-edit-nama');showToast('Nama proyek diperbarui!');await loadProjects();selectProj(selectedId);}
+    else showToast('Gagal: '+d.message);
+  }catch(e){showToast('Error: '+e.message);}
+  btn.textContent='Simpan';btn.disabled=false;
+}
+
+// ── EDIT TANGGAL MULAI & TARGET SELESAI ──
+function openEditTanggal(){
+  const pr=projects.find(x=>p(x,'ID')===selectedId);if(!pr)return;
+  // Convert dari format apapun ke YYYY-MM-DD untuk input type=date
+  const toIso=(s)=>{
+    if(!s)return'';
+    const str=String(s).trim();
+    if(/^\d{4}-\d{2}-\d{2}/.test(str))return str.substring(0,10);
+    const m=str.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+    if(m){const dd=m[1].padStart(2,'0'),mm=m[2].padStart(2,'0');return `${m[3]}-${mm}-${dd}`;}
+    return'';
+  };
+  document.getElementById('etg-mulai').value=toIso(p(pr,'TanggalMulai'));
+  document.getElementById('etg-target').value=toIso(p(pr,'TargetSelesai'));
+  document.getElementById('modal-edit-tanggal').classList.add('open');
+}
+async function saveEditTanggal(){
+  const mulai=document.getElementById('etg-mulai').value;
+  const target=document.getElementById('etg-target').value;
+  const btn=document.getElementById('save-etg-btn');btn.textContent='Menyimpan...';btn.disabled=true;
+  try{
+    const payload={action:'updateProject',id:selectedId};
+    if(mulai)payload.TanggalMulai=mulai;
+    if(target)payload.TargetSelesai=target;
+    const r=await fetch(API,{method:'POST',body:JSON.stringify(payload)});
+    const d=await r.json();
+    if(d.status==='ok'){closeModal('modal-edit-tanggal');showToast('Tanggal proyek diperbarui!');await loadProjects();selectProj(selectedId);}
+    else showToast('Gagal: '+d.message);
+  }catch(e){showToast('Error: '+e.message);}
+  btn.textContent='Simpan';btn.disabled=false;
+}
+
+// ── RENAME / DELETE KELOMPOK RAB ──
+function openRenameKelompok(oldName){
+  document.getElementById('rk-old').value=oldName;
+  document.getElementById('rk-old-display').textContent=oldName;
+  document.getElementById('rk-new').value=oldName;
+  document.getElementById('modal-rename-kelompok').classList.add('open');
+}
+async function saveRenameKelompok(){
+  const oldName=document.getElementById('rk-old').value;
+  const newName=document.getElementById('rk-new').value.trim();
+  if(!newName){showToast('Nama kelompok baru wajib diisi');return;}
+  if(newName===oldName){closeModal('modal-rename-kelompok');return;}
+  const btn=document.getElementById('save-rk-btn');btn.textContent='Menyimpan...';btn.disabled=true;
+  try{
+    const r=await fetch(API,{method:'POST',body:JSON.stringify({action:'renameRABKelompok',projectId:selectedId,oldName,newName})});
+    const d=await r.json();
+    if(d.status==='ok'){closeModal('modal-rename-kelompok');showToast('Kelompok diperbarui ('+d.count+' item)');await loadProjects();const dtabs=document.querySelectorAll('.dtab');if(dtabs.length>1)switchDTab('rab',dtabs[1]);}
+    else showToast('Gagal: '+d.message);
+  }catch(e){showToast('Error: '+e.message);}
+  btn.textContent='Simpan';btn.disabled=false;
+}
+function confirmDeleteKelompok(name){
+  const count=rabData.filter(r=>p(r,'Project_ID')===selectedId&&p(r,'KelompokPekerjaan')===name).length;
+  document.getElementById('dk-name').value=name;
+  document.getElementById('dk-display').textContent=name;
+  document.getElementById('dk-count').textContent=count;
+  document.getElementById('modal-del-kelompok').classList.add('open');
+}
+async function doDeleteKelompok(){
+  const name=document.getElementById('dk-name').value;
+  const btn=document.getElementById('del-kelompok-btn');btn.textContent='Menghapus...';btn.disabled=true;
+  try{
+    const r=await fetch(API,{method:'POST',body:JSON.stringify({action:'deleteRABKelompok',projectId:selectedId,kelompok:name})});
+    const d=await r.json();
+    if(d.status==='ok'){closeModal('modal-del-kelompok');showToast('Kelompok "'+name+'" dihapus ('+d.count+' item)');await loadProjects();const dtabs=document.querySelectorAll('.dtab');if(dtabs.length>1)switchDTab('rab',dtabs[1]);}
+    else showToast('Gagal: '+d.message);
+  }catch(e){showToast('Error: '+e.message);}
+  btn.textContent='Ya, hapus';btn.disabled=false;
+}
+
+// ── DELETE ITEM RAB ──
+function confirmDeleteItem(id){
+  const r=rabData.find(x=>p(x,'ID')===id);if(!r)return;
+  document.getElementById('di-id').value=id;
+  document.getElementById('di-display').textContent=p(r,'NamaItem');
+  document.getElementById('modal-del-item').classList.add('open');
+}
+function confirmDeleteItemFromModal(){
+  // Dipanggil dari tombol "Hapus item" di dalam modal Edit RAB
+  const id=document.getElementById('er-id').value;
+  closeModal('modal-edit-rab');
+  confirmDeleteItem(id);
+}
+async function doDeleteItem(){
+  const id=document.getElementById('di-id').value;
+  const btn=document.getElementById('del-item-btn');btn.textContent='Menghapus...';btn.disabled=true;
+  try{
+    const r=await fetch(API,{method:'POST',body:JSON.stringify({action:'deleteRABItem',id})});
+    const d=await r.json();
+    if(d.status==='ok'){closeModal('modal-del-item');showToast('Item RAB dihapus');await loadProjects();const dtabs=document.querySelectorAll('.dtab');if(dtabs.length>1)switchDTab('rab',dtabs[1]);}
+    else showToast('Gagal: '+d.message);
+  }catch(e){showToast('Error: '+e.message);}
+  btn.textContent='Ya, hapus';btn.disabled=false;
 }
 window.onload=async()=>{
   document.getElementById('pf-mulai').value=new Date().toISOString().split('T')[0];
@@ -1366,14 +1496,25 @@ function renderRAB(){
   if(!items.length){tbody.innerHTML='<tr><td colspan="8" class="empty">Belum ada item RAB. Klik "+ Item RAB" untuk mulai.</td></tr>';document.getElementById('rab-total-val').textContent='–';document.getElementById('rab-grand-total').textContent='–';return;}
   // Group by kelompok
   const groups={};items.forEach(r=>{const g=p(r,'KelompokPekerjaan')||'Umum';if(!groups[g])groups[g]=[];groups[g].push(r);});
+  const canEditRAB=S&&['Owner','OperasionalManager','StudioHead','Estimator'].indexOf(S.role)>=0;
   let html='';let grandTotal=0;let grandReal=0;
   Object.entries(groups).forEach(([g,rows])=>{
-    html+=`<tr><td colspan="8" class="rab-group">${g}</td></tr>`;
+    // Header kelompok dengan tombol rename / delete / + item
+    const groupSafe=g.replace(/'/g,"\\'");
+    html+=`<tr><td colspan="8" class="rab-group" style="position:relative">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+        <span>${g}</span>
+        ${canEditRAB?`<span style="display:inline-flex;gap:4px;align-items:center">
+          <button class="btn btn-sm" style="padding:2px 7px;font-size:10px" onclick="openAddItemToKelompok('${groupSafe}')" title="Tambah item ke kelompok ini">+ Item</button>
+          <button class="btn btn-sm" style="padding:2px 7px;font-size:10px" onclick="openRenameKelompok('${groupSafe}')" title="Rename kelompok">✏️</button>
+          <button class="btn btn-sm" style="padding:2px 7px;font-size:10px;color:var(--red)" onclick="confirmDeleteKelompok('${groupSafe}')" title="Hapus kelompok & semua item">🗑</button>
+        </span>`:''}
+      </div>
+    </td></tr>`;
     rows.forEach(r=>{
       const total=parseFloat(p(r,'Total')||0);const real=parseFloat(p(r,'Realisasi')||0);
       const bobot=parseFloat(p(r,'Bobot')||0);
       grandTotal+=total;grandReal+=total*real/100;
-      const canEditRAB=S&&['Owner','OperasionalManager','StudioHead','Estimator'].indexOf(S.role)>=0;
       html+=`<tr>
         <td style="padding:8px 10px;font-weight:500">${p(r,'NamaItem')}</td>
         <td style="padding:8px 10px;color:var(--text3)">${g}</td>
@@ -1385,13 +1526,14 @@ function renderRAB(){
           <div style="font-size:10px;font-weight:500">${bobot}%</div>
           <div class="bobot-bar"><div class="bobot-fill" style="width:${Math.min(bobot,100)}%"></div></div>
         </td>
-        <td style="padding:8px 10px;min-width:120px">
+        <td style="padding:8px 10px;min-width:140px">
           <div style="display:flex;align-items:center;gap:6px">
             <div style="flex:1">
               <div style="font-size:11px;font-weight:600;color:${real>=100?'var(--teal)':real>0?'var(--amber)':'var(--text3)'}">${real}%</div>
               <div class="prog-rab"><div class="prog-rab-fill" style="width:${real}%"></div></div>
             </div>
-            ${canEditRAB?`<button class="btn btn-sm" style="padding:2px 7px;font-size:10px" onclick="openEditRAB('${p(r,'ID')}')">✏️</button>`:''}
+            ${canEditRAB?`<button class="btn btn-sm" style="padding:2px 7px;font-size:10px" onclick="openEditRAB('${p(r,'ID')}')" title="Edit item">✏️</button>
+            <button class="btn btn-sm" style="padding:2px 7px;font-size:10px;color:var(--red)" onclick="confirmDeleteItem('${p(r,'ID')}')" title="Hapus item">🗑</button>`:''}
           </div>
         </td>
       </tr>`;
@@ -1463,10 +1605,43 @@ async function saveProj(){
 }
 
 // RAB FORM
+// Helper: ambil kelompok unik untuk proyek aktif
+function getKelompokListForCurrent(){
+  const items=rabData.filter(r=>p(r,'Project_ID')===selectedId);
+  const set=new Set();
+  items.forEach(r=>{const g=p(r,'KelompokPekerjaan');if(g)set.add(g);});
+  return Array.from(set);
+}
+function refreshRABDatalist(){
+  const dl=document.getElementById('rab-kelompok-list');
+  if(!dl)return;
+  const list=getKelompokListForCurrent();
+  dl.innerHTML=list.map(k=>`<option value="${k.replace(/"/g,'&quot;')}">`).join('');
+}
 function openRABForm(){
   document.getElementById('rab-kelompok').value='';
+  document.getElementById('rab-kelompok').readOnly=false;
+  document.getElementById('rab-kelompok').style.background='';
+  document.getElementById('rab-kelompok-hint').style.display='none';
+  document.getElementById('rab-modal-title').textContent='Tambah Item RAB';
+  refreshRABDatalist();
   document.getElementById('rab-items-wrap').innerHTML='';
   rabRowCount=0;addRABRow();addRABRow();addRABRow();
+  document.getElementById('modal-rab').classList.add('open');
+}
+// Dipanggil dari tombol "+ Item" di header kelompok pada tabel RAB
+function openAddItemToKelompok(kelompokName){
+  const inp=document.getElementById('rab-kelompok');
+  inp.value=kelompokName;
+  inp.readOnly=true;
+  inp.style.background='var(--bg)';
+  const hint=document.getElementById('rab-kelompok-hint');
+  hint.textContent='Menambah item ke kelompok ini. Klik tombol kunci di kanan untuk ganti kelompok.';
+  hint.style.display='block';
+  document.getElementById('rab-modal-title').textContent='Tambah Item ke "'+kelompokName+'"';
+  refreshRABDatalist();
+  document.getElementById('rab-items-wrap').innerHTML='';
+  rabRowCount=0;addRABRow();addRABRow();
   document.getElementById('modal-rab').classList.add('open');
 }
 function addRABRow(){
@@ -1497,19 +1672,22 @@ async function saveRABItems(){
     const vol=document.getElementById('ri-vol-'+i)?.value;
     const sat=document.getElementById('ri-sat-'+i)?.value.trim();
     const harga=document.getElementById('ri-harga-'+i)?.value;
-    if(nama&&vol&&sat&&harga)items.push({nama,vol,sat,harga});
+    if(nama&&vol&&sat&&harga)items.push({nama,volume:vol,satuan:sat,harga});
   });
   if(!items.length){showToast('Tambahkan minimal 1 item RAB');return;}
   const btn=document.getElementById('save-rab-btn');btn.textContent='Menyimpan...';btn.disabled=true;
-  let saved=0;
-  for(const item of items){
-    try{
-      const r=await fetch(API,{method:'POST',body:JSON.stringify({action:'addRABItem',projectId:selectedId,kelompok,nama:item.nama,volume:item.vol,satuan:item.sat,harga:item.harga})});
-      const d=await r.json();if(d.status==='ok')saved++;
-    }catch(e){}
-  }
-  if(saved>0){closeModal('modal-rab');showToast(saved+' item RAB berhasil disimpan!');await loadProjects();switchDTab('rab',document.querySelectorAll('.dtab')[1]);}
-  else showToast('Gagal menyimpan RAB');
+  try{
+    const r=await fetch(API,{method:'POST',body:JSON.stringify({action:'addRABItemsBatch',projectId:selectedId,kelompok,items})});
+    const d=await r.json();
+    if(d.status==='ok'){
+      closeModal('modal-rab');
+      showToast(d.count+' item RAB berhasil disimpan!');
+      await loadProjects();
+      // Reopen the RAB tab
+      const dtabs=document.querySelectorAll('.dtab');
+      if(dtabs.length>1)switchDTab('rab',dtabs[1]);
+    }else{showToast('Gagal: '+d.message);}
+  }catch(e){showToast('Error: '+e.message);}
   btn.textContent='Simpan RAB';btn.disabled=false;
 }
 
@@ -1638,7 +1816,9 @@ async function saveStatus(){
       <div class="form-group"><label class="form-label">Nama item <span class="req">*</span></label>
         <input id="er-nama" class="form-input" placeholder="Nama pekerjaan"></div>
       <div class="form-group"><label class="form-label">Kelompok pekerjaan</label>
-        <input id="er-kelompok" class="form-input" placeholder="Contoh: Pekerjaan Dinding"></div>
+        <input id="er-kelompok" class="form-input" list="er-kelompok-list" placeholder="Pilih dari yang sudah ada atau ketik baru…" autocomplete="off">
+        <datalist id="er-kelompok-list"></datalist>
+      </div>
       <div class="form-row">
         <div class="form-group"><label class="form-label">Volume <span class="req">*</span></label>
           <input id="er-vol" class="form-input" type="number" placeholder="0"></div>
@@ -1656,9 +1836,97 @@ async function saveStatus(){
         ✓ Bobot akan dihitung ulang otomatis setelah disimpan.
       </div>
     </div>
+    <div class="modal-footer" style="justify-content:space-between">
+      <button class="btn" style="color:var(--red);border-color:var(--red)" id="del-er-btn" onclick="confirmDeleteItemFromModal()">Hapus item</button>
+      <div style="display:flex;gap:6px">
+        <button class="btn" onclick="closeModal('modal-edit-rab')">Batal</button>
+        <button class="btn btn-primary" id="save-edit-rab-btn" onclick="saveEditRAB()">Simpan</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL EDIT NAMA PROYEK & KLIEN -->
+<div class="modal-overlay" id="modal-edit-nama">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-header"><span class="modal-title">Edit Nama Proyek & Klien</span><button class="modal-close" onclick="closeModal('modal-edit-nama')">✕</button></div>
+    <div class="modal-body">
+      <div class="form-group"><label class="form-label">Nama proyek <span class="req">*</span></label>
+        <input id="enm-proyek" class="form-input" placeholder="Contoh: Villa Pak Andi"></div>
+      <div class="form-group"><label class="form-label">Nama klien</label>
+        <input id="enm-klien" class="form-input" placeholder="Contoh: Pak Andi"></div>
+    </div>
     <div class="modal-footer">
-      <button class="btn" onclick="closeModal('modal-edit-rab')">Batal</button>
-      <button class="btn btn-primary" id="save-edit-rab-btn" onclick="saveEditRAB()">Simpan</button>
+      <button class="btn" onclick="closeModal('modal-edit-nama')">Batal</button>
+      <button class="btn btn-primary" id="save-enm-btn" onclick="saveEditNama()">Simpan</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL EDIT TANGGAL MULAI & TARGET -->
+<div class="modal-overlay" id="modal-edit-tanggal">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-header"><span class="modal-title">Edit Tanggal Proyek</span><button class="modal-close" onclick="closeModal('modal-edit-tanggal')">✕</button></div>
+    <div class="modal-body">
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Tanggal mulai</label>
+          <input id="etg-mulai" class="form-input" type="date"></div>
+        <div class="form-group"><label class="form-label">Target selesai</label>
+          <input id="etg-target" class="form-input" type="date"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('modal-edit-tanggal')">Batal</button>
+      <button class="btn btn-primary" id="save-etg-btn" onclick="saveEditTanggal()">Simpan</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL RENAME KELOMPOK RAB -->
+<div class="modal-overlay" id="modal-rename-kelompok">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-header"><span class="modal-title">Rename Kelompok Pekerjaan</span><button class="modal-close" onclick="closeModal('modal-rename-kelompok')">✕</button></div>
+    <div class="modal-body">
+      <input type="hidden" id="rk-old">
+      <div style="font-size:11px;color:var(--text2);margin-bottom:10px;line-height:1.5">Nama kelompok lama: <strong id="rk-old-display"></strong><br>Semua item di kelompok ini akan ikut diperbarui.</div>
+      <div class="form-group"><label class="form-label">Nama kelompok baru <span class="req">*</span></label>
+        <input id="rk-new" class="form-input" placeholder="Contoh: Pekerjaan Lantai"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('modal-rename-kelompok')">Batal</button>
+      <button class="btn btn-primary" id="save-rk-btn" onclick="saveRenameKelompok()">Simpan</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL KONFIRMASI HAPUS KELOMPOK -->
+<div class="modal-overlay" id="modal-del-kelompok">
+  <div class="modal" style="max-width:380px">
+    <div class="modal-header"><span class="modal-title">Hapus Kelompok</span><button class="modal-close" onclick="closeModal('modal-del-kelompok')">✕</button></div>
+    <div class="modal-body">
+      <input type="hidden" id="dk-name">
+      <div style="font-size:13px;color:var(--text);line-height:1.6">Hapus kelompok <strong id="dk-display"></strong>?</div>
+      <div style="font-size:11px;color:var(--red);margin-top:6px;line-height:1.5">⚠ <span id="dk-count"></span> item di dalam kelompok ini akan ikut dihapus. Aksi ini tidak bisa di-undo.</div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('modal-del-kelompok')">Batal</button>
+      <button class="btn" style="background:var(--red);color:#fff;border-color:var(--red)" id="del-kelompok-btn" onclick="doDeleteKelompok()">Ya, hapus</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL KONFIRMASI HAPUS ITEM -->
+<div class="modal-overlay" id="modal-del-item">
+  <div class="modal" style="max-width:380px">
+    <div class="modal-header"><span class="modal-title">Hapus Item RAB</span><button class="modal-close" onclick="closeModal('modal-del-item')">✕</button></div>
+    <div class="modal-body">
+      <input type="hidden" id="di-id">
+      <div style="font-size:13px;color:var(--text);line-height:1.6">Hapus item <strong id="di-display"></strong>?</div>
+      <div style="font-size:11px;color:var(--text3);margin-top:6px">Bobot akan dihitung ulang otomatis. Aksi ini tidak bisa di-undo.</div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('modal-del-item')">Batal</button>
+      <button class="btn" style="background:var(--red);color:#fff;border-color:var(--red)" id="del-item-btn" onclick="doDeleteItem()">Ya, hapus</button>
     </div>
   </div>
 </div>

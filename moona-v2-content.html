@@ -261,24 +261,21 @@ textarea.form-input{resize:vertical;min-height:50px;line-height:1.5}
       <div class="card-header" style="justify-content:space-between">
         <span class="card-title">Tren performa</span>
         <div style="display:flex;gap:5px">
-          <select id="chart-platform" class="form-input" style="font-size:11px;padding:3px 8px;width:auto" onchange="renderChart()">
+          <select id="chart-platform" class="form-input" style="font-size:11px;padding:3px 8px;width:auto" onchange="repopulateChartMetric();renderChart();">
             <option>Instagram</option><option>TikTok</option><option>Facebook</option><option>Threads</option>
           </select>
           <select id="chart-metric" class="form-input" style="font-size:11px;padding:3px 8px;width:auto" onchange="renderChart()">
             <option value="Followers">Followers</option>
-            <option value="Reach">Reach</option>
-            <option value="Impressions">Impressions</option>
-            <option value="Engagement">Engagement</option>
           </select>
         </div>
       </div>
       <div style="padding:12px 14px"><canvas id="trend-chart" height="120"></canvas></div>
     </div>
     <div class="card">
-      <div class="card-header"><span class="card-title">Riwayat input metrik</span><span style="font-size:10px;color:var(--text3)">Klik baris untuk edit</span></div>
+      <div class="card-header"><span class="card-title">Riwayat input metrik</span><span style="font-size:10px;color:var(--text3)">Klik tombol ✏️ untuk edit</span></div>
       <div style="overflow-x:auto">
         <table>
-          <thead><tr><th>Tanggal</th><th>Platform</th><th class="td-right">Followers</th><th class="td-right">Reach</th><th class="td-right">Impression</th><th class="td-right">Engagement</th><th>Catatan</th><th></th></tr></thead>
+          <thead><tr><th>Tanggal</th><th>Platform</th><th>Detail metrik</th><th>Catatan</th><th></th></tr></thead>
           <tbody id="metric-history"></tbody>
         </table>
       </div>
@@ -378,29 +375,18 @@ textarea.form-input{resize:vertical;min-height:50px;line-height:1.5}
     <div class="modal-header"><span class="modal-title">Input Metrik Sosmed</span><button class="modal-close" onclick="closeModal('modal-metrics')">✕</button></div>
     <div class="modal-body">
       <div class="form-hint" style="background:var(--bg);padding:8px 10px;border-radius:var(--radius-sm);margin-bottom:12px;font-size:11px;color:var(--text2);line-height:1.5">
-        <strong>Input manual</strong> karena API Instagram/TikTok banyak batasan. Rekomendasi: input seminggu sekali dari insights asli.
+        <strong>Input manual</strong> — pilih platform dulu, kolom-kolom metriknya akan menyesuaikan otomatis. Rekomendasi: input seminggu sekali dari insights asli.
       </div>
       <div class="form-row">
         <div class="form-group"><label class="form-label">Tanggal <span class="req">*</span></label>
           <input id="mf-tanggal" class="form-input" type="date"></div>
         <div class="form-group"><label class="form-label">Platform <span class="req">*</span></label>
-          <select id="mf-platform" class="form-input">
+          <select id="mf-platform" class="form-input" onchange="renderMetricFields()">
             <option value="">Pilih</option>
             <option>Instagram</option><option>TikTok</option><option>Facebook</option><option>Threads</option>
           </select></div>
       </div>
-      <div class="form-row">
-        <div class="form-group"><label class="form-label">Followers</label>
-          <input id="mf-followers" class="form-input" type="number" placeholder="Jumlah followers"></div>
-        <div class="form-group"><label class="form-label">Reach</label>
-          <input id="mf-reach" class="form-input" type="number" placeholder="Total reach periode"></div>
-      </div>
-      <div class="form-row">
-        <div class="form-group"><label class="form-label">Impressions</label>
-          <input id="mf-impressions" class="form-input" type="number" placeholder="Total impressions"></div>
-        <div class="form-group"><label class="form-label">Engagement</label>
-          <input id="mf-engagement" class="form-input" type="number" placeholder="Total likes+comment+share"></div>
-      </div>
+      <div id="mf-fields-wrap"></div>
       <div class="form-group"><label class="form-label">Catatan</label>
         <textarea id="mf-catatan" class="form-input" placeholder="Opsional, misal periode, highlight, dll"></textarea></div>
     </div>
@@ -571,12 +557,28 @@ function editMetric(id) {
   var m = null;
   for (var i = 0; i < metrics.length; i++) { if (p(metrics[i],'ID') === id) { m = metrics[i]; break; } }
   if (!m) return;
-  document.getElementById('mf-tanggal').value = p(m,'Tanggal') ? new Date(p(m,'Tanggal')).toISOString().split('T')[0] : '';
-  document.getElementById('mf-platform').value = p(m,'Platform');
-  document.getElementById('mf-followers').value = p(m,'Followers');
-  document.getElementById('mf-reach').value = p(m,'Reach');
-  document.getElementById('mf-impressions').value = p(m,'Impressions');
-  document.getElementById('mf-engagement').value = p(m,'Engagement');
+  // Set tanggal — toleran terhadap berbagai format
+  var tgl = p(m,'Tanggal');
+  var iso = '';
+  if (tgl) {
+    var s = String(tgl).trim();
+    if (/^\d{4}-\d{2}-\d{2}/.test(s)) iso = s.substring(0,10);
+    else { var dd = new Date(s); if (!isNaN(dd)) iso = dd.toISOString().split('T')[0]; }
+  }
+  document.getElementById('mf-tanggal').value = iso;
+  var platform = p(m,'Platform');
+  document.getElementById('mf-platform').value = platform;
+  // Stash semua nilai metrik ke draft, supaya renderMetricFields() bisa restore-nya
+  var draft = {};
+  for (var k = 0; k < ALL_METRIC_FIELDS.length; k++) {
+    var fk = ALL_METRIC_FIELDS[k];
+    var v = p(m, fk);
+    if (v !== '' && v !== '0') draft[fk] = v;
+  }
+  window._metricEditDraft = draft;
+  renderMetricFields();
+  // Clear draft setelah di-restore biar tidak nempel ke entry berikutnya
+  window._metricEditDraft = null;
   document.getElementById('mf-catatan').value = p(m,'Catatan');
   document.getElementById('modal-metrics').classList.add('open');
 }
@@ -744,10 +746,58 @@ function renderCalendar() {
   document.getElementById('calendar-grid').innerHTML = html;
 }
 
-// METRICS TAB
+// ── PLATFORM CONFIG (per-platform fields) ──
+var PLATFORM_CONFIG = {
+  Instagram: {
+    color: '#E4405F',
+    primary: { field: 'Followers', label: 'Followers terbaru', mode: 'latest' },
+    fields: [
+      { field: 'Followers', label: 'Followers', mode: 'latest', placeholder: 'Jumlah followers' },
+      { field: 'Reach', label: 'Reach', mode: 'sum', placeholder: 'Total reach periode' },
+      { field: 'Impressions', label: 'Impressions', mode: 'sum', placeholder: 'Total impressions' },
+      { field: 'Engagement', label: 'Engagement', mode: 'sum', placeholder: 'Total likes+comment+share' }
+    ]
+  },
+  Threads: {
+    color: '#000',
+    primary: { field: 'Followers', label: 'Followers terbaru', mode: 'latest' },
+    fields: [
+      { field: 'Followers', label: 'Followers', mode: 'latest', placeholder: 'Jumlah followers' },
+      { field: 'Views', label: 'Views', mode: 'sum', placeholder: 'Total views periode' },
+      { field: 'Interactions', label: 'Interactions', mode: 'sum', placeholder: 'Total interactions' }
+    ]
+  },
+  TikTok: {
+    color: '#000',
+    primary: { field: 'PostViews', label: 'Post views (periode)', mode: 'sum' },
+    fields: [
+      { field: 'PostViews', label: 'Post views', mode: 'sum', placeholder: 'Total post views' },
+      { field: 'ProfileViews', label: 'Profile views', mode: 'sum', placeholder: 'Total profile views' },
+      { field: 'Likes', label: 'Likes', mode: 'sum', placeholder: 'Total likes' },
+      { field: 'Comments', label: 'Comments', mode: 'sum', placeholder: 'Total comments' },
+      { field: 'Shares', label: 'Shares', mode: 'sum', placeholder: 'Total shares' }
+    ]
+  },
+  Facebook: {
+    color: '#1877F2',
+    primary: { field: 'Audience', label: 'Audience terbaru', mode: 'latest' },
+    fields: [
+      { field: 'Audience', label: 'Audience', mode: 'latest', placeholder: 'Total followers/audience' },
+      { field: 'Views', label: 'Views', mode: 'sum', placeholder: 'Total views periode' },
+      { field: 'Engagement', label: 'Engagement', mode: 'sum', placeholder: 'Total engagement' },
+      { field: 'Messaging', label: 'Messaging', mode: 'sum', placeholder: 'Jumlah message/inbox' }
+    ]
+  }
+};
+var ALL_METRIC_FIELDS = ['Followers','Reach','Impressions','Engagement','Views','Interactions','PostViews','ProfileViews','Likes','Comments','Shares','Audience','Messaging'];
+function fieldKeyToParam(field){
+  // Frontend: "PostViews" → backend payload key "postViews"
+  return field.charAt(0).toLowerCase() + field.slice(1);
+}
+
+// METRICS TAB — KPI grid + history per platform
 function renderMetrics() {
   var platforms = ['Instagram','TikTok','Facebook','Threads'];
-  var colors = ['#E4405F','#333','#1877F2','#000'];
   var now = new Date();
   var cutoff = null;
   if (metricPeriod === '30') { cutoff = new Date(now); cutoff.setDate(cutoff.getDate() - 30); }
@@ -761,56 +811,96 @@ function renderMetrics() {
     if (!cutoff || d >= cutoff) inPeriod.push(metrics[i]);
   }
 
-  // Latest per platform (newest in period) + totals
+  // Per-platform KPI cards
   var gridHtml = '';
   for (var pi = 0; pi < platforms.length; pi++) {
     var plat = platforms[pi];
+    var conf = PLATFORM_CONFIG[plat];
     var platRows = [];
     for (var r = 0; r < inPeriod.length; r++) { if (p(inPeriod[r],'Platform') === plat) platRows.push(inPeriod[r]); }
     platRows.sort(function(a,b){ return toDate(p(b,'Tanggal')) - toDate(p(a,'Tanggal')); });
     var latest = platRows[0];
-    var totalReach = 0, totalImp = 0, totalEng = 0;
-    for (var rr = 0; rr < platRows.length; rr++) {
-      totalReach += parseFloat(p(platRows[rr],'Reach') || 0);
-      totalImp += parseFloat(p(platRows[rr],'Impressions') || 0);
-      totalEng += parseFloat(p(platRows[rr],'Engagement') || 0);
+
+    // Primary value
+    var primaryVal = '–';
+    if (latest && conf.primary) {
+      if (conf.primary.mode === 'latest') {
+        primaryVal = fmtNum(p(latest, conf.primary.field));
+      } else {
+        // sum
+        var s = 0;
+        for (var rr = 0; rr < platRows.length; rr++) s += parseFloat(p(platRows[rr], conf.primary.field) || 0);
+        primaryVal = fmtNum(s);
+      }
     }
+
     gridHtml += '<div class="metric-card">';
-    gridHtml += '<div class="metric-plat"><span class="metric-dot" style="background:' + colors[pi] + '"></span>' + plat + '</div>';
-    gridHtml += '<div style="font-size:10px;color:var(--text3)">Followers terbaru</div>';
-    gridHtml += '<div class="metric-val">' + (latest ? fmtNum(p(latest,'Followers')) : '–') + '</div>';
+    gridHtml += '<div class="metric-plat"><span class="metric-dot" style="background:' + conf.color + '"></span>' + plat + '</div>';
+    gridHtml += '<div style="font-size:10px;color:var(--text3)">' + conf.primary.label + '</div>';
+    gridHtml += '<div class="metric-val">' + primaryVal + '</div>';
     gridHtml += '<div class="metric-detail">';
-    gridHtml += '<div><div class="metric-detail-label">Reach</div><div class="metric-detail-val">' + fmtNum(totalReach) + '</div></div>';
-    gridHtml += '<div><div class="metric-detail-label">Impressions</div><div class="metric-detail-val">' + fmtNum(totalImp) + '</div></div>';
-    gridHtml += '<div><div class="metric-detail-label">Engagement</div><div class="metric-detail-val">' + fmtNum(totalEng) + '</div></div>';
-    gridHtml += '<div><div class="metric-detail-label">Input count</div><div class="metric-detail-val">' + platRows.length + '</div></div>';
+    // Show all fields in detail
+    for (var fi = 0; fi < conf.fields.length; fi++) {
+      var f = conf.fields[fi];
+      var val = 0;
+      if (f.mode === 'latest') {
+        val = latest ? parseFloat(p(latest, f.field) || 0) : 0;
+      } else {
+        for (var rs = 0; rs < platRows.length; rs++) val += parseFloat(p(platRows[rs], f.field) || 0);
+      }
+      gridHtml += '<div><div class="metric-detail-label">' + f.label + '</div><div class="metric-detail-val">' + fmtNum(val) + '</div></div>';
+    }
+    gridHtml += '<div><div class="metric-detail-label">Input</div><div class="metric-detail-val">' + platRows.length + '</div></div>';
     gridHtml += '</div></div>';
   }
   document.getElementById('metric-grid').innerHTML = gridHtml;
 
-  // History table
+  // History table — kompak: detail metrik per platform digabung
   var histHtml = '';
   if (!inPeriod.length) {
-    histHtml = '<tr><td colspan="7" class="empty">Belum ada input metrik.</td></tr>';
+    histHtml = '<tr><td colspan="5" class="empty">Belum ada input metrik.</td></tr>';
   } else {
     var sorted = inPeriod.slice().sort(function(a,b){ return toDate(p(b,'Tanggal')) - toDate(p(a,'Tanggal')); });
     for (var h = 0; h < sorted.length; h++) {
       var m = sorted[h];
-      var plat = p(m,'Platform');
+      var plat2 = p(m,'Platform');
+      var conf2 = PLATFORM_CONFIG[plat2] || { fields: [] };
+      var details = [];
+      for (var fk = 0; fk < conf2.fields.length; fk++) {
+        var fld = conf2.fields[fk];
+        var v = p(m, fld.field);
+        if (v !== '' && v !== '0') details.push(fld.label + ': <strong>' + fmtNum(v) + '</strong>');
+      }
       histHtml += '<tr>';
       histHtml += '<td>' + fmtDate(p(m,'Tanggal')) + '</td>';
-      histHtml += '<td><span class="cn-pill p-' + slug(plat) + '">' + plat + '</span></td>';
-      histHtml += '<td class="td-right">' + fmtNum(p(m,'Followers')) + '</td>';
-      histHtml += '<td class="td-right">' + fmtNum(p(m,'Reach')) + '</td>';
-      histHtml += '<td class="td-right">' + fmtNum(p(m,'Impressions')) + '</td>';
-      histHtml += '<td class="td-right">' + fmtNum(p(m,'Engagement')) + '</td>';
+      histHtml += '<td><span class="cn-pill p-' + slug(plat2) + '">' + plat2 + '</span></td>';
+      histHtml += '<td style="font-size:11px;color:var(--text2);line-height:1.6">' + (details.length ? details.join(' · ') : '<span style="color:var(--text3)">–</span>') + '</td>';
       histHtml += '<td style="color:var(--text3);font-size:10px">' + (p(m,'Catatan') || '-') + '</td>';
       histHtml += '<td><button class="btn-ghost" onclick="editMetric(\'' + p(m,'ID') + '\')">✏️</button></td>';
       histHtml += '</tr>';
     }
   }
   document.getElementById('metric-history').innerHTML = histHtml;
-  setTimeout(function(){ renderChart(); }, 50);
+  setTimeout(function(){ repopulateChartMetric(); renderChart(); }, 50);
+}
+
+// Repopulate chart metric dropdown based on selected chart-platform
+function repopulateChartMetric() {
+  var sel = document.getElementById('chart-platform');
+  var plat = sel ? sel.value : 'Instagram';
+  var conf = PLATFORM_CONFIG[plat] || PLATFORM_CONFIG.Instagram;
+  var ms = document.getElementById('chart-metric');
+  if (!ms) return;
+  var prev = ms.value;
+  var opts = '';
+  for (var i = 0; i < conf.fields.length; i++) {
+    opts += '<option value="' + conf.fields[i].field + '">' + conf.fields[i].label + '</option>';
+  }
+  ms.innerHTML = opts;
+  // Try to keep previous selection if still valid
+  var found = false;
+  for (var j = 0; j < ms.options.length; j++) if (ms.options[j].value === prev) { found = true; break; }
+  if (found) ms.value = prev;
 }
 
 // DETAIL
@@ -949,10 +1039,47 @@ function deleteContent() {
 }
 
 // METRIC
+// Render field input dinamis berdasarkan platform yang dipilih di form
+function renderMetricFields() {
+  var plat = document.getElementById('mf-platform').value;
+  var wrap = document.getElementById('mf-fields-wrap');
+  if (!plat) { wrap.innerHTML = '<div style="font-size:11px;color:var(--text3);padding:8px 0">Pilih platform dulu untuk menampilkan kolom metrik.</div>'; return; }
+  var conf = PLATFORM_CONFIG[plat];
+  if (!conf) { wrap.innerHTML = ''; return; }
+  // Render dalam 2 kolom (dua per row)
+  var html = '';
+  for (var i = 0; i < conf.fields.length; i += 2) {
+    html += '<div class="form-row">';
+    var f1 = conf.fields[i];
+    html += '<div class="form-group"><label class="form-label">' + f1.label + '</label>';
+    html += '<input id="mf-' + f1.field + '" class="form-input" type="number" placeholder="' + f1.placeholder + '"></div>';
+    if (conf.fields[i+1]) {
+      var f2 = conf.fields[i+1];
+      html += '<div class="form-group"><label class="form-label">' + f2.label + '</label>';
+      html += '<input id="mf-' + f2.field + '" class="form-input" type="number" placeholder="' + f2.placeholder + '"></div>';
+    } else {
+      html += '<div></div>';
+    }
+    html += '</div>';
+  }
+  wrap.innerHTML = html;
+  // Restore values jika ada draft atau editing
+  if (window._metricEditDraft) {
+    for (var k = 0; k < conf.fields.length; k++) {
+      var fk = conf.fields[k].field;
+      var el = document.getElementById('mf-' + fk);
+      if (el && window._metricEditDraft[fk] !== undefined) el.value = window._metricEditDraft[fk];
+    }
+  }
+}
+
 function openMetricsForm() {
   editingMetricId = null;
-  ['mf-platform','mf-followers','mf-reach','mf-impressions','mf-engagement','mf-catatan'].forEach(function(id){ document.getElementById(id).value = ''; });
+  window._metricEditDraft = null;
+  document.getElementById('mf-platform').value = '';
+  document.getElementById('mf-catatan').value = '';
   document.getElementById('mf-tanggal').value = new Date().toISOString().split('T')[0];
+  renderMetricFields();
   document.getElementById('modal-metrics').classList.add('open');
 }
 function saveMetric() {
@@ -962,16 +1089,27 @@ function saveMetric() {
   var btn = document.getElementById('save-metric-btn');
   btn.textContent = 'Menyimpan...'; btn.disabled = true;
   var isEdit = !!editingMetricId;
-  fetch(API, { method: 'POST', body: JSON.stringify({
+  // Build payload — semua field default '' / 0
+  var payload = {
     action: isEdit ? 'updateSosmedMetric' : 'addSosmedMetrics',
     id: editingMetricId,
     tanggal: tanggal, platform: platform,
-    followers: document.getElementById('mf-followers').value || '0',
-    reach: document.getElementById('mf-reach').value || '0',
-    impressions: document.getElementById('mf-impressions').value || '0',
-    engagement: document.getElementById('mf-engagement').value || '0',
     catatan: document.getElementById('mf-catatan').value.trim()
-  })})
+  };
+  // Set semua kemungkinan field jadi '' supaya backend kosongkan kolom yang tidak relevan
+  for (var i = 0; i < ALL_METRIC_FIELDS.length; i++) {
+    payload[fieldKeyToParam(ALL_METRIC_FIELDS[i])] = '';
+  }
+  // Override hanya field yang ada di form (sesuai platform)
+  var conf = PLATFORM_CONFIG[platform];
+  if (conf) {
+    for (var j = 0; j < conf.fields.length; j++) {
+      var f = conf.fields[j];
+      var el = document.getElementById('mf-' + f.field);
+      if (el) payload[fieldKeyToParam(f.field)] = el.value || '';
+    }
+  }
+  fetch(API, { method: 'POST', body: JSON.stringify(payload) })
   .then(function(r){return r.json();})
   .then(function(d){
     if (d.status === 'ok') { closeModal('modal-metrics'); showToast('Metrik tersimpan'); loadMetrics().then(function(){ renderMetrics(); }); }

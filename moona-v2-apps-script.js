@@ -17,9 +17,12 @@ function doPost(e) {
     if (action === 'updateProject') return updateProject(data);
     // RAB
     if (action === 'addRABItem') return addRABItem(data);
+    if (action === 'addRABItemsBatch') return addRABItemsBatch(data);
     if (action === 'updateRABRealisasi') return updateRABRealisasi(data);
     if (action === 'updateRABItem') return updateRABItem(data);
     if (action === 'deleteRABItem') return deleteRABItem(data);
+    if (action === 'renameRABKelompok') return renameRABKelompok(data);
+    if (action === 'deleteRABKelompok') return deleteRABKelompok(data);
     // LAPORAN
     if (action === 'addLaporanDesign') return addLaporanDesign(data);
     if (action === 'approvalLaporanDesign') return approvalLaporanDesign(data);
@@ -164,13 +167,13 @@ function response(data) {
 function login(params) {
   const rows = sheet('Users').getDataRange().getValues();
   for (let i = 1; i < rows.length; i++) {
-    const [id, nama, username, password, role, aktif] = rows[i];
+    const [id, nama, username, password, role, aktif, jobTitle] = rows[i];
     if (
       String(username).trim().toLowerCase() === String(params.username).trim().toLowerCase() &&
       String(password).trim() === String(params.password).trim() &&
       String(aktif).trim().toUpperCase() === 'TRUE'
     ) {
-      return response({ status: 'ok', id, nama, username, role });
+      return response({ status: 'ok', id, nama, username, role, jobTitle: String(jobTitle || '') });
     }
   }
   return response({ status: 'error', message: 'Login gagal' });
@@ -181,14 +184,14 @@ function getUsers() {
   if (rows.length <= 1) return response({ status: 'ok', data: [] });
   const users = rows.slice(1)
     .filter(r => String(r[5]).trim().toUpperCase() === 'TRUE')
-    .map(r => ({ id: String(r[0]), nama: String(r[1]), role: String(r[4]) }));
+    .map(r => ({ id: String(r[0]), nama: String(r[1]), role: String(r[4]), jobTitle: String(r[6] || '') }));
   return response({ status: 'ok', data: users });
 }
 
 function addUser(data) {
   const s = sheet('Users');
   const id = 'USR-' + nowId();
-  s.appendRow([id, data.nama, data.username, data.password, data.role, 'TRUE']);
+  s.appendRow([id, data.nama, data.username, data.password, data.role, 'TRUE', data.jobTitle || '']);
   return response({ status: 'ok', id });
 }
 
@@ -196,7 +199,9 @@ function addUser(data) {
 function addLead(data) {
   const s = sheet('Leads');
   const id = 'LEAD-' + nowId();
-  const tgl = nowStr();
+  // Tanggal masuk: kalau user kirim manual (format YYYY-MM-DD dari input date), pakai itu.
+  // Kalau tidak, default ke nowStr().
+  const tgl = (data.tglMasuk && String(data.tglMasuk).trim()) ? String(data.tglMasuk).trim() : nowStr();
   s.appendRow([
     id, data.nama, data.wa, data.alamat || '', data.sumber,
     data.layanan, data.proyek, data.tahap || 'Consultation',
@@ -257,7 +262,7 @@ function getProjects() {
 
 function updateProject(data) {
   const updates = { TanggalUpdate: nowStr() };
-  ['StatusProyek','PIC','TargetSelesai','CatatanProyek','NilaiKontrak','FolderFoto'].forEach(k => {
+  ['StatusProyek','PIC','TargetSelesai','CatatanProyek','NilaiKontrak','FolderFoto','NamaProyek','TanggalMulai','NamaKlien'].forEach(k => {
     if (data[k] !== undefined) updates[k] = data[k];
   });
   updateCols('Projects', data.id, updates);
@@ -275,6 +280,68 @@ function addRABItem(data) {
   // Recalculate all bobot for this project
   recalcRABBobot(data.projectId);
   return response({ status: 'ok', id, total });
+}
+
+// Batch insert multiple items in same kelompok — dipakai dari modal Tambah Item RAB
+// Payload: { projectId, kelompok, items: [{nama, volume, satuan, harga}, ...] }
+function addRABItemsBatch(data) {
+  if (!data.items || !Array.isArray(data.items) || data.items.length === 0) {
+    return response({ status: 'error', message: 'Tidak ada item untuk disimpan.' });
+  }
+  const s = sheet('RAB');
+  const ids = [];
+  const baseId = nowId();
+  data.items.forEach((it, idx) => {
+    const id = 'RAB-' + baseId + '-' + idx;
+    const vol = parseFloat(it.volume) || 0;
+    const harga = parseFloat(it.harga) || 0;
+    const total = vol * harga;
+    s.appendRow([
+      id, data.projectId, data.kelompok || '', it.nama,
+      it.volume, it.satuan, it.harga, total, 0, 0
+    ]);
+    ids.push(id);
+  });
+  recalcRABBobot(data.projectId);
+  return response({ status: 'ok', ids, count: ids.length });
+}
+
+// Rename semua item dengan kelompok lama → kelompok baru pada satu proyek
+function renameRABKelompok(data) {
+  const s = sheet('RAB');
+  const rows = s.getDataRange().getValues();
+  const headers = rows[0];
+  const pidCol = headers.indexOf('Project_ID');
+  const kelompokCol = headers.indexOf('KelompokPekerjaan');
+  if (pidCol < 0 || kelompokCol < 0) return response({ status: 'error', message: 'Kolom RAB tidak lengkap.' });
+  let count = 0;
+  for (let i = 1; i < rows.length; i++) {
+    if (String(rows[i][pidCol]) === String(data.projectId) && String(rows[i][kelompokCol]) === String(data.oldName)) {
+      s.getRange(i + 1, kelompokCol + 1).setValue(data.newName || '');
+      count++;
+    }
+  }
+  return response({ status: 'ok', count });
+}
+
+// Hapus seluruh item di satu kelompok pada satu proyek (sekaligus recalc bobot)
+function deleteRABKelompok(data) {
+  const s = sheet('RAB');
+  const rows = s.getDataRange().getValues();
+  const headers = rows[0];
+  const pidCol = headers.indexOf('Project_ID');
+  const kelompokCol = headers.indexOf('KelompokPekerjaan');
+  if (pidCol < 0 || kelompokCol < 0) return response({ status: 'error', message: 'Kolom RAB tidak lengkap.' });
+  // Iterate dari belakang biar deleteRow tidak shift index untuk row di atasnya
+  let count = 0;
+  for (let i = rows.length - 1; i >= 1; i--) {
+    if (String(rows[i][pidCol]) === String(data.projectId) && String(rows[i][kelompokCol]) === String(data.kelompok)) {
+      s.deleteRow(i + 1);
+      count++;
+    }
+  }
+  if (count > 0) recalcRABBobot(data.projectId);
+  return response({ status: 'ok', count });
 }
 
 
@@ -377,12 +444,12 @@ function addLaporanBuild(data) {
     id, data.projectId, nowStr(), data.pic,
     data.rabId || '', data.namaItem,
     data.progressItem, data.keterangan || '',
-    data.fotoUrl || '', data.jumlahTukang || '0'
+    data.fotoUrl || '', data.jumlahTukang || '0',
+    'Pending',                  // StatusApproval (K)
+    ''                          // CatatanApproval (L)
   ]);
-  // Update realisasi di RAB
-  if (data.rabId && data.progressItem) {
-    updateCol('RAB', data.rabId, 'Realisasi', data.progressItem);
-  }
+  // Update realisasi RAB hanya kalau auto-approve (untuk sekarang: tidak)
+  // Realisasi RAB di-sync saat approval, bukan saat submit
   return response({ status: 'ok', id });
 }
 
@@ -390,6 +457,57 @@ function getLaporanBuild(params) {
   const data = norm(sheet('LaporanBuild').getDataRange().getValues());
   const filtered = params.projectId ? data.filter(r => r['Project_ID'] === params.projectId) : data;
   return response({ status: 'ok', data: filtered });
+}
+
+function approvalLaporanBuild(data) {
+  const sh = sheet('LaporanBuild');
+  const rows = sh.getDataRange().getValues();
+  const headers = rows[0];
+  let target = null;
+  for (let i = 1; i < rows.length; i++) {
+    if (String(rows[i][0]) === String(data.id)) {
+      target = {};
+      headers.forEach((h, idx) => target[h] = rows[i][idx]);
+      break;
+    }
+  }
+  if (!target) return response({ status: 'error', message: 'Laporan tidak ditemukan' });
+
+  // Update status & catatan approval (kolom K & L di sheet)
+  updateCols('LaporanBuild', data.id, {
+    StatusApproval: data.status,
+    CatatanApproval: data.catatan || ''
+  });
+
+  // Kalau Approved, sync realisasi RAB
+  if (data.status === 'Approved' && target['RAB_ID']) {
+    const progress = parseFloat(target['ProgressItem'] || 0);
+    if (!isNaN(progress)) {
+      updateCol('RAB', String(target['RAB_ID']), 'Realisasi', progress);
+    }
+  }
+
+  return response({ status: 'ok' });
+}
+
+function addLaporanBuildBatch(data) {
+  // Multi-item submit per laporan
+  const items = Array.isArray(data.items) ? data.items : [];
+  const ids = [];
+  for (let i = 0; i < items.length; i++) {
+    const it = items[i];
+    const id = 'LPB-' + nowId() + '-' + i;
+    sheet('LaporanBuild').appendRow([
+      id, data.projectId, nowStr(), data.pic,
+      it.rabId || '', it.namaItem,
+      it.progressItem, it.keterangan || '',
+      data.fotoUrl || '', data.jumlahTukang || '0',
+      'Pending',                // StatusApproval (K)
+      ''                        // CatatanApproval (L)
+    ]);
+    ids.push(id);
+  }
+  return response({ status: 'ok', ids: ids });
 }
 
 // ── MEETINGS ──
@@ -522,11 +640,18 @@ function deleteContent(data) {
 }
 
 function updateSosmedMetric(data) {
+  // Schema sheet baru:
+  // ID | Tanggal | Platform | Followers | Reach | Impressions | Engagement | Catatan
+  // | Views | Interactions | PostViews | ProfileViews | Likes | Comments | Shares | Audience | Messaging
   updateCols('SosmedMetrics', data.id, {
     Tanggal: data.tanggal, Platform: data.platform,
-    Followers: data.followers, Reach: data.reach,
-    Impressions: data.impressions, Engagement: data.engagement,
-    Catatan: data.catatan || ''
+    Followers: data.followers || '', Reach: data.reach || '',
+    Impressions: data.impressions || '', Engagement: data.engagement || '',
+    Catatan: data.catatan || '',
+    Views: data.views || '', Interactions: data.interactions || '',
+    PostViews: data.postViews || '', ProfileViews: data.profileViews || '',
+    Likes: data.likes || '', Comments: data.comments || '', Shares: data.shares || '',
+    Audience: data.audience || '', Messaging: data.messaging || ''
   });
   return response({ status: 'ok' });
 }
@@ -542,10 +667,17 @@ function deleteSosmedMetric(data) {
 
 function addSosmedMetrics(data) {
   const id = 'SM-' + nowId();
+  // Urut kolom HARUS sama dengan header sheet:
+  // ID | Tanggal | Platform | Followers | Reach | Impressions | Engagement | Catatan
+  // | Views | Interactions | PostViews | ProfileViews | Likes | Comments | Shares | Audience | Messaging
   sheet('SosmedMetrics').appendRow([
     id, data.tanggal, data.platform,
-    data.followers, data.reach, data.impressions,
-    data.engagement, data.catatan || ''
+    data.followers || '', data.reach || '', data.impressions || '',
+    data.engagement || '', data.catatan || '',
+    data.views || '', data.interactions || '',
+    data.postViews || '', data.profileViews || '',
+    data.likes || '', data.comments || '', data.shares || '',
+    data.audience || '', data.messaging || ''
   ]);
   return response({ status: 'ok', id });
 }

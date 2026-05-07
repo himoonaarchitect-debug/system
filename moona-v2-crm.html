@@ -60,6 +60,14 @@ body{background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI
 .filter-sep{width:1px;height:20px;background:var(--border2);margin:0 2px}
 .search-box{flex:1;min-width:160px;padding:5px 10px;border:0.5px solid var(--border2);border-radius:var(--radius-sm);font-size:12px;color:var(--text);background:var(--card);outline:none;font-family:inherit}
 .search-box:focus{border-color:var(--coral-mid)}
+/* Date range — selalu tampil, tim sales drag tanggal sendiri */
+.date-range{display:none;align-items:center;gap:6px;background:var(--card);border:0.5px solid var(--border2);border-radius:20px;padding:4px 10px}
+.date-range.show{display:inline-flex}
+.date-range input{border:none;outline:none;font-size:11px;color:var(--text);background:transparent;font-family:inherit;width:118px;padding:2px 0;cursor:pointer}
+.date-range input::-webkit-calendar-picker-indicator{cursor:pointer;opacity:.55}
+.date-range .dr-sep{font-size:10px;color:var(--text3)}
+.date-range .dr-clear{cursor:pointer;color:var(--text3);font-size:14px;line-height:1;margin-left:2px;padding:0 3px;border-radius:50%}
+.date-range .dr-clear:hover{color:#fff;background:var(--red)}
 
 /* STATS */
 .stats{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:18px}
@@ -235,11 +243,13 @@ textarea.form-input{resize:vertical;min-height:64px;line-height:1.5}
 
   <!-- FILTER -->
   <div class="filter-bar">
-    <div class="filter-pill active" onclick="setFilter('periode','semua',this)">Semua</div>
-    <div class="filter-pill" onclick="setFilter('periode','minggu',this)">Minggu ini</div>
-    <div class="filter-pill" onclick="setFilter('periode','bulan',this)">Bulan ini</div>
-    <div class="filter-pill" onclick="setFilter('periode','kuartal',this)">Kuartal</div>
-    <div class="filter-pill" onclick="setFilter('periode','tahun',this)">Tahun ini</div>
+    <span style="font-size:11px;color:var(--text3);font-weight:500">Periode:</span>
+    <div class="date-range show" id="date-range">
+      <input type="date" id="dr-from" onchange="onCustomDateChange()">
+      <span class="dr-sep">→</span>
+      <input type="date" id="dr-to" onchange="onCustomDateChange()">
+      <span class="dr-clear" onclick="clearCustomDate()" title="Reset (tampilkan semua)">×</span>
+    </div>
     <div class="filter-sep"></div>
     <div class="filter-pill active" onclick="setFilter('layanan','',this)" id="fl-semua">Semua layanan</div>
     <div class="filter-pill" onclick="setFilter('layanan','Interior',this)">Interior</div>
@@ -379,7 +389,11 @@ textarea.form-input{resize:vertical;min-height:64px;line-height:1.5}
         <div class="form-group"><label class="form-label">Tipe proyek <span class="req">*</span></label>
           <select id="f-proyek" class="form-input"><option value="">Pilih tipe</option><option>Residensial</option><option>Komersial</option><option>Belum diketahui</option></select>
         </div>
+        <div class="form-group"><label class="form-label">Tanggal masuk lead <span class="req">*</span></label><input id="f-tglmasuk" class="form-input" type="date"></div>
+      </div>
+      <div class="form-row">
         <div class="form-group"><label class="form-label">Follow-up berikutnya <span class="req">*</span></label><input id="f-followup" class="form-input" type="date"></div>
+        <div></div>
       </div>
       <div class="form-group"><label class="form-label">Tahap saat ini <span class="req">*</span></label>
         <div class="stage-selector" id="f-stage-selector"><div style="font-size:11px;color:var(--text3)">Pilih tipe layanan dulu</div></div>
@@ -470,7 +484,8 @@ const COL_LABELS=['Konsultasi & Proposal','Site Visit','Desain','Kontrak','Eksek
 
 let leads=[],logs=[],users=[];
 let selectedId=null,selStage='',editStage='';
-let filterPeriode='semua',filterLayanan='';
+let filterLayanan='';
+let customFrom='',customTo='';
 
 // AUTH
 function getSession(){try{return JSON.parse(localStorage.getItem('moona_v2_session'));}catch(e){return null;}}
@@ -532,14 +547,26 @@ function cycledays(lead){
   try{const diff=Math.floor((end-new Date(masuk))/(1000*60*60*24));return diff>=0?diff:null;}catch(e){return null;}
 }
 function inPeriode(lead){
+  // Filter by date range only — kalau dua-duanya kosong, tampilkan semua
+  if(!customFrom&&!customTo)return true;
   const tgl=p(lead,'TanggalMasuk');if(!tgl)return true;
-  const d=new Date(tgl);const now=new Date();
-  if(filterPeriode==='semua')return true;
-  if(filterPeriode==='minggu'){const w=new Date(now);w.setDate(now.getDate()-7);return d>=w;}
-  if(filterPeriode==='bulan')return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear();
-  if(filterPeriode==='kuartal'){const q=Math.floor(now.getMonth()/3);return Math.floor(d.getMonth()/3)===q&&d.getFullYear()===now.getFullYear();}
-  if(filterPeriode==='tahun')return d.getFullYear()===now.getFullYear();
+  const d=parseAnyDate(tgl);if(!d)return true;
+  const dDay=new Date(d.getFullYear(),d.getMonth(),d.getDate());
+  if(customFrom){const f=new Date(customFrom);if(dDay<f)return false;}
+  if(customTo){const t=new Date(customTo);t.setHours(23,59,59,999);if(dDay>t)return false;}
   return true;
+}
+// Parser tanggal yang toleran terhadap format ISO (YYYY-MM-DD) atau locale id-ID (DD/MM/YYYY[, HH.MM.SS])
+function parseAnyDate(s){
+  if(!s)return null;
+  const str=String(s).trim();
+  // ISO
+  if(/^\d{4}-\d{2}-\d{2}/.test(str)){const d=new Date(str);return isNaN(d)?null:d;}
+  // id-ID locale: "7/5/2026, 12.34.56" atau "7/5/2026"
+  const m=str.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+  if(m){const d=new Date(parseInt(m[3]),parseInt(m[2])-1,parseInt(m[1]));return isNaN(d)?null:d;}
+  // fallback
+  const d=new Date(str);return isNaN(d)?null:d;
 }
 function filtered(){
   const q=document.getElementById('search-box').value.toLowerCase();
@@ -564,9 +591,19 @@ function switchTab(tab,el){
 
 // FILTER
 function setFilter(type,val,el){
-  if(type==='periode'){filterPeriode=val;document.querySelectorAll('.filter-pill').forEach(p=>{if(['Semua','Minggu ini','Bulan ini','Kuartal','Tahun ini'].includes(p.textContent))p.classList.remove('active')});}
   if(type==='layanan'){filterLayanan=val;document.querySelectorAll('.filter-pill').forEach(p=>{if(['Semua layanan','Interior','Eksterior'].includes(p.textContent))p.classList.remove('active')});}
   el.classList.add('active');
+  renderView();updateStats();
+}
+function onCustomDateChange(){
+  customFrom=document.getElementById('dr-from').value;
+  customTo=document.getElementById('dr-to').value;
+  renderView();updateStats();
+}
+function clearCustomDate(){
+  document.getElementById('dr-from').value='';
+  document.getElementById('dr-to').value='';
+  customFrom='';customTo='';
   renderView();updateStats();
 }
 function renderView(){renderPipeline();if(document.getElementById('tab-list').style.display!=='none')renderList();}
@@ -766,7 +803,9 @@ function updateStages(){renderStageOpts('f-stage-selector',document.getElementBy
 function openLeadForm(){
   ['f-nama','f-wa','f-alamat','f-nilai'].forEach(id=>document.getElementById(id).value='');
   ['f-sumber','f-layanan','f-proyek'].forEach(id=>document.getElementById(id).value='');
-  document.getElementById('f-followup').value=new Date().toISOString().split('T')[0];
+  const today=new Date().toISOString().split('T')[0];
+  document.getElementById('f-followup').value=today;
+  document.getElementById('f-tglmasuk').value=today;
   document.getElementById('f-stage-selector').innerHTML='<div style="font-size:11px;color:var(--text3)">Pilih tipe layanan dulu</div>';
   selStage='';
   document.getElementById('modal-lead').classList.add('open');
@@ -778,10 +817,11 @@ async function saveLead(){
   const layanan=document.getElementById('f-layanan').value;
   const proyek=document.getElementById('f-proyek').value;
   const followup=document.getElementById('f-followup').value;
-  if(!nama||!wa||!sumber||!layanan||!proyek||!selStage||!followup){showToast('Lengkapi semua field wajib');return;}
+  const tglMasuk=document.getElementById('f-tglmasuk').value;
+  if(!nama||!wa||!sumber||!layanan||!proyek||!selStage||!followup||!tglMasuk){showToast('Lengkapi semua field wajib');return;}
   const btn=document.getElementById('save-lead-btn');btn.textContent='Menyimpan...';btn.disabled=true;
   try{
-    const r=await fetch(API,{method:'POST',body:JSON.stringify({action:'addLead',nama,wa,alamat:document.getElementById('f-alamat').value.trim(),sumber,layanan,proyek,tahap:selStage,followup,nilai:document.getElementById('f-nilai').value||''})});
+    const r=await fetch(API,{method:'POST',body:JSON.stringify({action:'addLead',nama,wa,alamat:document.getElementById('f-alamat').value.trim(),sumber,layanan,proyek,tahap:selStage,followup,tglMasuk,nilai:document.getElementById('f-nilai').value||''})});
     const d=await r.json();
     if(d.status==='ok'){closeModal('modal-lead');showToast('Lead berhasil disimpan!');await loadLeads();}
     else showToast('Gagal: '+d.message);
