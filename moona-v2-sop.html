@@ -192,6 +192,16 @@ textarea.form-input{resize:vertical;min-height:50px;line-height:1.5}
     <div class="fpill" onclick="setKategori('DATA',this)">DATA</div>
   </div>
 
+  <!-- Sub-kategori bar — muncul saat user pilih PIRANTI atau PANDUAN -->
+  <div class="filter-bar" id="sub-kat-bar" style="margin-top:-6px;display:none">
+    <span style="font-size:11px;color:var(--text3);margin-right:4px" id="sub-kat-label">Sub:</span>
+    <div class="fpill active" onclick="setSubKategori('',this)">Semua</div>
+    <div class="fpill sub-piranti" onclick="setSubKategori('Form',this)" style="display:none">Piranti Form</div>
+    <div class="fpill sub-piranti" onclick="setSubKategori('Tools',this)" style="display:none">Piranti Tools</div>
+    <div class="fpill sub-panduan" onclick="setSubKategori('SOP',this)" style="display:none">SOP</div>
+    <div class="fpill sub-panduan" onclick="setSubKategori('IK',this)" style="display:none">IK</div>
+  </div>
+
   <div class="filter-bar" style="margin-top:-6px">
     <span style="font-size:11px;color:var(--text3);margin-right:4px">Filter:</span>
     <div class="fpill" id="fd-all" onclick="toggleDivisiFilter('',this)" style="background:var(--text);color:#fff;border-color:var(--text)">Semua dept</div>
@@ -217,7 +227,7 @@ textarea.form-input{resize:vertical;min-height:50px;line-height:1.5}
         <input id="df-judul" class="form-input" placeholder="Contoh: SOP Onboarding Klien"></div>
       <div class="form-row">
         <div class="form-group"><label class="form-label">Kategori <span class="req">*</span></label>
-          <select id="df-kategori" class="form-input" onchange="toggleDivisi()">
+          <select id="df-kategori" class="form-input" onchange="onKategoriChange()">
             <option value="">Pilih kategori</option>
             <option>PRINSIP</option>
             <option>PIRANTI</option>
@@ -228,6 +238,12 @@ textarea.form-input{resize:vertical;min-height:50px;line-height:1.5}
             <option>RITME</option>
             <option>DATA</option>
           </select></div>
+        <div class="form-group" id="df-subkat-wrap" style="display:none"><label class="form-label">Sub-kategori <span class="req">*</span></label>
+          <select id="df-subkat" class="form-input">
+            <option value="">Pilih sub-kategori</option>
+          </select></div>
+      </div>
+      <div class="form-row">
         <div class="form-group"><label class="form-label">Departemen yang menggunakan (centang semua yang relevan)</label>
           <div style="display:flex;gap:8px;flex-wrap:wrap;padding:8px;background:var(--bg);border-radius:var(--radius-sm)">
             <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer"><input type="checkbox" class="df-dept" value="Perusahaan"> Perusahaan</label>
@@ -277,7 +293,13 @@ textarea.form-input{resize:vertical;min-height:50px;line-height:1.5}
 <script>
 var API = 'https://script.google.com/macros/s/AKfycbwkjBr_opT5V05KY6fQG3Aa2i7URgxpzX7a1ga3mBFKS3CeMbCvyLzdkNpHIhgg4Xxncw/exec';
 var docs = [];
-var filterKategori = '', filterDivisi = [], currentTab = 'published', editingId = null, approveId = null;
+var filterKategori = '', filterSubKategori = '', filterDivisi = [], currentTab = 'published', editingId = null, approveId = null;
+
+// Mapping sub-kategori per kategori utama
+const SUB_KATEGORI = {
+  'PIRANTI': ['Form','Tools'],
+  'PANDUAN': ['SOP','IK']
+};
 
 function getSession() { try { return JSON.parse(localStorage.getItem('moona_v2_session')); } catch(e) { return null; } }
 function logout() { localStorage.removeItem('moona_v2_session'); location.href = 'moona-v2-login.html'; }
@@ -349,10 +371,59 @@ function switchTab(t, el) {
 }
 function setKategori(v, el) {
   filterKategori = v;
+  filterSubKategori = ''; // reset sub when main kategori berubah
+  var pills = el.parentNode.querySelectorAll('.fpill');
+  for (var i = 0; i < pills.length; i++) pills[i].classList.remove('active');
+  el.classList.add('active');
+  // Toggle sub-kategori bar
+  var subBar = document.getElementById('sub-kat-bar');
+  var subPiranti = document.querySelectorAll('.sub-piranti');
+  var subPanduan = document.querySelectorAll('.sub-panduan');
+  // Hide all sub-pills first, dan reset active state
+  var allSubPills = subBar.querySelectorAll('.fpill');
+  for (var s = 0; s < allSubPills.length; s++) allSubPills[s].classList.remove('active');
+  if (allSubPills.length) allSubPills[0].classList.add('active'); // "Semua" sub default
+  for (var sp = 0; sp < subPiranti.length; sp++) subPiranti[sp].style.display = 'none';
+  for (var sd = 0; sd < subPanduan.length; sd++) subPanduan[sd].style.display = 'none';
+  if (v === 'PIRANTI') {
+    document.getElementById('sub-kat-label').textContent = 'Sub Piranti:';
+    for (var sp2 = 0; sp2 < subPiranti.length; sp2++) subPiranti[sp2].style.display = 'inline-block';
+    subBar.style.display = 'flex';
+  } else if (v === 'PANDUAN') {
+    document.getElementById('sub-kat-label').textContent = 'Sub Panduan:';
+    for (var sd2 = 0; sd2 < subPanduan.length; sd2++) subPanduan[sd2].style.display = 'inline-block';
+    subBar.style.display = 'flex';
+  } else {
+    subBar.style.display = 'none';
+  }
+  renderDocs();
+}
+
+function setSubKategori(v, el) {
+  filterSubKategori = v;
   var pills = el.parentNode.querySelectorAll('.fpill');
   for (var i = 0; i < pills.length; i++) pills[i].classList.remove('active');
   el.classList.add('active');
   renderDocs();
+}
+
+// Saat user pilih Kategori di form, populate dropdown sub-kategori jika perlu
+function onKategoriChange() {
+  var kat = document.getElementById('df-kategori').value;
+  var wrap = document.getElementById('df-subkat-wrap');
+  var sel = document.getElementById('df-subkat');
+  var subs = SUB_KATEGORI[kat];
+  if (subs && subs.length) {
+    var html = '<option value="">Pilih sub-kategori</option>';
+    for (var i = 0; i < subs.length; i++) html += '<option value="'+subs[i]+'">'+(kat==='PIRANTI'?'Piranti '+subs[i]:subs[i])+'</option>';
+    sel.innerHTML = html;
+    wrap.style.display = '';
+  } else {
+    sel.innerHTML = '<option value="">–</option>';
+    sel.value = '';
+    wrap.style.display = 'none';
+  }
+  toggleDivisi();
 }
 
 
@@ -419,6 +490,7 @@ function renderDocs() {
     if (currentTab === 'pending' && st !== 'Pending Review') continue;
     // Kategori filter
     if (filterKategori && p(d,'Kategori') !== filterKategori) continue;
+    if (filterSubKategori && p(d,'SubKategori') !== filterSubKategori) continue;
     // Divisi/dept filter (multi-select - doc must have at least one matching dept)
     if (filterDivisi.length > 0) {
       var divisiStr = p(d,'Divisi') || '';
@@ -444,6 +516,7 @@ function renderDocs() {
     var d = sorted[k];
     var id = p(d,'ID');
     var kat = p(d,'Kategori') || '-';
+    var subKat = p(d,'SubKategori');
     var st = p(d,'StatusApproval') || 'Pending Review';
     var tags = (p(d,'Tag') || '').split(',').map(function(x){return x.trim();}).filter(function(x){return x;});
     html += '<div class="doc-card">';
@@ -453,6 +526,10 @@ function renderDocs() {
     html += '</div>';
     html += '<div class="dc-meta">';
     html += '<span class="pill k-' + slug(kat) + '">' + kat + '</span>';
+    if (subKat) {
+      var subLabel = (kat === 'PIRANTI' ? 'Piranti ' + subKat : subKat);
+      html += '<span class="pill k-' + slug(kat) + '" style="opacity:.75;font-size:9px">' + subLabel + '</span>';
+    }
     if (p(d,'Divisi')) {
       var depts2 = p(d,'Divisi').split(',').map(function(x){return x.trim();}).filter(function(x){return x;});
       for (var dp = 0; dp < depts2.length; dp++) html += '<span class="pill d-divisi">' + depts2[dp] + '</span>';
@@ -471,12 +548,27 @@ function renderDocs() {
       html += '<button class="btn btn-sm btn-green" onclick="openApproval(\'' + id + '\')">Review</button>';
     }
     html += '<button class="btn btn-sm" onclick="editDoc(\'' + id + '\')">Edit</button>';
+    if (canApprove()) {
+      html += '<button class="btn btn-sm" style="color:var(--red);border-color:var(--red);padding:3px 8px" onclick="quickDeleteDoc(\'' + id + '\',\'' + (p(d,'Judul')||'').replace(/'/g,"\\'") + '\')" title="Hapus dokumen">🗑</button>';
+    }
     html += '<span style="margin-left:auto;font-size:9px;color:var(--text3)">' + p(d,'Uploader') + ' · ' + fmtDate(p(d,'TanggalUpload')) + '</span>';
     html += '</div>';
     html += '</div>';
   }
   html += '</div>';
   el.innerHTML = html;
+}
+
+// Quick delete dari card — tanpa harus buka modal edit dulu
+function quickDeleteDoc(id, judul) {
+  if (!confirm('Hapus dokumen "' + (judul || '(tanpa judul)') + '"?\n\nAksi ini tidak bisa di-undo.')) return;
+  fetch(API, { method: 'POST', body: JSON.stringify({ action: 'deleteSOP', id: id }) })
+    .then(function(r){return r.json();})
+    .then(function(d){
+      if (d.status === 'ok') { showToast('Dokumen dihapus'); loadDocs(); }
+      else showToast('Gagal: ' + (d.message || 'unknown'));
+    })
+    .catch(function(e){ showToast('Error: ' + e.message); });
 }
 
 // FORM
@@ -486,6 +578,8 @@ function openForm() {
   ['df-judul','df-kategori','df-deskripsi','df-link','df-tag'].forEach(function(id){ document.getElementById(id).value = ''; });
   var deptEls = document.querySelectorAll('.df-dept'); for (var de=0;de<deptEls.length;de++) deptEls[de].checked=false;
   document.getElementById('df-versi').value = '1.0';
+  document.getElementById('df-subkat-wrap').style.display = 'none';
+  document.getElementById('df-subkat').innerHTML = '<option value="">–</option>';
   document.getElementById('del-btn').style.display = 'none';
   document.getElementById('modal-form').classList.add('open');
 }
@@ -498,6 +592,9 @@ function editDoc(id) {
   document.getElementById('form-title').textContent = 'Edit Dokumen';
   document.getElementById('df-judul').value = p(d,'Judul');
   document.getElementById('df-kategori').value = p(d,'Kategori');
+  // Render sub-kategori dropdown sesuai kategori, lalu set value
+  onKategoriChange();
+  if (p(d,'SubKategori')) document.getElementById('df-subkat').value = p(d,'SubKategori');
   document.getElementById('df-deskripsi').value = p(d,'Deskripsi');
   document.getElementById('df-link').value = p(d,'LinkDokumen');
   document.getElementById('df-tag').value = p(d,'Tag');
@@ -512,13 +609,16 @@ function editDoc(id) {
 function saveDoc() {
   var judul = document.getElementById('df-judul').value.trim();
   var kategori = document.getElementById('df-kategori').value;
+  var subKategori = document.getElementById('df-subkat').value;
   var link = document.getElementById('df-link').value.trim();
   if (!judul || !kategori || !link) { showToast('Lengkapi field wajib'); return; }
+  // Validasi sub-kategori wajib kalau kategori PIRANTI atau PANDUAN
+  if (SUB_KATEGORI[kategori] && !subKategori) { showToast('Sub-kategori wajib untuk ' + kategori); return; }
   var btn = document.getElementById('save-btn');
   btn.textContent = 'Menyimpan...'; btn.disabled = true;
   var payload = {
     action: editingId ? 'updateSOP' : 'addSOP',
-    judul: judul, kategori: kategori,
+    judul: judul, kategori: kategori, subKategori: subKategori || '',
     divisi: (function(){ var cks=document.querySelectorAll('.df-dept:checked'); var v=[]; for(var i=0;i<cks.length;i++) v.push(cks[i].value); return v.join(', '); })(),
     deskripsi: document.getElementById('df-deskripsi').value.trim(),
     linkDokumen: link,

@@ -742,11 +742,15 @@ function getClientFiles(params) {
 // ── SOP & DOKUMEN ──
 function addSOP(data) {
   const id = 'SOP-' + nowId();
+  // Schema sheet 'SOP':
+  // ID | Judul | Kategori | Divisi | Deskripsi | LinkDokumen | Uploader | TanggalUpload
+  // | Tag | Versi | StatusApproval | CatatanApproval | ApprovedBy | TanggalApproval | SubKategori
   sheet('SOP').appendRow([
     id, data.judul, data.kategori, data.divisi || '',
     data.deskripsi || '', data.linkDokumen, data.uploader,
     nowStr(), data.tag || '', data.versi || '1.0',
-    'Pending Review', '', '', ''
+    'Pending Review', '', '', '',
+    data.subKategori || ''
   ]);
   return response({ status: 'ok', id });
 }
@@ -759,7 +763,8 @@ function updateSOP(data) {
   updateCols('SOP', data.id, {
     Judul: data.judul, Kategori: data.kategori, Divisi: data.divisi || '',
     Deskripsi: data.deskripsi || '', LinkDokumen: data.linkDokumen,
-    Tag: data.tag || '', Versi: data.versi || '1.0'
+    Tag: data.tag || '', Versi: data.versi || '1.0',
+    SubKategori: data.subKategori || ''
   });
   return response({ status: 'ok' });
 }
