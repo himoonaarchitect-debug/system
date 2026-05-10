@@ -790,11 +790,13 @@ function renderStageOpts(containerId,layanan,cur){
   if(!layanan){el.innerHTML='<div style="font-size:11px;color:var(--text3)">Pilih tipe layanan dulu</div>';return;}
   if(containerId==='f-stage-selector')selStage=cur||pipe[0];
   else editStage=cur||pipe[0];
-  el.innerHTML=pipe.map(s=>`<div class="stage-opt ${s===(containerId==='f-stage-selector'?selStage:editStage)?'active':''}" onclick="selectStage('${containerId}','${s}')">${s}</div>`).join('');
+  const active=containerId==='f-stage-selector'?selStage:editStage;
+  el.innerHTML=pipe.map(s=>`<div class="stage-opt ${s===active?'active':''}" data-stage="${s.replace(/"/g,'&quot;')}" onclick="selectStage('${containerId}',this)">${s}</div>`).join('');
 }
-function selectStage(cid,s){
+function selectStage(cid,elClicked){
+  const s=elClicked.getAttribute('data-stage');
   document.querySelectorAll(`#${cid} .stage-opt`).forEach(e=>e.classList.remove('active'));
-  document.querySelector(`#${cid} .stage-opt[onclick*="${s}"]`)?.classList.add('active');
+  elClicked.classList.add('active');
   if(cid==='f-stage-selector')selStage=s;else editStage=s;
 }
 function updateStages(){renderStageOpts('f-stage-selector',document.getElementById('f-layanan').value,'');}

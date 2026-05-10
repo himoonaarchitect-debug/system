@@ -547,7 +547,13 @@ function renderDocs() {
     if (canApprove() && st === 'Pending Review') {
       html += '<button class="btn btn-sm btn-green" onclick="openApproval(\'' + id + '\')">Review</button>';
     }
-    html += '<button class="btn btn-sm" onclick="editDoc(\'' + id + '\')">Edit</button>';
+    // Tombol Edit dikunci kalau dokumen sudah Published (di-approve direktur).
+    // Untuk Published, hanya Owner yang masih punya akses Hapus (di tombol terpisah di bawah).
+    if (st !== 'Published') {
+      html += '<button class="btn btn-sm" onclick="editDoc(\'' + id + '\')">Edit</button>';
+    } else {
+      html += '<span class="btn btn-sm" style="opacity:.5;cursor:not-allowed;background:transparent" title="Dokumen sudah disahkan, tidak bisa diedit">🔒 Locked</span>';
+    }
     if (canApprove()) {
       html += '<button class="btn btn-sm" style="color:var(--red);border-color:var(--red);padding:3px 8px" onclick="quickDeleteDoc(\'' + id + '\',\'' + (p(d,'Judul')||'').replace(/'/g,"\\'") + '\')" title="Hapus dokumen">🗑</button>';
     }
