@@ -97,6 +97,8 @@ body{background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI
 
 .action-item{display:flex;align-items:flex-start;gap:8px;padding:9px 0;border-bottom:0.5px solid var(--border)}
 .action-item:last-child{border-bottom:none}
+.action-item.highlight{background:var(--amber-bg);box-shadow:inset 0 0 0 2px var(--amber);border-radius:6px;padding:9px 8px;animation:highlight-pulse 2.5s ease-out 1}
+@keyframes highlight-pulse{0%{background:var(--amber);box-shadow:inset 0 0 0 2px var(--amber)}50%{background:var(--amber-bg)}100%{background:var(--amber-bg)}}
 .action-chk{width:15px;height:15px;border-radius:3px;border:1.5px solid var(--border2);flex-shrink:0;cursor:pointer;margin-top:1px;transition:all .1s}
 .action-chk.done{background:var(--teal);border-color:var(--teal);position:relative}
 .action-chk.done::after{content:'✓';color:#fff;font-size:10px;position:absolute;top:-2px;left:2px}
@@ -355,9 +357,29 @@ function fmtDate(s) { if (!s) return '-'; try { return new Date(s).toLocaleDateS
 function setTipe(t, el) { filterTipe = t; var pills = document.querySelectorAll('.fpill'); for (var i = 0; i < pills.length; i++) pills[i].classList.remove('active'); el.classList.add('active'); renderList(); }
 
 window.onload = function() {
-  Promise.all([loadMeetings(), loadActions(), loadProjects(), loadUsers()]);
+  Promise.all([loadMeetings(), loadActions(), loadProjects(), loadUsers()]).then(function(){
+    handleDeepLink();
+  });
   document.getElementById('mf-tanggal').value = new Date().toISOString().split('T')[0];
 };
+// Buka meeting tertentu jika URL ada ?action=<actionId>, lalu scroll & highlight action item
+function handleDeepLink() {
+  var qp = new URLSearchParams(location.search);
+  var actionId = qp.get('action');
+  if (!actionId) return;
+  // Cari action item-nya untuk dapat Meeting_ID
+  var target = null;
+  for (var i = 0; i < actions.length; i++) { if (p(actions[i],'ID') === actionId) { target = actions[i]; break; } }
+  if (!target) return;
+  var mtgId = p(target,'Meeting_ID');
+  if (!mtgId) return;
+  selectMtg(mtgId);
+  // Setelah render, scroll + highlight action item
+  setTimeout(function(){
+    var el = document.querySelector('[data-action-id="' + actionId + '"]');
+    if (el) { el.classList.add('highlight'); el.scrollIntoView({behavior:'smooth',block:'center'}); }
+  }, 250);
+}
 
 function loadMeetings() {
   return fetch(API + '?action=getMeetings').then(function(r){return r.json();}).then(function(d){
@@ -541,7 +563,7 @@ function selectMtg(id) {
       var isDone = p(act,'Status') === 'Done';
       var dl = p(act,'Deadline');
       var isLate = dl && new Date(dl) < today && !isDone;
-      html += '<div class="action-item">';
+      html += '<div class="action-item" data-action-id="' + p(act,'ID') + '">';
       html += '<div class="action-chk ' + (isDone ? 'done' : '') + '" onclick="toggleAction(\'' + p(act,'ID') + '\',' + !isDone + ')"></div>';
       html += '<div class="action-body">';
       html += '<div class="action-desc ' + (isDone ? 'done' : '') + '">' + p(act,'Deskripsi') + '</div>';

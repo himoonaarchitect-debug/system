@@ -1368,6 +1368,10 @@ async function doDeleteItem(){
 window.onload=async()=>{
   document.getElementById('pf-mulai').value=new Date().toISOString().split('T')[0];
   await Promise.all([loadProjects(),loadUsers()]);
+  // Deep-link: kalau URL ada ?project=<id>, langsung buka detail proyek tsb
+  const qp=new URLSearchParams(location.search);
+  const pid=qp.get('project');
+  if(pid&&projects.find(x=>p(x,'ID')===pid))selectProj(pid);
 };
 
 async function loadProjects(){

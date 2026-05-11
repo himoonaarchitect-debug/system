@@ -586,7 +586,16 @@ function editMetric(id) {
 window.onload = function() {
   document.getElementById('cf-tanggal').value = new Date().toISOString().split('T')[0];
   document.getElementById('mf-tanggal').value = new Date().toISOString().split('T')[0];
-  Promise.all([loadContents(), loadMetrics(), loadUsers()]);
+  Promise.all([loadContents(), loadMetrics(), loadUsers()]).then(function(){
+    // Deep-link: kalau URL ada ?content=<id>, langsung buka form edit konten tsb
+    var qp = new URLSearchParams(location.search);
+    var cid = qp.get('content');
+    if (cid) {
+      var found = null;
+      for (var i = 0; i < contents.length; i++) { if (p(contents[i],'ID') === cid) { found = contents[i]; break; } }
+      if (found) setTimeout(function(){ openContentForm(cid); }, 150);
+    }
+  });
 };
 
 function loadContents() {

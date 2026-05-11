@@ -300,6 +300,7 @@ function buildMyActionItems(staffName, actions, tasks, contents, meetings, proje
     if(p(a,'Status')==='Done')return;
     if(!eq(p(a,'PIC')))return;
     const mtg=meetings.find(m=>p(m,'ID')===p(a,'Meeting_ID'));
+    const actId=p(a,'ID');
     out.push({
       source:'Meeting',
       sourceColor:'var(--purple)',
@@ -307,7 +308,7 @@ function buildMyActionItems(staffName, actions, tasks, contents, meetings, proje
       title:p(a,'Deskripsi')||'(tanpa deskripsi)',
       sub:mtg?p(mtg,'Judul'):'',
       deadline:p(a,'Deadline'),
-      link:'moona-v2-meetings.html'
+      link:'moona-v2-meetings.html'+(actId?'?action='+encodeURIComponent(actId):'')
     });
   });
   // 2) Project Management tasks (TaskAssign sudah pre-filtered ke staffNama oleh API)
@@ -315,6 +316,7 @@ function buildMyActionItems(staffName, actions, tasks, contents, meetings, proje
     const st=p(t,'Status');
     if(st==='Done'||st==='Selesai')return;
     const pr=projects.find(x=>p(x,'ID')===p(t,'Project_ID'));
+    const projId=p(t,'Project_ID');
     out.push({
       source:'Project',
       sourceColor:'var(--teal)',
@@ -322,7 +324,7 @@ function buildMyActionItems(staffName, actions, tasks, contents, meetings, proje
       title:(pr?p(pr,'NamaProyek'):'Project')+(p(t,'FaseDesign')?' — '+p(t,'FaseDesign'):''),
       sub:'Status: '+(st||'Belum mulai'),
       deadline:p(t,'TanggalSelesai'),
-      link:'moona-v2-projects.html'
+      link:'moona-v2-projects.html'+(projId?'?project='+encodeURIComponent(projId):'')
     });
   });
   // 3) Content plan yang di-PIC ke user dan belum 'Posted'
@@ -330,6 +332,7 @@ function buildMyActionItems(staffName, actions, tasks, contents, meetings, proje
     const st=p(c,'StatusKonten');
     if(st==='Posted'||st==='Done')return;
     if(!eq(p(c,'PIC')))return;
+    const cId=p(c,'ID');
     out.push({
       source:'Konten',
       sourceColor:'var(--coral)',
@@ -337,7 +340,7 @@ function buildMyActionItems(staffName, actions, tasks, contents, meetings, proje
       title:p(c,'Judul')||'(konten tanpa judul)',
       sub:(p(c,'Platform')||'')+(st?' · '+st:''),
       deadline:p(c,'Tanggal'),
-      link:'moona-v2-content.html'
+      link:'moona-v2-content.html'+(cId?'?content='+encodeURIComponent(cId):'')
     });
   });
   // Sort: terlambat dulu, lalu deadline terdekat, lalu yang tanpa deadline
