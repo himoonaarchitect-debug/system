@@ -335,6 +335,7 @@ textarea.form-input{resize:vertical;min-height:64px;line-height:1.5}
       <div style="display:flex;gap:6px;flex-wrap:wrap">
         <button class="btn btn-sm" onclick="openFollowUpForm()">+ Follow-up</button>
         <button class="btn btn-sm" style="background:var(--purple);color:#fff;border-color:var(--purple)" onclick="openMeetingFromCRM()">+ Meeting</button>
+        <button class="btn btn-sm" id="dp-edit-btn" onclick="openEditLead()" style="display:none">Edit data</button>
         <button class="btn btn-sm" onclick="openStageForm()">Ubah tahap</button>
         <button class="btn btn-sm" onclick="closeDetail()">✕</button>
       </div>
@@ -425,6 +426,43 @@ textarea.form-input{resize:vertical;min-height:64px;line-height:1.5}
     <div class="modal-footer">
       <button class="btn" onclick="closeModal('modal-fu')">Batal</button>
       <button class="btn btn-primary" id="save-fu-btn" onclick="saveFollowUp()">Simpan</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL EDIT DATA KLIEN -->
+<div class="modal-overlay" id="modal-edit-lead">
+  <div class="modal">
+    <div class="modal-header"><span class="modal-title">Edit Data Klien</span><button class="modal-close" onclick="closeModal('modal-edit-lead')">✕</button></div>
+    <div class="modal-body">
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Nama klien / proyek <span class="req">*</span></label><input id="e-nama" class="form-input" placeholder="Nama klien / proyek"></div>
+        <div class="form-group"><label class="form-label">No. WhatsApp <span class="req">*</span></label><input id="e-wa" class="form-input" placeholder="08xx..." type="tel"></div>
+      </div>
+      <div class="form-group"><label class="form-label">Alamat / lokasi proyek</label><input id="e-alamat" class="form-input" placeholder="Kota, area, atau alamat lengkap"></div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Sumber lead <span class="req">*</span></label>
+          <select id="e-sumber" class="form-input"><option value="">Pilih sumber</option><option>Instagram</option><option>TikTok</option><option>Threads</option><option>Referral</option><option>Owner</option><option>Website</option><option>Pameran</option><option>Lainnya</option></select>
+        </div>
+        <div class="form-group"><label class="form-label">Tipe layanan <span class="req">*</span></label>
+          <select id="e-layanan" class="form-input"><option value="">Pilih layanan</option><option>Interior</option><option>Eksterior</option><option>Belum diketahui</option></select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Tipe proyek <span class="req">*</span></label>
+          <select id="e-proyek" class="form-input"><option value="">Pilih tipe</option><option>Residensial</option><option>Komersial</option><option>Belum diketahui</option></select>
+        </div>
+        <div class="form-group"><label class="form-label">Tanggal masuk lead <span class="req">*</span></label><input id="e-tglmasuk" class="form-input" type="date"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Follow-up berikutnya</label><input id="e-followup" class="form-input" type="date"></div>
+        <div class="form-group"><label class="form-label">Nilai kontrak (Rp)</label><input id="e-nilai" class="form-input" type="number" placeholder="Opsional"></div>
+      </div>
+      <div style="font-size:11px;color:var(--text3);line-height:1.5;border-left:2px solid var(--border2);padding-left:8px;margin-top:4px">Tahap pipeline diubah lewat tombol <strong>Ubah tahap</strong>. Mengubah <strong>Tipe layanan</strong> akan menyesuaikan alur pipeline (Interior/Eksterior).</div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('modal-edit-lead')">Batal</button>
+      <button class="btn btn-primary" id="save-edit-lead-btn" onclick="saveEditLead()">Simpan Perubahan</button>
     </div>
   </div>
 </div>
@@ -535,6 +573,7 @@ function go(url){location.href=url;}
 const S=getSession();
 if(!S){location.href='moona-v2-login.html';}
 else document.getElementById('sf-name').textContent=S.nama+' — '+(S.jobTitle || S.role);
+const CAN_EDIT_LEAD=['Owner','OperasionalManager','Sales'].includes((S||{}).role);
 
 // HELPERS
 function p(o,...ks){for(const k of ks){if(o[k]!==undefined&&o[k]!==null&&String(o[k]).trim()!='')return String(o[k]);}return '';}
@@ -754,6 +793,7 @@ function selectLead(id){
   selectedId=id;renderPipeline();
   const l=leads.find(x=>p(x,'ID')===id);if(!l)return;
   document.getElementById('detail-panel').style.display='block';
+  document.getElementById('dp-edit-btn').style.display=CAN_EDIT_LEAD?'':'none';
   document.getElementById('dp-name').textContent=p(l,'Nama');
   const status=p(l,'StatusAkhir');
   const layanan=p(l,'TipeLayanan');
@@ -877,6 +917,51 @@ async function saveStage(){
     else showToast('Gagal: '+d.message);
   }catch(e){showToast('Error');}
   btn.textContent='Simpan';btn.disabled=false;
+}
+
+// EDIT DATA KLIEN
+function toDateInput(s){
+  const d=parseAnyDate(s);
+  if(!d)return'';
+  const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,'0'),dd=String(d.getDate()).padStart(2,'0');
+  return `${y}-${m}-${dd}`;
+}
+function openEditLead(){
+  if(!CAN_EDIT_LEAD){showToast('Tidak punya akses edit');return;}
+  const l=leads.find(x=>p(x,'ID')===selectedId);if(!l)return;
+  document.getElementById('e-nama').value=p(l,'Nama')||'';
+  document.getElementById('e-wa').value=p(l,'NoWA')||'';
+  document.getElementById('e-alamat').value=p(l,'Alamat')||'';
+  document.getElementById('e-sumber').value=p(l,'Sumber')||'';
+  document.getElementById('e-layanan').value=p(l,'TipeLayanan')||'';
+  document.getElementById('e-proyek').value=p(l,'TipeProyek')||'';
+  document.getElementById('e-tglmasuk').value=toDateInput(p(l,'TanggalMasuk'));
+  document.getElementById('e-followup').value=toDateInput(p(l,'FollowUpBerikutnya'));
+  document.getElementById('e-nilai').value=p(l,'NilaiKontrak')||'';
+  document.getElementById('modal-edit-lead').classList.add('open');
+}
+async function saveEditLead(){
+  const nama=document.getElementById('e-nama').value.trim();
+  const wa=document.getElementById('e-wa').value.trim();
+  const sumber=document.getElementById('e-sumber').value;
+  const layanan=document.getElementById('e-layanan').value;
+  const proyek=document.getElementById('e-proyek').value;
+  const tglMasuk=document.getElementById('e-tglmasuk').value;
+  if(!nama||!wa||!sumber||!layanan||!proyek||!tglMasuk){showToast('Lengkapi field wajib (*)');return;}
+  const btn=document.getElementById('save-edit-lead-btn');btn.textContent='Menyimpan...';btn.disabled=true;
+  try{
+    const r=await fetch(API,{method:'POST',body:JSON.stringify({
+      action:'updateLead',id:selectedId,
+      nama:nama,wa:wa,sumber:sumber,layanan:layanan,proyek:proyek,tglMasuk:tglMasuk,
+      alamat:document.getElementById('e-alamat').value.trim(),
+      followup:document.getElementById('e-followup').value,
+      nilai:document.getElementById('e-nilai').value||''
+    })});
+    const d=await r.json();
+    if(d.status==='ok'){closeModal('modal-edit-lead');showToast('Data klien diperbarui!');await loadLeads();selectLead(selectedId);}
+    else showToast('Gagal: '+(d.message||''));
+  }catch(e){showToast('Error koneksi');}
+  btn.textContent='Simpan Perubahan';btn.disabled=false;
 }
 
 var crmCalYear=new Date().getFullYear();

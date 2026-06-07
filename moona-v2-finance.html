@@ -432,10 +432,10 @@ function updateStats() {
       if (d.getMonth() === thisMonth && d.getFullYear() === thisYear) bulanIni += parseFloat(p(cf,'Keluar') || 0);
     } catch(e){}
   }
-  document.getElementById('s-total-inv').textContent = rp(totalInv);
-  document.getElementById('s-total-inv-note').textContent = 'Lunas: ' + rp(lunasInv);
-  document.getElementById('s-piutang').textContent = rp(piutang);
-  document.getElementById('s-keluar').textContent = rp(bulanIni);
+  document.getElementById('s-total-inv').textContent = rpFull(totalInv);
+  document.getElementById('s-total-inv-note').textContent = 'Lunas: ' + rpFull(lunasInv);
+  document.getElementById('s-piutang').textContent = rpFull(piutang);
+  document.getElementById('s-keluar').textContent = rpFull(bulanIni);
   document.getElementById('s-late').textContent = lateCount;
 }
 

@@ -229,6 +229,12 @@ function updateLead(data) {
   if (data.followup !== undefined) updates['FollowUpBerikutnya'] = data.followup;
   if (data.nilai !== undefined) updates['NilaiKontrak'] = data.nilai;
   if (data.alamat !== undefined) updates['Alamat'] = data.alamat;
+  if (data.nama !== undefined) updates['Nama'] = data.nama;
+  if (data.wa !== undefined) updates['NoWA'] = data.wa;
+  if (data.sumber !== undefined) updates['Sumber'] = data.sumber;
+  if (data.layanan !== undefined) updates['TipeLayanan'] = data.layanan;
+  if (data.proyek !== undefined) updates['TipeProyek'] = data.proyek;
+  if (data.tglMasuk !== undefined) updates['TanggalMasuk'] = data.tglMasuk;
   updateCols('Leads', data.id, updates);
   return response({ status: 'ok' });
 }
