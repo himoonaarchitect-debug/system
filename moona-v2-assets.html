@@ -57,6 +57,20 @@ body{background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI
 
 .filter-bar{display:flex;gap:5px;margin-bottom:14px;flex-wrap:wrap;align-items:center}
 
+.tabs{display:flex;border-bottom:0.5px solid var(--border);margin-bottom:14px}
+.tab{padding:8px 16px;font-size:12px;color:var(--text2);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-0.5px}
+.tab.active{color:var(--brand);border-bottom-color:var(--brand);font-weight:500}
+
+.ag-jenis{background:var(--purple-bg);color:var(--purple)}
+.st-terjadwal{background:var(--gray-bg);color:var(--gray)}
+.st-segera{background:var(--amber-bg);color:var(--amber)}
+.st-terlewat{background:var(--red-bg);color:var(--red)}
+.st-selesai{background:var(--green-bg);color:var(--green)}
+.due-terlewat{color:var(--red);font-weight:600}
+.due-segera{color:var(--amber);font-weight:600}
+.dbar{height:5px;border-radius:3px;background:var(--border);width:64px;display:inline-block;vertical-align:middle;margin-right:6px}
+.dbar-fill{height:100%;border-radius:3px;background:var(--amber)}
+
 .card{background:var(--card);border:0.5px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:10px}
 
 table{width:100%;border-collapse:collapse;font-size:11px}
@@ -140,25 +154,59 @@ textarea.form-input{resize:vertical;min-height:46px;line-height:1.5}
     <div><div class="page-title">Aset</div><div class="page-sub">Inventaris &amp; lokasi aset perusahaan</div></div>
     <div style="display:flex;gap:6px">
       <button class="btn btn-primary" id="btn-add-asset" onclick="openAddAsset()" style="display:none">+ Aset</button>
+      <button class="btn btn-primary" id="btn-add-agenda" onclick="openAddAgenda()" style="display:none">+ Agenda</button>
     </div>
   </div>
 
   <div class="stats">
     <div class="stat"><div class="stat-label">Total aset</div><div class="stat-val" id="s-total">–</div></div>
     <div class="stat"><div class="stat-label">Perlu perhatian</div><div class="stat-val" id="s-attn" style="color:var(--red)">–</div><div class="stat-note">rusak / perbaikan</div></div>
-    <div class="stat"><div class="stat-label">Dipinjam / di proyek</div><div class="stat-val" id="s-out" style="color:var(--blue)">–</div></div>
+    <div class="stat"><div class="stat-label">Agenda jatuh tempo</div><div class="stat-val" id="s-agenda" style="color:var(--amber)">–</div><div class="stat-note" id="s-agenda-note">≤30 hari</div></div>
     <div class="stat"><div class="stat-label">Total nilai aset</div><div class="stat-val" id="s-nilai">–</div><div class="stat-note">dari nilai beli</div></div>
   </div>
 
-  <div class="filter-bar">
-    <input id="f-search" class="form-input" style="max-width:210px" placeholder="Cari nama / kode..." oninput="renderAssets()">
-    <select id="f-kategori" class="form-input" style="max-width:175px;width:auto" onchange="renderAssets()"></select>
-    <select id="f-lokasi" class="form-input" style="max-width:165px;width:auto" onchange="renderAssets()"></select>
-    <select id="f-status" class="form-input" style="max-width:150px;width:auto" onchange="renderAssets()"></select>
+  <div class="tabs">
+    <div class="tab active" id="tab-btn-aset" onclick="switchTab('aset')">Daftar Aset</div>
+    <div class="tab" id="tab-btn-agenda" onclick="switchTab('agenda')">Agenda</div>
+    <div class="tab" id="tab-btn-nilai" onclick="switchTab('nilai')">Nilai &amp; Depresiasi</div>
   </div>
 
-  <div class="card">
-    <div id="asset-table-wrap"><div class="loading">Memuat data aset…</div></div>
+  <div id="tab-aset">
+    <div class="filter-bar">
+      <input id="f-search" class="form-input" style="max-width:210px" placeholder="Cari nama / kode..." oninput="renderAssets()">
+      <select id="f-kategori" class="form-input" style="max-width:175px;width:auto" onchange="renderAssets()"></select>
+      <select id="f-lokasi" class="form-input" style="max-width:165px;width:auto" onchange="renderAssets()"></select>
+      <select id="f-status" class="form-input" style="max-width:150px;width:auto" onchange="renderAssets()"></select>
+    </div>
+    <div class="card">
+      <div id="asset-table-wrap"><div class="loading">Memuat data aset…</div></div>
+    </div>
+  </div>
+
+  <div id="tab-agenda" style="display:none">
+    <div class="filter-bar">
+      <select id="fa-jenis" class="form-input" style="max-width:200px;width:auto" onchange="renderAgenda()"></select>
+      <select id="fa-status" class="form-input" style="max-width:170px;width:auto" onchange="renderAgenda()"></select>
+    </div>
+    <div class="card">
+      <div id="agenda-table-wrap"><div class="loading">Memuat agenda…</div></div>
+    </div>
+  </div>
+
+  <div id="tab-nilai" style="display:none">
+    <div class="filter-bar">
+      <select id="fn-kategori" class="form-input" style="max-width:175px;width:auto" onchange="renderNilai()"></select>
+      <span style="font-size:10px;color:var(--text3);line-height:1.4">Metode garis lurus · Nilai buku = nilai beli − akumulasi penyusutan (min. nilai residu)</span>
+    </div>
+    <div class="stats" style="margin-bottom:14px">
+      <div class="stat"><div class="stat-label">Nilai perolehan</div><div class="stat-val" id="n-perolehan">–</div><div class="stat-note">total nilai beli</div></div>
+      <div class="stat"><div class="stat-label">Nilai buku sekarang</div><div class="stat-val" id="n-buku" style="color:var(--teal)">–</div></div>
+      <div class="stat"><div class="stat-label">Akumulasi penyusutan</div><div class="stat-val" id="n-akum" style="color:var(--red)">–</div></div>
+      <div class="stat"><div class="stat-label">Aset tanpa nilai</div><div class="stat-val" id="n-nodata">–</div><div class="stat-note">belum diisi</div></div>
+    </div>
+    <div class="card">
+      <div id="nilai-table-wrap"><div class="loading">Memuat…</div></div>
+    </div>
   </div>
 </div>
 </div>
@@ -203,11 +251,41 @@ textarea.form-input{resize:vertical;min-height:46px;line-height:1.5}
   </div>
 </div>
 
+<!-- MODAL AGENDA (ADD / EDIT) -->
+<div class="modal-overlay" id="modal-agenda">
+  <div class="modal">
+    <div class="modal-header"><span class="modal-title" id="agenda-modal-title">Agenda Baru</span><button class="modal-close" onclick="closeModal('modal-agenda')">✕</button></div>
+    <div class="modal-body">
+      <div class="form-group"><label class="form-label">Aset <span class="req">*</span></label><select id="a-ag-asset" class="form-input"><option value="">Pilih aset</option></select></div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Jenis agenda <span class="req">*</span></label><select id="a-ag-jenis" class="form-input"></select></div>
+        <div class="form-group"><label class="form-label">Tanggal jatuh tempo <span class="req">*</span></label><input id="a-ag-tempo" class="form-input" type="date"></div>
+      </div>
+      <div class="form-group"><label class="form-label">Judul <span class="req">*</span></label><input id="a-ag-judul" class="form-input" placeholder="mis. Servis rutin 6 bulan / Pajak tahunan STNK"></div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Ulang tiap</label><select id="a-ag-ulang" class="form-input"></select></div>
+        <div class="form-group"><label class="form-label">PIC</label><select id="a-ag-pic" class="form-input"><option value="">Pilih user</option></select></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Perkiraan biaya (Rp)</label><input id="a-ag-biaya" class="form-input" type="number" placeholder="Opsional"></div>
+        <div></div>
+      </div>
+      <div class="form-group"><label class="form-label">Catatan</label><textarea id="a-ag-catatan" class="form-input" placeholder="Opsional"></textarea></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('modal-agenda')">Batal</button>
+      <button class="btn btn-primary" id="save-agenda-btn" onclick="saveAgenda()">Simpan</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 <script>
 var API = 'https://script.google.com/macros/s/AKfycbwkjBr_opT5V05KY6fQG3Aa2i7URgxpzX7a1ga3mBFKS3CeMbCvyLzdkNpHIhgg4Xxncw/exec';
-var assets = [], users = [], projects = [];
-var editingAssetId = null;
+var assets = [], users = [], projects = [], agenda = [];
+var editingAssetId = null, editingAgendaId = null;
+var JENIS_AGENDA = ['Servis','Pajak / STNK','Perpanjangan Lisensi','Garansi','Kalibrasi','Peminjaman','Lainnya'];
+var ULANG = ['Tidak berulang','1 bulan','3 bulan','6 bulan','1 tahun'];
 
 var KATEGORI = ['Mesin Workshop','Kendaraan','Alat Ukur & Instalasi','IT & Komputer','Lisensi Software','Gear Konten','Furnitur','Lainnya'];
 var LOKASI = ['Kantor Situbondo','Kantor Malang','Workshop','Proyek'];
@@ -289,12 +367,17 @@ window.onload = function(){
   document.getElementById('f-kategori').innerHTML = '<option value="">Semua kategori</option>' + opts(KATEGORI);
   document.getElementById('f-lokasi').innerHTML = '<option value="">Semua lokasi</option>' + opts(LOKASI);
   document.getElementById('f-status').innerHTML = '<option value="">Semua status</option>' + opts(STATUS);
+  document.getElementById('fa-jenis').innerHTML = '<option value="">Semua jenis</option>' + opts(JENIS_AGENDA);
+  document.getElementById('fa-status').innerHTML = '<option value="">Semua status</option>' + opts(['Terlewat','Segera','Terjadwal','Selesai']);
+  document.getElementById('fn-kategori').innerHTML = '<option value="">Semua kategori</option>' + opts(KATEGORI);
   // form dropdowns
   document.getElementById('a-kategori').innerHTML = '<option value="">Pilih kategori</option>' + opts(KATEGORI);
   document.getElementById('a-lokasi').innerHTML = '<option value="">Pilih lokasi</option>' + opts(LOKASI);
   document.getElementById('a-kondisi').innerHTML = opts(KONDISI, 'Baik');
   document.getElementById('a-status').innerHTML = opts(STATUS, 'Aktif');
-  Promise.all([loadUsers(), loadProjects()]).then(loadAssets);
+  document.getElementById('a-ag-jenis').innerHTML = '<option value="">Pilih jenis</option>' + opts(JENIS_AGENDA);
+  document.getElementById('a-ag-ulang').innerHTML = opts(ULANG, 'Tidak berulang');
+  Promise.all([loadUsers(), loadProjects(), loadAssets()]).then(loadAgenda);
 };
 
 function loadUsers(){
@@ -304,6 +387,7 @@ function loadUsers(){
       var html = '<option value="">Pilih user</option>';
       for (var i=0;i<users.length;i++) html += '<option value="'+esc(users[i].id)+'">'+esc(users[i].nama)+' — '+esc(users[i].jobTitle||users[i].role)+'</option>';
       document.getElementById('a-pj').innerHTML = html;
+      document.getElementById('a-ag-pic').innerHTML = html;
     }
   });
 }
@@ -319,26 +403,50 @@ function loadProjects(){
 }
 function loadAssets(){
   return fetch(API + '?action=getAssets').then(function(r){return r.json();}).then(function(d){
-    if (d.status === 'ok') { assets = d.data; renderAssets(); updateStats(); }
+    if (d.status === 'ok') {
+      assets = d.data; renderAssets(); updateStats(); renderNilai();
+      var html = '<option value="">Pilih aset</option>';
+      var sorted = [].concat(assets).sort(function(x,y){return p(x,'NamaAset').localeCompare(p(y,'NamaAset'));});
+      for (var i=0;i<sorted.length;i++) html += '<option value="'+esc(p(sorted[i],'ID'))+'">'+esc(p(sorted[i],'NamaAset'))+(p(sorted[i],'KodeAset')?' ('+esc(p(sorted[i],'KodeAset'))+')':'')+'</option>';
+      document.getElementById('a-ag-asset').innerHTML = html;
+    }
     else { document.getElementById('asset-table-wrap').innerHTML = '<div class="empty">Gagal memuat. Pastikan sheet Assets sudah dibuat (jalankan setupAssetSheets di Apps Script).</div>'; }
   }).catch(function(){
     document.getElementById('asset-table-wrap').innerHTML = '<div class="empty">Gagal terhubung ke server.</div>';
   });
 }
+function loadAgenda(){
+  return fetch(API + '?action=getAssetAgenda').then(function(r){return r.json();}).then(function(d){
+    if (d.status === 'ok') { agenda = d.data; renderAgenda(); updateStats(); }
+    else { document.getElementById('agenda-table-wrap').innerHTML = '<div class="empty">Belum ada agenda. Tambah lewat “+ Agenda”.</div>'; }
+  }).catch(function(){
+    document.getElementById('agenda-table-wrap').innerHTML = '<div class="empty">Gagal terhubung ke server.</div>';
+  });
+}
 
 function isAttn(a){ var k=p(a,'Kondisi'); return k==='Rusak' || k==='Perlu Perhatian' || p(a,'Status')==='Perbaikan'; }
-function isOut(a){ return p(a,'Status')==='Dipinjam' || p(a,'Lokasi')==='Proyek'; }
+
+function parseDate(s){ if(!s) return null; var str=String(s).trim(); var m=str.match(/^(\d{4})-(\d{2})-(\d{2})/); if(m) return new Date(+m[1],+m[2]-1,+m[3]); var d=new Date(str); return isNaN(d)?null:d; }
+function daysUntil(s){ var d=parseDate(s); if(!d) return null; var t=new Date(); t.setHours(0,0,0,0); d.setHours(0,0,0,0); return Math.round((d-t)/86400000); }
+function agendaState(a){ if(p(a,'Status')==='Selesai') return 'Selesai'; var du=daysUntil(p(a,'TanggalJatuhTempo')); if(du===null) return 'Terjadwal'; if(du<0) return 'Terlewat'; if(du<=30) return 'Segera'; return 'Terjadwal'; }
 
 function updateStats(){
-  var total=assets.length, attn=0, out=0, nilai=0;
+  var total=assets.length, attn=0, nilai=0;
   for (var i=0;i<assets.length;i++){
     if (isAttn(assets[i])) attn++;
-    if (isOut(assets[i])) out++;
     nilai += parseFloat(p(assets[i],'NilaiBeli')||0);
+  }
+  var dueSoon=0, overdue=0;
+  for (var j=0;j<agenda.length;j++){
+    var st=agendaState(agenda[j]);
+    if (st==='Terlewat'){ overdue++; dueSoon++; }
+    else if (st==='Segera'){ dueSoon++; }
   }
   document.getElementById('s-total').textContent = total;
   document.getElementById('s-attn').textContent = attn;
-  document.getElementById('s-out').textContent = out;
+  document.getElementById('s-agenda').textContent = dueSoon;
+  document.getElementById('s-agenda-note').textContent = overdue>0 ? (overdue+' terlewat · ≤30 hari') : '≤30 hari';
+  document.getElementById('s-agenda').style.color = overdue>0 ? 'var(--red)' : 'var(--amber)';
   document.getElementById('s-nilai').textContent = rpFull(nilai);
 }
 
@@ -480,6 +588,204 @@ async function deleteAsset(id){
     if (d.status === 'ok'){ showToast('Aset dihapus'); await loadAssets(); }
     else showToast('Gagal: ' + (d.message||''));
   } catch(e){ showToast('Error koneksi'); }
+}
+
+// ════════ AGENDA (Fase 2) ════════
+function switchTab(tab){
+  ['aset','agenda','nilai'].forEach(function(t){
+    document.getElementById('tab-btn-'+t).classList.toggle('active', t===tab);
+    document.getElementById('tab-'+t).style.display = (t===tab) ? '' : 'none';
+  });
+  document.getElementById('btn-add-asset').style.display = (tab==='aset' && CAN_MANAGE_ASSET) ? '' : 'none';
+  document.getElementById('btn-add-agenda').style.display = (tab==='agenda' && CAN_MANAGE_ASSET) ? '' : 'none';
+  if (tab==='nilai') renderNilai();
+}
+function assetName(id){ var a=assets.find(function(x){return p(x,'ID')===String(id);}); return a?p(a,'NamaAset'):'(aset terhapus)'; }
+function jenisPill(j){ return '<span class="pill ag-jenis">'+esc(j||'–')+'</span>'; }
+function agStatePill(st){ var m={Terjadwal:'st-terjadwal',Segera:'st-segera',Terlewat:'st-terlewat',Selesai:'st-selesai'}; return '<span class="pill '+(m[st]||'st-terjadwal')+'">'+esc(st)+'</span>'; }
+function dueText(a){
+  var st=agendaState(a); var du=daysUntil(p(a,'TanggalJatuhTempo'));
+  var cls = st==='Terlewat'?'due-terlewat':(st==='Segera'?'due-segera':'');
+  var sub = '';
+  if (st!=='Selesai' && du!==null){ sub = du<0 ? ' (lewat '+(-du)+'h)' : (du===0?' (hari ini)':' ('+du+'h lagi)'); }
+  return '<span class="'+cls+'">'+esc(p(a,'TanggalJatuhTempo')||'–')+'</span><span style="color:var(--text3);font-size:10px">'+sub+'</span>';
+}
+
+function filteredAgenda(){
+  var fj = document.getElementById('fa-jenis').value;
+  var fs = document.getElementById('fa-status').value;
+  return agenda.filter(function(a){
+    if (fj && p(a,'JenisAgenda')!==fj) return false;
+    if (fs && agendaState(a)!==fs) return false;
+    return true;
+  }).sort(function(x,y){
+    // Selesai paling bawah; selain itu urut jatuh tempo menaik
+    var sx=p(x,'Status')==='Selesai'?1:0, sy=p(y,'Status')==='Selesai'?1:0;
+    if (sx!==sy) return sx-sy;
+    var dx=parseDate(p(x,'TanggalJatuhTempo')), dy=parseDate(p(y,'TanggalJatuhTempo'));
+    return (dx?dx.getTime():0)-(dy?dy.getTime():0);
+  });
+}
+function renderAgenda(){
+  var list = filteredAgenda();
+  var wrap = document.getElementById('agenda-table-wrap');
+  if (!list.length){ wrap.innerHTML = '<div class="empty">'+(agenda.length?'Tidak ada agenda yang cocok dengan filter.':'Belum ada agenda. Klik “+ Agenda” untuk menambah.')+'</div>'; return; }
+  var canAct = CAN_UPDATE_ASSET;
+  var html = '<table><thead><tr><th>Jatuh tempo</th><th>Aset</th><th>Jenis</th><th>Judul</th><th>PIC</th><th>Status</th><th class="td-right">Biaya</th>'+(canAct?'<th class="td-right">Aksi</th>':'')+'</tr></thead><tbody>';
+  for (var i=0;i<list.length;i++){
+    var a=list[i], id=p(a,'ID'), st=agendaState(a);
+    html += '<tr>';
+    html += '<td>'+dueText(a)+(p(a,'UlangTiap')&&p(a,'UlangTiap')!=='Tidak berulang'?' <span class="pill st-terjadwal" style="font-size:9px">⟳ '+esc(p(a,'UlangTiap'))+'</span>':'')+'</td>';
+    html += '<td>'+esc(assetName(p(a,'Asset_ID')))+'</td>';
+    html += '<td>'+jenisPill(p(a,'JenisAgenda'))+'</td>';
+    html += '<td style="font-weight:500">'+esc(p(a,'Judul'))+'</td>';
+    html += '<td>'+esc(userName(p(a,'PIC_ID')))+'</td>';
+    html += '<td>'+agStatePill(st)+'</td>';
+    html += '<td class="td-right td-amount">'+(p(a,'Biaya')?rpFull(p(a,'Biaya')):'–')+'</td>';
+    if (canAct){
+      html += '<td class="td-right" style="white-space:nowrap">';
+      if (st!=='Selesai') html += '<button class="btn btn-sm" onclick="markAgendaDone(\''+id+'\')">Selesai</button> ';
+      if (CAN_MANAGE_ASSET){
+        html += '<button class="btn btn-sm" onclick="openEditAgenda(\''+id+'\')">Edit</button> ';
+        html += '<button class="btn-ghost" onclick="deleteAgenda(\''+id+'\')">Hapus</button>';
+      }
+      html += '</td>';
+    }
+    html += '</tr>';
+  }
+  html += '</tbody></table>';
+  wrap.innerHTML = html;
+}
+
+function openAddAgenda(){
+  if (!CAN_MANAGE_ASSET){ showToast('Tidak punya akses tambah agenda'); return; }
+  editingAgendaId = null;
+  document.getElementById('agenda-modal-title').textContent = 'Agenda Baru';
+  ['a-ag-judul','a-ag-tempo','a-ag-biaya','a-ag-catatan'].forEach(function(id){ document.getElementById(id).value=''; });
+  document.getElementById('a-ag-asset').value='';
+  document.getElementById('a-ag-jenis').value='';
+  document.getElementById('a-ag-ulang').value='Tidak berulang';
+  document.getElementById('a-ag-pic').value='';
+  document.getElementById('modal-agenda').classList.add('open');
+}
+function openEditAgenda(id){
+  if (!CAN_MANAGE_ASSET){ showToast('Tidak punya akses edit'); return; }
+  var a = agenda.find(function(x){ return p(x,'ID')===id; });
+  if (!a) return;
+  editingAgendaId = id;
+  document.getElementById('agenda-modal-title').textContent = 'Edit Agenda';
+  document.getElementById('a-ag-asset').value = p(a,'Asset_ID');
+  document.getElementById('a-ag-jenis').value = p(a,'JenisAgenda');
+  document.getElementById('a-ag-judul').value = p(a,'Judul');
+  document.getElementById('a-ag-tempo').value = p(a,'TanggalJatuhTempo');
+  document.getElementById('a-ag-ulang').value = p(a,'UlangTiap') || 'Tidak berulang';
+  document.getElementById('a-ag-pic').value = p(a,'PIC_ID');
+  document.getElementById('a-ag-biaya').value = p(a,'Biaya');
+  document.getElementById('a-ag-catatan').value = p(a,'Catatan');
+  document.getElementById('modal-agenda').classList.add('open');
+}
+async function saveAgenda(){
+  var assetId = document.getElementById('a-ag-asset').value;
+  var jenis = document.getElementById('a-ag-jenis').value;
+  var judul = document.getElementById('a-ag-judul').value.trim();
+  var jatuhTempo = document.getElementById('a-ag-tempo').value;
+  if (!assetId || !jenis || !judul || !jatuhTempo){ showToast('Lengkapi field wajib (*)'); return; }
+  var payload = {
+    action: editingAgendaId ? 'updateAgenda' : 'addAgenda',
+    assetId: assetId, jenis: jenis, judul: judul, jatuhTempo: jatuhTempo,
+    ulangTiap: document.getElementById('a-ag-ulang').value,
+    picId: document.getElementById('a-ag-pic').value,
+    biaya: document.getElementById('a-ag-biaya').value || '',
+    catatan: document.getElementById('a-ag-catatan').value.trim()
+  };
+  if (editingAgendaId) payload.id = editingAgendaId;
+  var btn = document.getElementById('save-agenda-btn'); btn.textContent='Menyimpan…'; btn.disabled=true;
+  try{
+    var r = await fetch(API, { method:'POST', body: JSON.stringify(payload) });
+    var d = await r.json();
+    if (d.status === 'ok'){ closeModal('modal-agenda'); showToast(editingAgendaId?'Agenda diperbarui!':'Agenda ditambahkan!'); await loadAgenda(); }
+    else showToast('Gagal: ' + (d.message||''));
+  } catch(e){ showToast('Error koneksi'); }
+  btn.textContent='Simpan'; btn.disabled=false;
+}
+async function markAgendaDone(id){
+  if (!CAN_UPDATE_ASSET){ showToast('Tidak punya akses'); return; }
+  var a = agenda.find(function(x){ return p(x,'ID')===id; });
+  var recur = a && p(a,'UlangTiap') && p(a,'UlangTiap')!=='Tidak berulang';
+  if (!confirm('Tandai agenda "'+(a?p(a,'Judul'):'')+'" sebagai selesai?'+(recur?'\nAgenda berikutnya akan dibuat otomatis ('+p(a,'UlangTiap')+').':''))) return;
+  var today = new Date().toISOString().split('T')[0];
+  try{
+    var r = await fetch(API, { method:'POST', body: JSON.stringify({ action:'updateAgenda', id:id, status:'Selesai', tglSelesai:today }) });
+    var d = await r.json();
+    if (d.status === 'ok'){ showToast(recur?'Selesai — agenda berikutnya dibuat':'Agenda selesai'); await loadAgenda(); }
+    else showToast('Gagal: ' + (d.message||''));
+  } catch(e){ showToast('Error koneksi'); }
+}
+async function deleteAgenda(id){
+  if (!CAN_MANAGE_ASSET){ showToast('Tidak punya akses hapus'); return; }
+  var a = agenda.find(function(x){ return p(x,'ID')===id; });
+  if (!confirm('Hapus agenda "'+(a?p(a,'Judul'):'')+'"?')) return;
+  try{
+    var r = await fetch(API, { method:'POST', body: JSON.stringify({ action:'deleteAgenda', id:id }) });
+    var d = await r.json();
+    if (d.status === 'ok'){ showToast('Agenda dihapus'); await loadAgenda(); }
+    else showToast('Gagal: ' + (d.message||''));
+  } catch(e){ showToast('Error koneksi'); }
+}
+
+// ════════ NILAI & DEPRESIASI (Fase 3) — garis lurus ════════
+function deprCalc(a){
+  var beli = parseFloat(p(a,'NilaiBeli')||0);
+  var residu = parseFloat(p(a,'NilaiResidu')||0);
+  var umur = parseFloat(p(a,'UmurEkonomisTahun')||0);
+  var tgl = parseDate(p(a,'TanggalBeli'));
+  var perThn=0, akum=0, buku=beli, umurJalan=0;
+  var lengkap = (beli>0 && umur>0 && !!tgl);
+  if (lengkap){
+    var dasar = Math.max(0, beli - residu);
+    perThn = dasar / umur;
+    umurJalan = (Date.now() - tgl.getTime()) / (365.25*86400000);
+    if (umurJalan < 0) umurJalan = 0;
+    akum = Math.min(perThn * umurJalan, dasar);
+    buku = beli - akum;
+    if (buku < residu) buku = residu;
+  }
+  return { beli:beli, residu:residu, umur:umur, umurJalan:umurJalan, perThn:perThn, akum:akum, buku:buku, lengkap:lengkap };
+}
+function renderNilai(){
+  if (!document.getElementById('fn-kategori')) return;
+  var fk = document.getElementById('fn-kategori').value;
+  var withVal = assets.filter(function(a){ return parseFloat(p(a,'NilaiBeli')||0) > 0; });
+  var list = fk ? withVal.filter(function(a){ return p(a,'Kategori')===fk; }) : withVal;
+  var totBeli=0, totBuku=0, totAkum=0;
+  list.forEach(function(a){ var c=deprCalc(a); totBeli+=c.beli; totBuku+=c.buku; totAkum+=c.akum; });
+  document.getElementById('n-perolehan').textContent = rpFull(totBeli);
+  document.getElementById('n-buku').textContent = rpFull(totBuku);
+  document.getElementById('n-akum').textContent = rpFull(totAkum);
+  document.getElementById('n-nodata').textContent = assets.length - withVal.length;
+
+  var wrap = document.getElementById('nilai-table-wrap');
+  if (!list.length){ wrap.innerHTML = '<div class="empty">Belum ada aset dengan nilai beli terisi. Isi lewat tombol Edit di tab Daftar Aset (bagian “Nilai aset”).</div>'; return; }
+  list = [].concat(list).sort(function(x,y){ return deprCalc(y).buku - deprCalc(x).buku; });
+  var html = '<table><thead><tr><th>Aset</th><th>Kategori</th><th>Tgl beli</th><th>Umur (jalan/ekonomis)</th><th class="td-right">Nilai beli</th><th class="td-right">Penyusutan/thn</th><th class="td-right">Akumulasi</th><th class="td-right">Nilai buku</th><th>Tersusut</th></tr></thead><tbody>';
+  for (var i=0;i<list.length;i++){
+    var a=list[i], c=deprCalc(a);
+    var dasar = c.beli - c.residu;
+    var pct = dasar>0 ? Math.min(100, Math.round(c.akum/dasar*100)) : 0;
+    html += '<tr>';
+    html += '<td style="font-weight:500">'+esc(p(a,'NamaAset'))+'</td>';
+    html += '<td>'+esc(p(a,'Kategori')||'–')+'</td>';
+    html += '<td>'+esc(p(a,'TanggalBeli')||'–')+'</td>';
+    html += '<td>'+(c.lengkap ? (c.umurJalan.toFixed(1)+' / '+c.umur+' th') : '<span style="color:var(--text3)">data kurang</span>')+'</td>';
+    html += '<td class="td-right td-amount">'+rpFull(c.beli)+'</td>';
+    html += '<td class="td-right td-amount">'+(c.lengkap ? rpFull(Math.round(c.perThn)) : '–')+'</td>';
+    html += '<td class="td-right td-amount">'+rpFull(Math.round(c.akum))+'</td>';
+    html += '<td class="td-right td-amount" style="font-weight:600">'+rpFull(Math.round(c.buku))+'</td>';
+    html += '<td><div class="dbar"><div class="dbar-fill" style="width:'+pct+'%"></div></div><span style="font-size:10px;color:var(--text3)">'+pct+'%</span></td>';
+    html += '</tr>';
+  }
+  html += '</tbody></table>';
+  wrap.innerHTML = html;
 }
 </script>
 </body>
