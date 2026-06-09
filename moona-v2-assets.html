@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Moona v2 — Aset</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f8f7f4;--card:#fff;--border:#e5e3dc;--border2:#d0cec7;
+  --text:#1a1a18;--text2:#6b6a64;--text3:#9d9b94;
+  --brand:#406EB6;--brand-bg:#E8F0FA;--brand-mid:#406EB6;
+  --coral:#993C1D;--coral-mid:#D85A30;--coral-bg:#FAECE7;
+  --purple:#534AB7;--purple-bg:#EEEDFE;
+  --teal:#0F6E56;--teal-bg:#E1F5EE;
+  --amber:#854F0B;--amber-bg:#FAEEDA;
+  --red:#A32D2D;--red-bg:#FCEBEB;
+  --green:#3B6D11;--green-bg:#EAF3DE;
+  --blue:#185FA5;--blue-bg:#E6F1FB;
+  --gray:#5F5E5A;--gray-bg:#F1EFE8;
+  --radius:10px;--radius-sm:6px;
+}
+body{background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:var(--text);font-size:14px;min-height:100vh}
+.app{display:flex;min-height:100vh}
+.sidebar{width:220px;min-width:220px;background:var(--card);border-right:0.5px solid var(--border);display:flex;flex-direction:column;position:fixed;top:0;left:0;height:100vh;z-index:10;overflow-y:auto}
+.logo{padding:0}
+.nav-section{padding:10px 8px 3px;font-size:9px;font-weight:600;color:var(--text3);letter-spacing:.06em;text-transform:uppercase}
+.nav-item{display:flex;align-items:center;gap:8px;padding:7px 12px;margin:1px 4px;border-radius:var(--radius-sm);cursor:pointer;font-size:12px;color:var(--text2)}
+.nav-item:hover{background:var(--bg)}
+.nav-item.active{background:var(--brand-bg);color:var(--brand);font-weight:500}
+.nav-dot{width:6px;height:6px;border-radius:50%}
+.sidebar-footer{margin-top:auto;padding:12px 16px;border-top:0.5px solid var(--border)}
+.sf-label{font-size:10px;color:var(--text3)}
+.sf-name{font-size:11px;font-weight:500;margin-top:2px}
+.sf-logout{font-size:10px;color:var(--gray);margin-top:4px;cursor:pointer}
+
+.main{margin-left:220px;flex:1;padding:22px;max-width:1080px}
+.topbar{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:18px;gap:10px;flex-wrap:wrap}
+.page-title{font-size:19px;font-weight:600}
+.page-sub{font-size:11px;color:var(--text3);margin-top:2px}
+
+.btn{padding:7px 14px;border-radius:var(--radius-sm);border:0.5px solid var(--border2);background:var(--card);color:var(--text);font-size:12px;font-weight:500;cursor:pointer;white-space:nowrap}
+.btn:hover{background:var(--bg)}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn-primary{background:var(--brand);color:#fff;border-color:var(--brand)}
+.btn-primary:hover{opacity:.9}
+.btn-sm{padding:4px 10px;font-size:11px}
+.btn-red{background:var(--red);color:#fff;border-color:var(--red)}
+.btn-ghost{background:none;border:none;color:var(--text3);font-size:11px;cursor:pointer;padding:2px 6px}
+.btn-ghost:hover{color:var(--red)}
+
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:18px}
+.stat{background:var(--bg);border-radius:var(--radius-sm);padding:11px 13px}
+.stat-label{font-size:10px;color:var(--text3);margin-bottom:3px}
+.stat-val{font-size:18px;font-weight:600}
+.stat-note{font-size:10px;color:var(--text3);margin-top:2px}
+
+.filter-bar{display:flex;gap:5px;margin-bottom:14px;flex-wrap:wrap;align-items:center}
+
+.card{background:var(--card);border:0.5px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:10px}
+
+table{width:100%;border-collapse:collapse;font-size:11px}
+th{padding:8px 12px;text-align:left;font-size:10px;font-weight:600;color:var(--text3);background:var(--bg);text-transform:uppercase;letter-spacing:.04em;border-bottom:0.5px solid var(--border)}
+td{padding:9px 12px;border-bottom:0.5px solid var(--border);color:var(--text);vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:var(--bg)}
+.td-right{text-align:right}
+.td-amount{font-weight:500;font-variant-numeric:tabular-nums}
+
+.pill{display:inline-flex;padding:2px 8px;border-radius:7px;font-size:10px;font-weight:500;white-space:nowrap}
+.k-baik{background:var(--green-bg);color:var(--green)}
+.k-perhatian{background:var(--amber-bg);color:var(--amber)}
+.k-rusak{background:var(--red-bg);color:var(--red)}
+.st-aktif{background:var(--teal-bg);color:var(--teal)}
+.st-dipinjam{background:var(--blue-bg);color:var(--blue)}
+.st-perbaikan{background:var(--amber-bg);color:var(--amber)}
+.st-nonaktif{background:var(--gray-bg);color:var(--gray)}
+
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:100;align-items:flex-start;justify-content:center;padding:28px 14px;overflow-y:auto}
+.modal-overlay.open{display:flex}
+.modal{background:var(--card);border-radius:var(--radius);width:100%;max-width:520px}
+.modal-header{padding:13px 18px;border-bottom:0.5px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.modal-title{font-size:13px;font-weight:600}
+.modal-close{width:24px;height:24px;border-radius:4px;border:0.5px solid var(--border);background:none;cursor:pointer;font-size:14px;color:var(--text2)}
+.modal-body{padding:16px 18px}
+.modal-footer{padding:10px 18px;border-top:0.5px solid var(--border);display:flex;gap:7px;justify-content:flex-end}
+.form-group{margin-bottom:12px}
+.form-label{font-size:11px;font-weight:500;color:var(--text2);margin-bottom:4px;display:block}
+.req{color:var(--red);margin-left:2px}
+.form-input{width:100%;padding:7px 9px;border:0.5px solid var(--border2);border-radius:var(--radius-sm);font-size:12px;background:var(--card);outline:none;font-family:inherit}
+.form-input:focus{border-color:var(--brand)}
+.form-input:disabled{background:var(--bg);color:var(--text3);cursor:not-allowed}
+textarea.form-input{resize:vertical;min-height:46px;line-height:1.5}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+
+.empty{text-align:center;padding:24px;color:var(--text3);font-size:11px}
+.loading{text-align:center;padding:20px;color:var(--text3);font-size:11px}
+.toast{position:fixed;bottom:20px;right:20px;background:var(--text);color:#fff;padding:9px 14px;border-radius:var(--radius-sm);font-size:12px;z-index:200;opacity:0;transition:opacity .2s;pointer-events:none}
+.toast.show{opacity:1}
+
+@media(max-width:768px){
+  .sidebar{display:none}.main{margin-left:0;padding:12px}
+  .stats{grid-template-columns:1fr 1fr}
+  .form-row{grid-template-columns:1fr}
+  table{font-size:10px}th,td{padding:6px 8px}
+}
+</style>
+</head>
+<body>
+<div class="app">
+<div class="sidebar">
+    <div class="logo" style="padding:16px 16px 12px;border-bottom:0.5px solid var(--border)">
+    <img src="data:image/svg+xml;base64,PHN2ZyB2aWV3Qm94PSIxODIgMTI3IDE4NTMgMTE5NCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTAgMCBDOTYuNjkgMCAxOTMuMzggMCAyOTMgMCBDMjkzIDk5LjY2IDI5MyAxOTkuMzIgMjkzIDMwMiBDODA3LjggMzAyIDEzMjIuNiAzMDIgMTg1MyAzMDIgQzE4NTMgNTk2LjM2IDE4NTMgODkwLjcyIDE4NTMgMTE5NCBDMTc1Ni45NyAxMTk0IDE2NjAuOTQgMTE5NCAxNTYyIDExOTQgQzE1NjIgOTk1LjY3IDE1NjIgNzk3LjM0IDE1NjIgNTkzIEMxNDAxLjYyIDU5MyAxMjQxLjI0IDU5MyAxMDc2IDU5MyBDMTA3NiA3OTAuNjcgMTA3NiA5ODguMzQgMTA3NiAxMTkyIEM5NzguOTggMTE5MiA4ODEuOTYgMTE5MiA3ODIgMTE5MiBDNzgyIDk5NC4zMyA3ODIgNzk2LjY2IDc4MiA1OTMgQzYyMS4yOSA1OTMgNDYwLjU4IDU5MyAyOTUgNTkzIEMyOTUgNzkxLjMzIDI5NSA5ODkuNjYgMjk1IDExOTQgQzUgMTE5NCA1IDExOTQgMCAxMTkyIEMwIDc5OC42NCAwIDQwNS4yOCAwIDAgWiIgZmlsbD0iIzQwNkVCNiIgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMTgyLDEyNykiLz4KPHBhdGggZD0iTTAgMCBDNTAuNTEzNDYzNjEgLTEuNjU5NTc5OTEgOTguNzA2NjAyODYgMTUuNzkxMTc0MTYgMTM1Ljg3MDExNzE5IDUwLjA3ODEyNSBDMTM2LjQ1MDAzNDE4IDUwLjYxMjc2MzY3IDEzNy4wMjk5NTExNyA1MS4xNDc0MDIzNCAxMzcuNjI3NDQxNDEgNTEuNjk4MjQyMTkgQzE3MS41NDMyODYgODMuMzc3OTgwMDYgMTkyLjg3ODY0OTg1IDEyOS4yMjAwODgyNiAxOTUuMDM0MTc5NjkgMTc1LjYwODg4NjcyIEMxOTYuNzI0NDQ4MTggMjI5LjY0ODE3ODk3IDE3OS40NjIxNDk2OSAyNzguMjk2Nzc5NDYgMTQyLjQzNjUyMzQ0IDMxNy43Njk1MzEyNSBDMTI5LjYwMTg0MTc2IDMzMS4xNTg3MjM1MyAxMTUuMTQ1NzU3NDQgMzQyLjE5NTQ4NzQ0IDk4Ljg3MDExNzE5IDM1MS4wNzgxMjUgQzk3LjkyOTY2NTUzIDM1MS41OTM2Njk0MyA5Ny45Mjk2NjU1MyAzNTEuNTkzNjY5NDMgOTYuOTcwMjE0ODQgMzUyLjExOTYyODkxIEM1My4zNjI3NjU3IDM3NS42OTkyOTc1NSAxLjkyNTkyNDcyIDM4MC40MDM3MzYwOSAtNDUuNTk4NjMyODEgMzY2LjgwMDc4MTI1IEMtODIuNTc4MTkzODYgMzU1LjU5OTc0NDUyIC0xMTUuMzE5OTc1NDEgMzMzLjUzNjI1MzMgLTEzOS4xMjk4ODI4MSAzMDMuMDc4MTI1IEMtMTM5LjU1MTQwNjI1IDMwMi41NDg5NjQ4NCAtMTM5Ljk3MjkyOTY5IDMwMi4wMTk4MDQ2OSAtMTQwLjQwNzIyNjU2IDMwMS40NzQ2MDkzOCBDLTE2NC44MTg5OTg5MiAyNzAuNjUyMDMwMzMgLTE3Ny42ODUzNzA3NyAyMzIuMTcwMjMyMTcgLTE3OS4xMjk4ODI4MSAxOTMuMDc4MTI1IEMtMTc5LjE5MTc1NzgxIDE5MS42ODIwNzAzMSAtMTc5LjE5MTc1NzgxIDE5MS42ODIwNzAzMSAtMTc5LjI1NDg4MjgxIDE5MC4yNTc4MTI1IEMtMTc5Ljk3NTQzNDMgMTU4LjY0MzYxNTkxIC0xNzIuMjg1MjcwODIgMTI2Ljc2NzA4MjgzIC0xNTcuMTI5ODgyODEgOTkuMDc4MTI1IEMtMTU2LjY2MzI0MjE5IDk4LjE0NzQyMTg3IC0xNTYuMTk2NjAxNTYgOTcuMjE2NzE4NzUgLTE1NS43MTU4MjAzMSA5Ni4yNTc4MTI1IEMtMTQ5LjEwNjcyMTQ0IDgzLjMxMDE2MjY2IC0xNDAuMDc4Mjg1OTUgNzEuNjA4MzA2MSAtMTMwLjEyOTg4MjgxIDYxLjA3ODEyNSBDLTEyOS4wMDAyNjA0OCA1OS43NDg3MDU1MiAtMTI3Ljg3NTA4OTY5IDU4LjQxNTQ4NzgyIC0xMjYuNzU0ODgyODEgNTcuMDc4MTI1IEMtOTcuMjE2ODU4OTIgMjMuNDM1NzI4NzcgLTUxLjg2MzQ2OCA0Ljg3NTk0MDM5IC04LjA2NzM4MjgxIDAuMzI4MTI1IEMtNS4zNzg2MzU2NCAwLjE3NDkyMDAzIC0yLjY5MTAzMjQ2IDAuMDk4NzA4MjEgMCAwIFoiIGZpbGw9IiM0MDZFQjYiIHRyYW5zZm9ybT0idHJhbnNsYXRlKDIzMDQuMTI5ODgyODEyNSw5NDYuOTIxODc1KSIvPgo8L3N2Zz4=" alt="Moona" style="height:28px;width:auto;display:block;margin-bottom:6px">
+    <div style="font-size:9px;color:var(--text3);letter-spacing:.07em;text-transform:uppercase;font-weight:500">Architect System <span style="background:var(--brand-bg);color:var(--brand);font-size:8px;padding:1px 5px;border-radius:4px;margin-left:2px">v2</span></div>
+  </div>
+<div class="nav-section">Utama</div>
+  <div class="nav-item" onclick="go('moona-v2-dashboard.html')"><span class="nav-dot" style="background:#888780"></span>Dashboard</div>
+  <div class="nav-section">Sales</div>
+  <div class="nav-item" onclick="go('moona-v2-crm.html')"><span class="nav-dot" style="background:var(--coral-mid)"></span>CRM &amp; Sales</div>
+  <div class="nav-item" onclick="go('moona-v2-client-portal.html')"><span class="nav-dot" style="background:var(--blue)"></span>Client Portal</div>
+  <div class="nav-section">Operasional</div>
+  <div class="nav-item" onclick="go('moona-v2-projects.html')"><span class="nav-dot" style="background:var(--teal)"></span>Project Management</div>
+  <div class="nav-item" onclick="go('moona-v2-laporan-design-v4.html')"><span class="nav-dot" style="background:var(--purple)"></span>Laporan Design</div>
+  <div class="nav-item" onclick="go('moona-v2-laporan-build-v4.html')"><span class="nav-dot" style="background:var(--teal)"></span>Laporan Build</div>
+  <div class="nav-item active"><span class="nav-dot" style="background:var(--brand)"></span>Aset</div>
+  <div class="nav-section">Lainnya</div>
+  <div class="nav-item" onclick="go('moona-v2-meetings.html')"><span class="nav-dot" style="background:var(--purple)"></span>Meeting Tracker</div>
+  <div class="nav-item" onclick="go('moona-v2-finance.html')"><span class="nav-dot" style="background:var(--amber)"></span>Finance</div>
+  <div class="nav-item" onclick="go('moona-v2-content.html')"><span class="nav-dot" style="background:var(--coral-mid)"></span>Content Planner</div>
+  <div class="nav-item" onclick="go('moona-v2-sop.html')"><span class="nav-dot" style="background:#888780"></span>SOP &amp; Dokumen</div>
+  <div class="sidebar-footer">
+    <div class="sf-label">Login sebagai</div>
+    <div class="sf-name" id="sf-name" style="color:var(--brand);font-weight:600">–</div>
+    <div class="sf-logout" onclick="logout()">Keluar →</div>
+  </div>
+</div>
+
+<div class="main" id="main-content">
+  <div class="topbar">
+    <div><div class="page-title">Aset</div><div class="page-sub">Inventaris &amp; lokasi aset perusahaan</div></div>
+    <div style="display:flex;gap:6px">
+      <button class="btn btn-primary" id="btn-add-asset" onclick="openAddAsset()" style="display:none">+ Aset</button>
+    </div>
+  </div>
+
+  <div class="stats">
+    <div class="stat"><div class="stat-label">Total aset</div><div class="stat-val" id="s-total">–</div></div>
+    <div class="stat"><div class="stat-label">Perlu perhatian</div><div class="stat-val" id="s-attn" style="color:var(--red)">–</div><div class="stat-note">rusak / perbaikan</div></div>
+    <div class="stat"><div class="stat-label">Dipinjam / di proyek</div><div class="stat-val" id="s-out" style="color:var(--blue)">–</div></div>
+    <div class="stat"><div class="stat-label">Total nilai aset</div><div class="stat-val" id="s-nilai">–</div><div class="stat-note">dari nilai beli</div></div>
+  </div>
+
+  <div class="filter-bar">
+    <input id="f-search" class="form-input" style="max-width:210px" placeholder="Cari nama / kode..." oninput="renderAssets()">
+    <select id="f-kategori" class="form-input" style="max-width:175px;width:auto" onchange="renderAssets()"></select>
+    <select id="f-lokasi" class="form-input" style="max-width:165px;width:auto" onchange="renderAssets()"></select>
+    <select id="f-status" class="form-input" style="max-width:150px;width:auto" onchange="renderAssets()"></select>
+  </div>
+
+  <div class="card">
+    <div id="asset-table-wrap"><div class="loading">Memuat data aset…</div></div>
+  </div>
+</div>
+</div>
+
+<!-- MODAL ASET (ADD / EDIT) -->
+<div class="modal-overlay" id="modal-asset">
+  <div class="modal">
+    <div class="modal-header"><span class="modal-title" id="asset-modal-title">Aset Baru</span><button class="modal-close" onclick="closeModal('modal-asset')">✕</button></div>
+    <div class="modal-body">
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Kode aset</label><input id="a-kode" class="form-input" placeholder="mis. WS-CNC-01"></div>
+        <div class="form-group"><label class="form-label">Nama aset <span class="req">*</span></label><input id="a-nama" class="form-input" placeholder="mis. CNC Router 1325"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Kategori <span class="req">*</span></label><select id="a-kategori" class="form-input"></select></div>
+        <div class="form-group"><label class="form-label">Penanggung jawab <span class="req">*</span></label><select id="a-pj" class="form-input"><option value="">Pilih user</option></select></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Lokasi <span class="req">*</span></label><select id="a-lokasi" class="form-input" onchange="onLokasiChange()"></select></div>
+        <div class="form-group" id="a-proyek-group" style="display:none"><label class="form-label">Proyek <span class="req">*</span></label><select id="a-proyek" class="form-input"><option value="">Pilih proyek</option></select></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Kondisi <span class="req">*</span></label><select id="a-kondisi" class="form-input"></select></div>
+        <div class="form-group"><label class="form-label">Status <span class="req">*</span></label><select id="a-status" class="form-input"></select></div>
+      </div>
+      <div class="form-group"><label class="form-label">Catatan</label><textarea id="a-catatan" class="form-input" placeholder="Opsional"></textarea></div>
+      <div style="border-top:0.5px solid var(--border);margin:4px 0 12px"></div>
+      <div class="form-label" style="margin-bottom:8px;color:var(--text3)">Nilai aset (opsional — bisa diisi nanti)</div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Tanggal beli</label><input id="a-tglbeli" class="form-input" type="date"></div>
+        <div class="form-group"><label class="form-label">Nilai beli (Rp)</label><input id="a-nilai" class="form-input" type="number" placeholder="0"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Umur ekonomis (tahun)</label><input id="a-umur" class="form-input" type="number" placeholder="mis. 5"></div>
+        <div class="form-group"><label class="form-label">Nilai residu (Rp)</label><input id="a-residu" class="form-input" type="number" placeholder="0"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('modal-asset')">Batal</button>
+      <button class="btn btn-primary" id="save-asset-btn" onclick="saveAsset()">Simpan</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+<script>
+var API = 'https://script.google.com/macros/s/AKfycbwkjBr_opT5V05KY6fQG3Aa2i7URgxpzX7a1ga3mBFKS3CeMbCvyLzdkNpHIhgg4Xxncw/exec';
+var assets = [], users = [], projects = [];
+var editingAssetId = null;
+
+var KATEGORI = ['Mesin Workshop','Kendaraan','Alat Ukur & Instalasi','IT & Komputer','Lisensi Software','Gear Konten','Furnitur','Lainnya'];
+var LOKASI = ['Kantor Situbondo','Kantor Malang','Workshop','Proyek'];
+var KONDISI = ['Baik','Perlu Perhatian','Rusak'];
+var STATUS = ['Aktif','Dipinjam','Perbaikan','Nonaktif'];
+
+function getSession() { try { return JSON.parse(localStorage.getItem('moona_v2_session')); } catch(e) { return null; } }
+function logout() { localStorage.removeItem('moona_v2_session'); location.href = 'moona-v2-login.html'; }
+// ── MOONA PERMS v1 ──
+const MOONA_ACCESS = {
+  Owner:               ['dashboard','crm','client-portal','projects','laporan-design','laporan-build','aset','meetings','finance','content','sop'],
+  OperasionalManager:  ['dashboard','crm','client-portal','projects','laporan-design','laporan-build','aset','meetings','finance','sop'],
+  StudioHead:          ['dashboard','client-portal','projects','laporan-design','laporan-build','aset','meetings','sop'],
+  Designer:            ['dashboard','laporan-design','laporan-build','meetings','sop'],
+  Estimator:           ['dashboard','projects','laporan-design','laporan-build','meetings','sop'],
+  SiteEngineer:        ['dashboard','laporan-design','laporan-build','aset','meetings','sop'],
+  Sales:               ['dashboard','crm','client-portal','projects','meetings','sop'],
+  Marketing:           ['dashboard','crm','client-portal','content','meetings','sop'],
+  Finance:             ['dashboard','client-portal','aset','finance','meetings','sop']
+};
+const MOONA_DEFAULT_MODULE = {
+  Owner:'moona-v2-dashboard.html', OperasionalManager:'moona-v2-dashboard.html', StudioHead:'moona-v2-dashboard.html',
+  Designer:'moona-v2-laporan-design-v4.html', Estimator:'moona-v2-projects.html', SiteEngineer:'moona-v2-laporan-build-v4.html',
+  Sales:'moona-v2-crm.html', Marketing:'moona-v2-content.html', Finance:'moona-v2-finance.html'
+};
+function moonaRequireAccess(currentModule) {
+  let s = null;
+  try { s = JSON.parse(localStorage.getItem('moona_v2_session')); } catch(e){}
+  if (!s) { location.href = 'moona-v2-login.html'; return false; }
+  const allowed = MOONA_ACCESS[s.role] || [];
+  if (allowed.indexOf(currentModule) >= 0) return true;
+  const defFile = MOONA_DEFAULT_MODULE[s.role] || 'moona-v2-dashboard.html';
+  document.body.innerHTML = `<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:#f8f7f4;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;padding:20px">
+    <div style="max-width:420px;background:#fff;border:0.5px solid #e5e3dc;border-radius:12px;padding:32px;text-align:center">
+      <div style="font-size:42px;margin-bottom:14px;line-height:1">🔒</div>
+      <div style="font-size:18px;font-weight:600;color:#1a1a18;margin-bottom:6px">Akses ditolak</div>
+      <div style="font-size:13px;color:#6b6a64;line-height:1.55;margin-bottom:18px">Modul ini tidak tersedia untuk role <strong>${s.jobTitle || s.role}</strong>.<br>Silakan kembali ke modul yang sesuai.</div>
+      <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
+        <a href="${defFile}" style="display:inline-block;padding:9px 18px;background:#406EB6;color:#fff;text-decoration:none;border-radius:8px;font-size:12px;font-weight:600">Buka modul utama saya →</a>
+        <button onclick="localStorage.removeItem('moona_v2_session');location.href='moona-v2-login.html'" style="padding:9px 18px;background:#fff;color:#6b6a64;border:0.5px solid #d0cec7;border-radius:8px;font-size:12px;cursor:pointer;font-family:inherit">Logout</button>
+      </div>
+      <div style="font-size:10px;color:#9d9b94;margin-top:14px">Login sebagai: <strong>${s.nama}</strong></div>
+    </div>
+  </div>`;
+  return false;
+}
+if (!moonaRequireAccess('aset')) throw new Error('Akses ditolak');
+
+function go(u) { location.href = u; }
+var S = getSession();
+if (!S) { location.href = 'moona-v2-login.html'; }
+else { document.getElementById('sf-name').textContent = S.nama + ' - ' + (S.jobTitle || S.role); }
+
+// Role gating
+var CAN_MANAGE_ASSET = ['Owner','OperasionalManager'].indexOf((S||{}).role) >= 0;          // CRUD penuh
+var CAN_UPDATE_ASSET = CAN_MANAGE_ASSET || ['StudioHead','SiteEngineer'].indexOf((S||{}).role) >= 0; // edit terbatas
+
+// HELPERS
+function p(o) {
+  for (var i = 1; i < arguments.length; i++) {
+    var k = arguments[i];
+    if (o[k] !== undefined && o[k] !== null && String(o[k]).trim() !== '') return String(o[k]);
+  }
+  return '';
+}
+function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function rpFull(n){ return 'Rp ' + (parseFloat(n)||0).toLocaleString('id-ID'); }
+function showToast(m){ var t=document.getElementById('toast'); t.textContent=m; t.classList.add('show'); setTimeout(function(){t.classList.remove('show');},2800); }
+function closeModal(id){ document.getElementById(id).classList.remove('open'); }
+function opts(arr, sel){ return arr.map(function(v){ return '<option'+(v===sel?' selected':'')+'>'+esc(v)+'</option>'; }).join(''); }
+function userName(id){ var u=users.find(function(x){return x.id===String(id);}); return u?u.nama:'–'; }
+function projectName(id){ var pr=projects.find(function(x){return p(x,'ID')===String(id);}); return pr?p(pr,'NamaProyek'):'–'; }
+
+// INIT
+window.onload = function(){
+  if (!S) return;
+  if (CAN_MANAGE_ASSET) document.getElementById('btn-add-asset').style.display = '';
+  // filter dropdowns
+  document.getElementById('f-kategori').innerHTML = '<option value="">Semua kategori</option>' + opts(KATEGORI);
+  document.getElementById('f-lokasi').innerHTML = '<option value="">Semua lokasi</option>' + opts(LOKASI);
+  document.getElementById('f-status').innerHTML = '<option value="">Semua status</option>' + opts(STATUS);
+  // form dropdowns
+  document.getElementById('a-kategori').innerHTML = '<option value="">Pilih kategori</option>' + opts(KATEGORI);
+  document.getElementById('a-lokasi').innerHTML = '<option value="">Pilih lokasi</option>' + opts(LOKASI);
+  document.getElementById('a-kondisi').innerHTML = opts(KONDISI, 'Baik');
+  document.getElementById('a-status').innerHTML = opts(STATUS, 'Aktif');
+  Promise.all([loadUsers(), loadProjects()]).then(loadAssets);
+};
+
+function loadUsers(){
+  return fetch(API + '?action=getUsers').then(function(r){return r.json();}).then(function(d){
+    if (d.status === 'ok') {
+      users = d.data;
+      var html = '<option value="">Pilih user</option>';
+      for (var i=0;i<users.length;i++) html += '<option value="'+esc(users[i].id)+'">'+esc(users[i].nama)+' — '+esc(users[i].jobTitle||users[i].role)+'</option>';
+      document.getElementById('a-pj').innerHTML = html;
+    }
+  });
+}
+function loadProjects(){
+  return fetch(API + '?action=getProjects').then(function(r){return r.json();}).then(function(d){
+    if (d.status === 'ok') {
+      projects = d.data;
+      var html = '<option value="">Pilih proyek</option>';
+      for (var i=0;i<projects.length;i++) html += '<option value="'+esc(p(projects[i],'ID'))+'">'+esc(p(projects[i],'NamaProyek'))+'</option>';
+      document.getElementById('a-proyek').innerHTML = html;
+    }
+  });
+}
+function loadAssets(){
+  return fetch(API + '?action=getAssets').then(function(r){return r.json();}).then(function(d){
+    if (d.status === 'ok') { assets = d.data; renderAssets(); updateStats(); }
+    else { document.getElementById('asset-table-wrap').innerHTML = '<div class="empty">Gagal memuat. Pastikan sheet Assets sudah dibuat (jalankan setupAssetSheets di Apps Script).</div>'; }
+  }).catch(function(){
+    document.getElementById('asset-table-wrap').innerHTML = '<div class="empty">Gagal terhubung ke server.</div>';
+  });
+}
+
+function isAttn(a){ var k=p(a,'Kondisi'); return k==='Rusak' || k==='Perlu Perhatian' || p(a,'Status')==='Perbaikan'; }
+function isOut(a){ return p(a,'Status')==='Dipinjam' || p(a,'Lokasi')==='Proyek'; }
+
+function updateStats(){
+  var total=assets.length, attn=0, out=0, nilai=0;
+  for (var i=0;i<assets.length;i++){
+    if (isAttn(assets[i])) attn++;
+    if (isOut(assets[i])) out++;
+    nilai += parseFloat(p(assets[i],'NilaiBeli')||0);
+  }
+  document.getElementById('s-total').textContent = total;
+  document.getElementById('s-attn').textContent = attn;
+  document.getElementById('s-out').textContent = out;
+  document.getElementById('s-nilai').textContent = rpFull(nilai);
+}
+
+function filtered(){
+  var q = document.getElementById('f-search').value.trim().toLowerCase();
+  var fk = document.getElementById('f-kategori').value;
+  var fl = document.getElementById('f-lokasi').value;
+  var fs = document.getElementById('f-status').value;
+  return assets.filter(function(a){
+    if (q && p(a,'NamaAset').toLowerCase().indexOf(q)<0 && p(a,'KodeAset').toLowerCase().indexOf(q)<0) return false;
+    if (fk && p(a,'Kategori')!==fk) return false;
+    if (fl && p(a,'Lokasi')!==fl) return false;
+    if (fs && p(a,'Status')!==fs) return false;
+    return true;
+  });
+}
+
+function kondisiPill(k){ var c = k==='Baik'?'k-baik':(k==='Rusak'?'k-rusak':'k-perhatian'); return '<span class="pill '+c+'">'+esc(k||'–')+'</span>'; }
+function statusPill(s){ var m={Aktif:'st-aktif',Dipinjam:'st-dipinjam',Perbaikan:'st-perbaikan',Nonaktif:'st-nonaktif'}; return '<span class="pill '+(m[s]||'st-nonaktif')+'">'+esc(s||'–')+'</span>'; }
+function lokasiText(a){ var l=p(a,'Lokasi'); if (l==='Proyek') return 'Proyek: '+esc(projectName(p(a,'LokasiProyek_ID'))); return esc(l||'–'); }
+
+function renderAssets(){
+  var list = filtered();
+  var wrap = document.getElementById('asset-table-wrap');
+  if (!list.length){ wrap.innerHTML = '<div class="empty">Belum ada aset'+(assets.length?' yang cocok dengan filter.':'. Klik “+ Aset” untuk menambah.')+'</div>'; return; }
+  var actionCol = CAN_UPDATE_ASSET ? '<th class="td-right">Aksi</th>' : '';
+  var html = '<table><thead><tr><th>Kode</th><th>Nama</th><th>Kategori</th><th>Lokasi</th><th>Penanggung jawab</th><th>Kondisi</th><th>Status</th><th class="td-right">Nilai</th>'+actionCol+'</tr></thead><tbody>';
+  for (var i=0;i<list.length;i++){
+    var a = list[i];
+    var id = p(a,'ID');
+    html += '<tr>';
+    html += '<td>'+esc(p(a,'KodeAset')||'–')+'</td>';
+    html += '<td style="font-weight:500">'+esc(p(a,'NamaAset'))+'</td>';
+    html += '<td>'+esc(p(a,'Kategori')||'–')+'</td>';
+    html += '<td>'+lokasiText(a)+'</td>';
+    html += '<td>'+esc(userName(p(a,'PenanggungJawab_ID')))+'</td>';
+    html += '<td>'+kondisiPill(p(a,'Kondisi'))+'</td>';
+    html += '<td>'+statusPill(p(a,'Status'))+'</td>';
+    html += '<td class="td-right td-amount">'+(p(a,'NilaiBeli')?rpFull(p(a,'NilaiBeli')):'–')+'</td>';
+    if (CAN_UPDATE_ASSET){
+      html += '<td class="td-right" style="white-space:nowrap">';
+      html += '<button class="btn btn-sm" onclick="openEditAsset(\''+id+'\')">Edit</button> ';
+      if (CAN_MANAGE_ASSET) html += '<button class="btn-ghost" onclick="deleteAsset(\''+id+'\')">Hapus</button>';
+      html += '</td>';
+    }
+    html += '</tr>';
+  }
+  html += '</tbody></table>';
+  wrap.innerHTML = html;
+}
+
+// MODAL
+function onLokasiChange(){
+  var isProyek = document.getElementById('a-lokasi').value === 'Proyek';
+  document.getElementById('a-proyek-group').style.display = isProyek ? '' : 'none';
+}
+function setManageLock(locked){
+  // field yang hanya boleh diubah oleh pengelola penuh
+  ['a-kode','a-nama','a-kategori','a-pj','a-tglbeli','a-nilai','a-umur','a-residu'].forEach(function(id){
+    document.getElementById(id).disabled = locked;
+  });
+}
+function openAddAsset(){
+  if (!CAN_MANAGE_ASSET){ showToast('Tidak punya akses tambah aset'); return; }
+  editingAssetId = null;
+  document.getElementById('asset-modal-title').textContent = 'Aset Baru';
+  ['a-kode','a-nama','a-catatan','a-tglbeli','a-nilai','a-umur','a-residu'].forEach(function(id){ document.getElementById(id).value=''; });
+  document.getElementById('a-kategori').value='';
+  document.getElementById('a-lokasi').value='';
+  document.getElementById('a-pj').value='';
+  document.getElementById('a-proyek').value='';
+  document.getElementById('a-kondisi').value='Baik';
+  document.getElementById('a-status').value='Aktif';
+  onLokasiChange();
+  setManageLock(false);
+  document.getElementById('modal-asset').classList.add('open');
+}
+function openEditAsset(id){
+  if (!CAN_UPDATE_ASSET){ showToast('Tidak punya akses edit'); return; }
+  var a = assets.find(function(x){ return p(x,'ID')===id; });
+  if (!a) return;
+  editingAssetId = id;
+  document.getElementById('asset-modal-title').textContent = 'Edit Aset';
+  document.getElementById('a-kode').value = p(a,'KodeAset');
+  document.getElementById('a-nama').value = p(a,'NamaAset');
+  document.getElementById('a-kategori').value = p(a,'Kategori');
+  document.getElementById('a-pj').value = p(a,'PenanggungJawab_ID');
+  document.getElementById('a-lokasi').value = p(a,'Lokasi');
+  document.getElementById('a-proyek').value = p(a,'LokasiProyek_ID');
+  document.getElementById('a-kondisi').value = p(a,'Kondisi') || 'Baik';
+  document.getElementById('a-status').value = p(a,'Status') || 'Aktif';
+  document.getElementById('a-catatan').value = p(a,'Catatan');
+  document.getElementById('a-tglbeli').value = p(a,'TanggalBeli');
+  document.getElementById('a-nilai').value = p(a,'NilaiBeli');
+  document.getElementById('a-umur').value = p(a,'UmurEkonomisTahun');
+  document.getElementById('a-residu').value = p(a,'NilaiResidu');
+  onLokasiChange();
+  setManageLock(!CAN_MANAGE_ASSET); // editor terbatas hanya boleh ubah lokasi/kondisi/status/catatan
+  document.getElementById('modal-asset').classList.add('open');
+}
+async function saveAsset(){
+  var nama = document.getElementById('a-nama').value.trim();
+  var kategori = document.getElementById('a-kategori').value;
+  var lokasi = document.getElementById('a-lokasi').value;
+  var pjId = document.getElementById('a-pj').value;
+  var kondisi = document.getElementById('a-kondisi').value;
+  var status = document.getElementById('a-status').value;
+  var lokasiProyekId = lokasi==='Proyek' ? document.getElementById('a-proyek').value : '';
+  if (!nama || !kategori || !lokasi || !pjId || !kondisi || !status){ showToast('Lengkapi field wajib (*)'); return; }
+  if (lokasi==='Proyek' && !lokasiProyekId){ showToast('Pilih proyek lokasi aset'); return; }
+  var payload = {
+    action: editingAssetId ? 'updateAsset' : 'addAsset',
+    kode: document.getElementById('a-kode').value.trim(),
+    nama: nama, kategori: kategori, lokasi: lokasi, lokasiProyekId: lokasiProyekId,
+    pjId: pjId, kondisi: kondisi, status: status,
+    catatan: document.getElementById('a-catatan').value.trim(),
+    tglBeli: document.getElementById('a-tglbeli').value,
+    nilaiBeli: document.getElementById('a-nilai').value || '',
+    umur: document.getElementById('a-umur').value || '',
+    residu: document.getElementById('a-residu').value || ''
+  };
+  if (editingAssetId) payload.id = editingAssetId;
+  var btn = document.getElementById('save-asset-btn'); btn.textContent='Menyimpan…'; btn.disabled=true;
+  try{
+    var r = await fetch(API, { method:'POST', body: JSON.stringify(payload) });
+    var d = await r.json();
+    if (d.status === 'ok'){ closeModal('modal-asset'); showToast(editingAssetId?'Aset diperbarui!':'Aset ditambahkan!'); await loadAssets(); }
+    else showToast('Gagal: ' + (d.message||''));
+  } catch(e){ showToast('Error koneksi'); }
+  btn.textContent='Simpan'; btn.disabled=false;
+}
+async function deleteAsset(id){
+  if (!CAN_MANAGE_ASSET){ showToast('Tidak punya akses hapus'); return; }
+  var a = assets.find(function(x){ return p(x,'ID')===id; });
+  if (!confirm('Hapus aset "'+(a?p(a,'NamaAset'):'')+'"? Tindakan ini permanen.')) return;
+  try{
+    var r = await fetch(API, { method:'POST', body: JSON.stringify({ action:'deleteAsset', id:id }) });
+    var d = await r.json();
+    if (d.status === 'ok'){ showToast('Aset dihapus'); await loadAssets(); }
+    else showToast('Gagal: ' + (d.message||''));
+  } catch(e){ showToast('Error koneksi'); }
+}
+</script>
+</body>
+</html>

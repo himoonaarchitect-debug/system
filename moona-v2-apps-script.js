@@ -67,6 +67,10 @@ function doPost(e) {
     if (action === 'updateTaskStatus') return updateTaskStatus(data);
     if (action === 'pauseTaskAssign') return pauseTaskAssign(data);
     if (action === 'deleteTaskAssign') return deleteTaskAssign(data);
+
+    if (action === 'addAsset') return addAsset(data);
+    if (action === 'updateAsset') return updateAsset(data);
+    if (action === 'deleteAsset') return deleteAsset(data);
     return response({ status: 'error', message: 'Action tidak dikenal: ' + action });
   } catch (err) {
     return response({ status: 'error', message: err.toString() });
@@ -96,6 +100,7 @@ function doGet(e) {
   if (action === 'getSOP') return getSOP();
   if (action === 'getClientFiles') return getClientFiles(e.parameter);
   if (action === 'getTaskAssign') return getTaskAssign(e.parameter);
+  if (action === 'getAssets') return getAssets();
   return response({ status: 'ok', message: 'Moona API v2 aktif' });
 }
 
@@ -1077,3 +1082,59 @@ function addDaysISO(d, n) {
   return dt.toISOString().substring(0, 10);
 }
 
+
+// ════════════════════════════════════════════════════
+// MODUL ASET — Fase 1 (Register). AssetAgenda di-seed untuk Fase 2.
+// ════════════════════════════════════════════════════
+
+// Jalankan SEKALI dari editor Apps Script untuk membuat sheet.
+function setupAssetSheets() {
+  const ssx = ss();
+  if (!ssx.getSheetByName('Assets')) {
+    const sh = ssx.insertSheet('Assets');
+    sh.appendRow(['ID','KodeAset','NamaAset','Kategori','Lokasi','LokasiProyek_ID','PenanggungJawab_ID','Kondisi','Status','Catatan','TanggalBeli','NilaiBeli','UmurEkonomisTahun','NilaiResidu','CreatedAt']);
+    sh.setFrozenRows(1);
+  }
+  if (!ssx.getSheetByName('AssetAgenda')) {
+    const sh2 = ssx.insertSheet('AssetAgenda');
+    sh2.appendRow(['ID','Asset_ID','JenisAgenda','Judul','TanggalJatuhTempo','Status','TanggalSelesai','Biaya','UlangTiap','PIC_ID','Catatan','CreatedAt']);
+    sh2.setFrozenRows(1);
+  }
+  return 'Sheet Assets & AssetAgenda siap.';
+}
+
+function getAssets() {
+  return response({ status: 'ok', data: norm(sheet('Assets').getDataRange().getValues()) });
+}
+
+function addAsset(data) {
+  const s = sheet('Assets');
+  const id = 'AST-' + nowId();
+  s.appendRow([
+    id, data.kode || '', data.nama, data.kategori, data.lokasi,
+    data.lokasiProyekId || '', data.pjId || '', data.kondisi || 'Baik', data.status || 'Aktif', data.catatan || '',
+    data.tglBeli || '', data.nilaiBeli || '', data.umur || '', data.residu || '', nowStr()
+  ]);
+  return response({ status: 'ok', id });
+}
+
+function updateAsset(data) {
+  const map = {
+    kode: 'KodeAset', nama: 'NamaAset', kategori: 'Kategori', lokasi: 'Lokasi',
+    lokasiProyekId: 'LokasiProyek_ID', pjId: 'PenanggungJawab_ID', kondisi: 'Kondisi', status: 'Status',
+    catatan: 'Catatan', tglBeli: 'TanggalBeli', nilaiBeli: 'NilaiBeli', umur: 'UmurEkonomisTahun', residu: 'NilaiResidu'
+  };
+  const updates = {};
+  Object.keys(map).forEach(k => { if (data[k] !== undefined) updates[map[k]] = data[k]; });
+  updateCols('Assets', data.id, updates);
+  return response({ status: 'ok' });
+}
+
+function deleteAsset(data) {
+  const id = data.id;
+  if (!id) return response({ status: 'error', message: 'Asset ID kosong.' });
+  const summary = { agenda: 0, asset: 0 };
+  summary.agenda = deleteRowsByCol('AssetAgenda', 'Asset_ID', id); // cascade (Fase 2)
+  summary.asset = deleteRowsByCol('Assets', 'ID', id);
+  return response({ status: 'ok', summary });
+}

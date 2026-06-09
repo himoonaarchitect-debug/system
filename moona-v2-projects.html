@@ -202,6 +202,7 @@ textarea.form-input{resize:vertical;min-height:60px;line-height:1.5}
   <div class="nav-item active"><span class="nav-dot" style="background:var(--teal)"></span>Project Management</div>
   <div class="nav-item" onclick="go('moona-v2-laporan-design-v4.html')"><span class="nav-dot" style="background:var(--purple)"></span>Laporan Design</div>
   <div class="nav-item" onclick="go('moona-v2-laporan-build-v4.html')"><span class="nav-dot" style="background:var(--teal)"></span>Laporan Build</div>
+  <div class="nav-item" onclick="go('moona-v2-assets.html')"><span class="nav-dot" style="background:var(--brand)"></span>Aset</div>
   <div class="nav-section">Lainnya</div>
   <div class="nav-item" onclick="go('moona-v2-meetings.html')"><span class="nav-dot" style="background:var(--purple)"></span>Meeting Tracker</div>
   <div class="nav-item" onclick="go('moona-v2-finance.html')"><span class="nav-dot" style="background:var(--amber)"></span>Finance</div>
@@ -451,15 +452,15 @@ function getSession(){try{return JSON.parse(localStorage.getItem('moona_v2_sessi
 function logout(){localStorage.removeItem('moona_v2_session');location.href='moona-v2-login.html';}
 // ── MOONA PERMS v1 ──
 const MOONA_ACCESS = {
-  Owner:               ['dashboard','crm','client-portal','projects','laporan-design','laporan-build','meetings','finance','content','sop'],
-  OperasionalManager:  ['dashboard','crm','client-portal','projects','laporan-design','laporan-build','meetings','finance','sop'],
-  StudioHead:          ['dashboard','client-portal','projects','laporan-design','laporan-build','meetings','sop'],
+  Owner:               ['dashboard','crm','client-portal','projects','laporan-design','laporan-build','aset','meetings','finance','content','sop'],
+  OperasionalManager:  ['dashboard','crm','client-portal','projects','laporan-design','laporan-build','aset','meetings','finance','sop'],
+  StudioHead:          ['dashboard','client-portal','projects','laporan-design','laporan-build','aset','meetings','sop'],
   Designer:            ['dashboard','laporan-design','laporan-build','meetings','sop'],
   Estimator:           ['dashboard','projects','laporan-design','laporan-build','meetings','sop'],
-  SiteEngineer:        ['dashboard','laporan-design','laporan-build','meetings','sop'],
+  SiteEngineer:        ['dashboard','laporan-design','laporan-build','aset','meetings','sop'],
   Sales:               ['dashboard','crm','client-portal','projects','meetings','sop'],
   Marketing:           ['dashboard','crm','client-portal','content','meetings','sop'],
-  Finance:             ['dashboard','client-portal','finance','meetings','sop']
+  Finance:             ['dashboard','client-portal','aset','finance','meetings','sop']
 };
 const MOONA_DEFAULT_MODULE = {
   Owner:'moona-v2-dashboard.html', OperasionalManager:'moona-v2-dashboard.html', StudioHead:'moona-v2-dashboard.html',
