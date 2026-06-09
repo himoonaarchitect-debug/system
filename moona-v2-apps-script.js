@@ -71,6 +71,9 @@ function doPost(e) {
     if (action === 'addAsset') return addAsset(data);
     if (action === 'updateAsset') return updateAsset(data);
     if (action === 'deleteAsset') return deleteAsset(data);
+    if (action === 'addAgenda') return addAgenda(data);
+    if (action === 'updateAgenda') return updateAgenda(data);
+    if (action === 'deleteAgenda') return deleteAgenda(data);
     return response({ status: 'error', message: 'Action tidak dikenal: ' + action });
   } catch (err) {
     return response({ status: 'error', message: err.toString() });
@@ -101,6 +104,7 @@ function doGet(e) {
   if (action === 'getClientFiles') return getClientFiles(e.parameter);
   if (action === 'getTaskAssign') return getTaskAssign(e.parameter);
   if (action === 'getAssets') return getAssets();
+  if (action === 'getAssetAgenda') return getAssetAgenda();
   return response({ status: 'ok', message: 'Moona API v2 aktif' });
 }
 
@@ -1137,4 +1141,67 @@ function deleteAsset(data) {
   summary.agenda = deleteRowsByCol('AssetAgenda', 'Asset_ID', id); // cascade (Fase 2)
   summary.asset = deleteRowsByCol('Assets', 'ID', id);
   return response({ status: 'ok', summary });
+}
+
+// ── MODUL ASET — Fase 2 (Agenda & Pengingat) ──
+function getAssetAgenda() {
+  return response({ status: 'ok', data: norm(sheet('AssetAgenda').getDataRange().getValues()) });
+}
+
+function addAgenda(data) {
+  const s = sheet('AssetAgenda');
+  const id = 'AGN-' + nowId();
+  s.appendRow([
+    id, data.assetId, data.jenis, data.judul, data.jatuhTempo,
+    data.status || 'Terjadwal', data.tglSelesai || '', data.biaya || '', data.ulangTiap || '', data.picId || '', data.catatan || '', nowStr()
+  ]);
+  return response({ status: 'ok', id });
+}
+
+function updateAgenda(data) {
+  const map = {
+    assetId: 'Asset_ID', jenis: 'JenisAgenda', judul: 'Judul', jatuhTempo: 'TanggalJatuhTempo',
+    status: 'Status', tglSelesai: 'TanggalSelesai', biaya: 'Biaya', ulangTiap: 'UlangTiap', picId: 'PIC_ID', catatan: 'Catatan'
+  };
+  const updates = {};
+  Object.keys(map).forEach(k => { if (data[k] !== undefined) updates[map[k]] = data[k]; });
+  updateCols('AssetAgenda', data.id, updates);
+  // Recurrence: kalau ditandai Selesai & punya UlangTiap → otomatis buat agenda berikutnya
+  if (data.status === 'Selesai') {
+    const row = findRowObj('AssetAgenda', data.id);
+    if (row && row['UlangTiap'] && row['UlangTiap'] !== 'Tidak berulang') {
+      const nextDue = addInterval(row['TanggalJatuhTempo'], row['UlangTiap']);
+      if (nextDue) {
+        sheet('AssetAgenda').appendRow([
+          'AGN-' + nowId(), row['Asset_ID'], row['JenisAgenda'], row['Judul'], nextDue,
+          'Terjadwal', '', '', row['UlangTiap'], row['PIC_ID'], row['Catatan'], nowStr()
+        ]);
+      }
+    }
+  }
+  return response({ status: 'ok' });
+}
+
+function deleteAgenda(data) {
+  if (!data.id) return response({ status: 'error', message: 'Agenda ID kosong.' });
+  const n = deleteRowsByCol('AssetAgenda', 'ID', data.id);
+  return response({ status: 'ok', deleted: n });
+}
+
+// Helper: ambil 1 baris sebagai objek by ID
+function findRowObj(sheetName, id) {
+  const arr = norm(sheet(sheetName).getDataRange().getValues());
+  return arr.find(r => String(r['ID']) === String(id)) || null;
+}
+// Helper: tambah interval ("1 bulan"/"6 bulan"/"1 tahun") ke tanggal YYYY-MM-DD
+function addInterval(dateStr, ulang) {
+  const mm = String(dateStr || '').match(/^(\d{4})-(\d{2})-(\d{2})/);
+  const rep = String(ulang || '').match(/(\d+)\s*(bulan|tahun)/i);
+  if (!mm || !rep) return '';
+  let y = parseInt(mm[1]), mo = parseInt(mm[2]) - 1, da = parseInt(mm[3]);
+  const n = parseInt(rep[1]);
+  if (/tahun/i.test(rep[2])) y += n; else mo += n;
+  const d = new Date(y, mo, da);
+  const MM = String(d.getMonth() + 1).padStart(2, '0'), DD = String(d.getDate()).padStart(2, '0');
+  return d.getFullYear() + '-' + MM + '-' + DD;
 }
