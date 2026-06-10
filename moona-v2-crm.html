@@ -220,6 +220,7 @@ textarea.form-input{resize:vertical;min-height:64px;line-height:1.5}
   <div class="nav-item" onclick="go('moona-v2-finance.html')"><span class="nav-dot" style="background:var(--amber)"></span>Finance</div>
   <div class="nav-item" onclick="go('moona-v2-content.html')"><span class="nav-dot" style="background:var(--coral-mid)"></span>Content Planner</div>
   <div class="nav-item" onclick="go('moona-v2-sop.html')"><span class="nav-dot" style="background:#888780"></span>SOP &amp; Dokumen</div>
+  <div class="nav-item" onclick="go('moona-v2-activity.html')"><span class="nav-dot" style="background:var(--purple)"></span>Log Aktivitas</div>
   <div class="sidebar-footer">
     <div class="sf-label">Login sebagai</div>
     <div class="sf-name" id="sf-name">–</div>
@@ -509,6 +510,28 @@ textarea.form-input{resize:vertical;min-height:64px;line-height:1.5}
 
 <script>
 const API='https://script.google.com/macros/s/AKfycbxDgAA0ulCsziLh8WNFciA0EiQKzekDHtQIGxurBPqelxveTXfN46hRm8wtzEHnJ33PKg/exec';
+
+// Auto-attribution untuk Log Aktivitas: sisipkan actorId & actorRole ke setiap POST tulis ke API
+(function(){
+  if (window.__moonaFetchWrapped) return; window.__moonaFetchWrapped = true;
+  var _f = window.fetch.bind(window);
+  window.fetch = function(url, opts){
+    try {
+      if (opts && opts.method === 'POST' && typeof url === 'string' && url.indexOf(API) === 0 && typeof opts.body === 'string') {
+        var s = JSON.parse(localStorage.getItem('moona_v2_session') || 'null');
+        if (s && s.id) {
+          var b = JSON.parse(opts.body);
+          if (b && b.action) {
+            if (b.actorId === undefined) b.actorId = s.id;
+            if (b.actorRole === undefined) b.actorRole = s.role;
+            opts = Object.assign({}, opts, { body: JSON.stringify(b) });
+          }
+        }
+      }
+    } catch(e){}
+    return _f(url, opts);
+  };
+})();
 const PIPE_INT=['Consultation','Proposal Sent','Site visit','Design','Kontrak build','Eksekusi','Handover','After sales'];
 const PIPE_EXT=['Consultation','Proposal Sent','Site visit','Design moodboard','Kontrak design','Design','Design handover','Build costing','Kontrak build','Eksekusi build','Handover','After sales'];
 const PIPE_GROUPS={

@@ -3,9 +3,20 @@
 // ============================================================
 
 function doPost(e) {
+  var data = {}, action = '';
   try {
-    const data = JSON.parse(e.postData.contents);
-    const action = data.action;
+    data = JSON.parse(e.postData.contents);
+    action = data.action;
+    var res = dispatchPost(action, data);
+    logActivity(data.actorId, data.actorRole, action, data.id || '', 'ok', '');
+    return res;
+  } catch (err) {
+    logActivity((data && data.actorId) || '', (data && data.actorRole) || '', action, (data && data.id) || '', 'error', err.toString());
+    return response({ status: 'error', message: err.toString() });
+  }
+}
+
+function dispatchPost(action, data) {
     // AUTH
     if (action === 'addUser') return addUser(data);
     // CRM
@@ -75,9 +86,6 @@ function doPost(e) {
     if (action === 'updateAgenda') return updateAgenda(data);
     if (action === 'deleteAgenda') return deleteAgenda(data);
     return response({ status: 'error', message: 'Action tidak dikenal: ' + action });
-  } catch (err) {
-    return response({ status: 'error', message: err.toString() });
-  }
 }
 
 function doGet(e) {
@@ -105,6 +113,8 @@ function doGet(e) {
   if (action === 'getTaskAssign') return getTaskAssign(e.parameter);
   if (action === 'getAssets') return getAssets();
   if (action === 'getAssetAgenda') return getAssetAgenda();
+  if (action === 'getActivityLog') return getActivityLog(e.parameter);
+  if (action === 'getActivityRecap') return getActivityRecap(e.parameter);
   return response({ status: 'ok', message: 'Moona API v2 aktif' });
 }
 
@@ -183,6 +193,7 @@ function login(params) {
       String(password).trim() === String(params.password).trim() &&
       String(aktif).trim().toUpperCase() === 'TRUE'
     ) {
+      logActivity(id, role, 'login', '', 'ok', '');
       return response({ status: 'ok', id, nama, username, role, jobTitle: String(jobTitle || '') });
     }
   }
@@ -1204,4 +1215,111 @@ function addInterval(dateStr, ulang) {
   const d = new Date(y, mo, da);
   const MM = String(d.getMonth() + 1).padStart(2, '0'), DD = String(d.getDate()).padStart(2, '0');
   return d.getFullYear() + '-' + MM + '-' + DD;
+}
+
+// ════════════════════════════════════════════════════
+// MODUL LOG AKTIVITAS (Audit + Rekap)
+// ════════════════════════════════════════════════════
+
+// Jalankan SEKALI dari editor untuk membuat sheet.
+function setupActivityLog() {
+  var ssx = ss();
+  if (!ssx.getSheetByName('ActivityLog')) {
+    var sh = ssx.insertSheet('ActivityLog');
+    sh.appendRow(['ID','Waktu','User_ID','Role','Modul','Aksi','Target_ID','Hasil','Ringkasan']);
+    sh.setFrozenRows(1);
+  }
+  return 'Sheet ActivityLog siap.';
+}
+
+// Catat satu kejadian. Aman: error logging tidak boleh mengganggu operasi utama.
+function logActivity(actorId, actorRole, action, targetId, result, summary) {
+  try {
+    if (!action) return;
+    var sh = ss().getSheetByName('ActivityLog');
+    if (!sh) return; // belum di-setup
+    sh.appendRow([
+      'LOG-' + nowId(), nowStr(), actorId || '', actorRole || '',
+      moduleOf(action), action, targetId || '', result || 'ok', summary || ''
+    ]);
+  } catch (e) { /* sengaja diabaikan */ }
+}
+
+// Turunkan nama modul dari nama action.
+function moduleOf(action) {
+  var a = String(action || '');
+  if (a === 'login') return 'Auth';
+  if (a.indexOf('Lead') >= 0 || a.indexOf('FollowUp') >= 0) return 'CRM';
+  if (a.indexOf('Project') >= 0 || a.indexOf('RAB') >= 0) return 'Projects';
+  if (a.indexOf('LaporanDesign') >= 0) return 'Laporan Design';
+  if (a.indexOf('LaporanBuild') >= 0 || a === 'uploadFoto') return 'Laporan Build';
+  if (a.indexOf('Meeting') >= 0 || a.indexOf('ActionItem') >= 0 || a.indexOf('ActionStatus') >= 0) return 'Meetings';
+  if (a.indexOf('Invoice') >= 0 || a.indexOf('Cashflow') >= 0) return 'Finance';
+  if (a.indexOf('Content') >= 0 || a.indexOf('Sosmed') >= 0) return 'Content';
+  if (a.indexOf('SOP') >= 0 || a.indexOf('ClientFile') >= 0) return 'SOP & Dokumen';
+  if (a.indexOf('Client') >= 0 || a.indexOf('Chat') >= 0) return 'Client Portal';
+  if (a.indexOf('Task') >= 0) return 'Tasks';
+  if (a.indexOf('Asset') >= 0 || a.indexOf('Agenda') >= 0) return 'Aset';
+  if (a.indexOf('User') >= 0) return 'Auth';
+  return 'Lainnya';
+}
+
+// FASE 2 — Audit: kembalikan log (terbaru dulu, dibatasi).
+function getActivityLog(params) {
+  var sh = ss().getSheetByName('ActivityLog');
+  if (!sh) return response({ status: 'ok', data: [] });
+  var data = norm(sh.getDataRange().getValues());
+  data.reverse(); // terbaru dulu
+  var limit = (params && params.limit) ? parseInt(params.limit) : 1500;
+  if (data.length > limit) data = data.slice(0, limit);
+  return response({ status: 'ok', data: data });
+}
+
+// FASE 3 — Rekap: agregasi dihitung di server.
+function getActivityRecap(params) {
+  var sh = ss().getSheetByName('ActivityLog');
+  if (!sh) return response({ status: 'ok', data: { perModul: {}, perUser: [], perDay: {}, total: 0 } });
+  var rows = norm(sh.getDataRange().getValues());
+
+  // nama user dari sheet Users
+  var urows = sheet('Users').getDataRange().getValues();
+  var nameOf = {};
+  for (var i = 1; i < urows.length; i++) {
+    nameOf[String(urows[i][0])] = { nama: String(urows[i][1] || ''), role: String(urows[i][4] || '') };
+  }
+
+  var perModul = {}, perUserMap = {}, perDay = {};
+  rows.forEach(function (r) {
+    var modul = r['Modul'] || 'Lainnya';
+    perModul[modul] = (perModul[modul] || 0) + 1;
+
+    var uid = r['User_ID'] || '(tak diketahui)';
+    if (!perUserMap[uid]) {
+      perUserMap[uid] = {
+        userId: uid,
+        nama: nameOf[uid] ? nameOf[uid].nama : uid,
+        role: r['Role'] || (nameOf[uid] ? nameOf[uid].role : ''),
+        total: 0, write: 0, login: 0, lastActive: ''
+      };
+    }
+    var u = perUserMap[uid];
+    u.total++;
+    if (r['Aksi'] === 'login') u.login++; else u.write++;
+    u.lastActive = r['Waktu']; // rows urut append → yang terakhir = paling baru
+
+    var d = isoDay(r['Waktu']);
+    if (d) perDay[d] = (perDay[d] || 0) + 1;
+  });
+
+  var perUser = Object.keys(perUserMap).map(function (k) { return perUserMap[k]; })
+    .sort(function (a, b) { return b.total - a.total; });
+
+  return response({ status: 'ok', data: { perModul: perModul, perUser: perUser, perDay: perDay, total: rows.length } });
+}
+
+// Normalisasi tanggal lokal "D/M/YYYY, ..." → "YYYY-MM-DD" (untuk grouping & sort)
+function isoDay(waktu) {
+  var m = String(waktu || '').match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+  if (!m) return '';
+  return m[3] + '-' + ('0' + m[2]).slice(-2) + '-' + ('0' + m[1]).slice(-2);
 }
