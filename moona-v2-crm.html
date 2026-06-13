@@ -233,7 +233,7 @@ textarea.form-input{resize:vertical;min-height:64px;line-height:1.5}
 <div class="main">
   <div class="topbar">
     <div><div class="page-title">CRM &amp; Sales</div><div class="page-sub">Pipeline lead · Interior &amp; Eksterior · Residensial &amp; Komersial</div></div>
-    <button class="btn btn-primary" onclick="openLeadForm()">+ Lead Baru</button>
+    <button class="btn btn-primary" id="btn-add-lead" onclick="openLeadForm()">+ Lead Baru</button>
   </div>
 
   <!-- STATS -->
@@ -599,7 +599,10 @@ function go(url){location.href=url;}
 const S=getSession();
 if(!S){location.href='moona-v2-login.html';}
 else document.getElementById('sf-name').textContent=S.nama+' — '+(S.jobTitle || S.role);
-const CAN_EDIT_LEAD=['Owner','OperasionalManager','Sales'].includes((S||{}).role);
+const __accCrm=(function(){try{return JSON.parse(localStorage.getItem('moona_v2_access'));}catch(e){return null;}})();
+const __lvlCrm=(__accCrm&&__accCrm.levels&&__accCrm.levels.crm)?__accCrm.levels.crm:null;
+const CAN_EDIT_LEAD=__lvlCrm?(__lvlCrm==='manage'):['Owner','OperasionalManager','Sales'].includes((S||{}).role);
+const CAN_ADD_LEAD=__lvlCrm?(__lvlCrm==='manage'):true;
 
 // HELPERS
 function p(o,...ks){for(const k of ks){if(o[k]!==undefined&&o[k]!==null&&String(o[k]).trim()!='')return String(o[k]);}return '';}
@@ -676,6 +679,7 @@ function renderView(){renderPipeline();if(document.getElementById('tab-list').st
 
 // LOAD
 window.onload=async()=>{
+  if(!CAN_ADD_LEAD){var b=document.getElementById('btn-add-lead');if(b)b.style.display='none';}
   document.getElementById('f-followup').value=new Date().toISOString().split('T')[0];
   await Promise.all([loadLeads(),loadLogs(),loadUsers()]);
 };
@@ -870,6 +874,7 @@ function updateStages(){renderStageOpts('f-stage-selector',document.getElementBy
 
 // LEAD FORM
 function openLeadForm(){
+  if(!CAN_ADD_LEAD){showToast('Tidak punya akses tambah lead');return;}
   ['f-nama','f-wa','f-alamat','f-nilai'].forEach(id=>document.getElementById(id).value='');
   ['f-sumber','f-layanan','f-proyek'].forEach(id=>document.getElementById(id).value='');
   const today=new Date().toISOString().split('T')[0];

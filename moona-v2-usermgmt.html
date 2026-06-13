@@ -136,7 +136,7 @@ tr:hover td{background:#fcfbf9}
 
   <!-- TAB AKSES -->
   <div id="tab-akses" style="display:none">
-    <div class="note">Centang modul yang boleh diakses tiap role, lalu klik <strong>Simpan</strong> pada baris itu. Perubahan berlaku saat user login berikutnya. Hati-hati mengubah akses Owner — jangan sampai mengunci dirimu sendiri.</div>
+    <div class="note"><strong>Lihat</strong> = buka &amp; lihat saja. <strong>Kelola</strong> = bisa tambah/edit/hapus. <strong>—</strong> = tak ada akses. Klik <strong>Simpan</strong> per baris; perubahan berlaku saat user itu login berikutnya. Tanda <strong>•</strong> = modul yang sudah menghormati level (Aset &amp; CRM). Modul lain: Lihat/Kelola dianggap sama (akses penuh) sampai dikonversi. Hati-hati mengubah akses Owner.</div>
     <div class="card"><div class="tablewrap" id="akses-wrap"><div class="loading">Memuat akses…</div></div></div>
   </div>
 </div>
@@ -366,18 +366,22 @@ function loadAccess(){
     else document.getElementById('akses-wrap').innerHTML='<div class="loading">Gagal memuat akses. Pastikan RoleAccess sudah di-setup.</div>';
   }).catch(function(){ document.getElementById('akses-wrap').innerHTML='<div class="loading">Gagal terhubung ke server.</div>'; });
 }
+const LEVEL_ACTIVE=['aset','crm']; // modul yang sudah menghormati level
 function renderAccess(){
-  if(!accessMap.length){ document.getElementById('akses-wrap').innerHTML='<div class="loading">Belum ada data akses. Jalankan setupRoleAccess di Apps Script.</div>'; return; }
+  if(!accessMap.length){ document.getElementById('akses-wrap').innerHTML='<div class="loading">Belum ada data akses. Jalankan reseedRoleAccessLevels di Apps Script.</div>'; return; }
   var h='<table class="matrix"><thead><tr><th>Role</th>';
-  MODULES.forEach(function(m){ h+='<th class="mod">'+esc(m.nama)+'</th>'; });
+  MODULES.forEach(function(m){ h+='<th class="mod">'+esc(m.nama)+(LEVEL_ACTIVE.indexOf(m.key)>=0?' •':'')+'</th>'; });
   h+='<th>Default</th><th></th></tr></thead><tbody>';
   accessMap.forEach(function(r){
     h+='<tr><td class="rolename">'+esc(r.role)+'</td>';
     MODULES.forEach(function(m){
-      var on=r.modules.indexOf(m.key)>=0;
-      h+='<td class="center"><input type="checkbox" data-role="'+esc(r.role)+'" data-mod="'+esc(m.key)+'"'+(on?' checked':'')+'></td>';
+      var lvl = r.modules.indexOf(m.key)>=0 ? ((r.levels&&r.levels[m.key])?r.levels[m.key]:'manage') : 'none';
+      h+='<td class="center"><select class="lvl" data-role="'+esc(r.role)+'" data-mod="'+esc(m.key)+'">'
+        +'<option value="none"'+(lvl==='none'?' selected':'')+'>—</option>'
+        +'<option value="view"'+(lvl==='view'?' selected':'')+'>Lihat</option>'
+        +'<option value="manage"'+(lvl==='manage'?' selected':'')+'>Kelola</option>'
+        +'</select></td>';
     });
-    // default module dropdown
     h+='<td><select id="def-'+esc(r.role)+'">';
     MODULES.forEach(function(m){ h+='<option value="'+esc(m.file)+'"'+(m.file===r.defaultModule?' selected':'')+'>'+esc(m.nama)+'</option>'; });
     h+='</select></td>';
@@ -388,10 +392,11 @@ function renderAccess(){
   document.getElementById('akses-wrap').innerHTML=h;
 }
 function saveRoleRow(role){
-  var boxes=document.querySelectorAll('input[data-role="'+role.replace(/"/g,'')+'"]:checked');
-  var mods=[]; boxes.forEach(function(b){ mods.push(b.getAttribute('data-mod')); });
+  var sels=document.querySelectorAll('select.lvl[data-role="'+role.replace(/"/g,'')+'"]');
+  var mods=[]; var hasUserMgmt=false;
+  sels.forEach(function(s){ var v=s.value; var k=s.getAttribute('data-mod'); if(v!=='none'){ mods.push(k+':'+v); if(k==='usermgmt')hasUserMgmt=true; } });
   var def=document.getElementById('def-'+role).value;
-  if(role==='Owner' && mods.indexOf('usermgmt')<0){
+  if(role==='Owner' && !hasUserMgmt){
     if(!confirm('Kamu menghapus akses User Management dari Owner. Kamu bisa terkunci dari modul ini. Lanjutkan?')) return;
   }
   post('saveRoleAccess',{role:role,modules:mods,defaultModule:def}).then(function(d){

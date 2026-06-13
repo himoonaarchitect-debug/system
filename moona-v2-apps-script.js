@@ -1367,8 +1367,10 @@ function getAccessForRole(role) {
     for (var i = 1; i < vals.length; i++) {
       if (String(vals[i][0]).trim() === String(role).trim()) {
         if (String(vals[i][3]).trim().toUpperCase() === 'FALSE') return null;
-        var mods = String(vals[i][2] || '').split(',').map(function (x) { return x.trim(); }).filter(function (x) { return x; });
-        return { modules: mods, default: String(vals[i][1] || 'moona-v2-dashboard.html') };
+        var toks = String(vals[i][2] || '').split(',').map(function (x) { return x.trim(); }).filter(function (x) { return x; });
+        var mods = [], levels = {};
+        toks.forEach(function (t) { var p = t.split(':'); var k = p[0].trim(); if (k) { mods.push(k); levels[k] = (p[1] || 'manage').trim(); } });
+        return { modules: mods, levels: levels, default: String(vals[i][1] || 'moona-v2-dashboard.html') };
       }
     }
     return null;
@@ -1383,10 +1385,14 @@ function getAccessMap() {
   var out = [];
   for (var i = 1; i < vals.length; i++) {
     if (!vals[i][0]) continue;
+    var toks = String(vals[i][2] || '').split(',').map(function (x) { return x.trim(); }).filter(function (x) { return x; });
+    var mods = [], levels = {};
+    toks.forEach(function (t) { var p = t.split(':'); var k = p[0].trim(); if (k) { mods.push(k); levels[k] = (p[1] || 'manage').trim(); } });
     out.push({
       role: String(vals[i][0]),
       defaultModule: String(vals[i][1] || ''),
-      modules: String(vals[i][2] || '').split(',').map(function (x) { return x.trim(); }).filter(function (x) { return x; }),
+      modules: mods,
+      levels: levels,
       aktif: String(vals[i][3]).trim().toUpperCase() !== 'FALSE'
     });
   }
@@ -1456,4 +1462,28 @@ function getAllUsers() {
     });
   }
   return response({ status: 'ok', data: out });
+}
+
+// Jalankan SEKALI dari editor untuk menulis ulang RoleAccess dengan level (key:level).
+// MENIMPA isi RoleAccess. Aman dijalankan karena belum ada kustomisasi.
+function reseedRoleAccessLevels() {
+  var ssx = ss();
+  var sh = ssx.getSheetByName('RoleAccess');
+  if (!sh) { sh = ssx.insertSheet('RoleAccess'); }
+  sh.clear();
+  sh.appendRow(['Role', 'DefaultModule', 'Modules', 'Aktif']);
+  sh.setFrozenRows(1);
+  var seed = [
+    ['Owner', 'moona-v2-dashboard.html', 'dashboard:manage,crm:manage,client-portal:manage,projects:manage,laporan-design:manage,laporan-build:manage,aset:manage,meetings:manage,finance:manage,content:manage,sop:manage,activity:manage,usermgmt:manage', 'TRUE'],
+    ['OperasionalManager', 'moona-v2-dashboard.html', 'dashboard:manage,crm:manage,client-portal:manage,projects:manage,laporan-design:manage,laporan-build:manage,aset:manage,meetings:manage,finance:manage,sop:manage,activity:manage', 'TRUE'],
+    ['StudioHead', 'moona-v2-dashboard.html', 'dashboard:manage,client-portal:manage,projects:manage,laporan-design:manage,laporan-build:manage,aset:view,meetings:manage,sop:manage', 'TRUE'],
+    ['Designer', 'moona-v2-laporan-design-v4.html', 'dashboard:manage,laporan-design:manage,laporan-build:manage,meetings:manage,sop:manage', 'TRUE'],
+    ['Estimator', 'moona-v2-projects.html', 'dashboard:manage,projects:manage,laporan-design:manage,laporan-build:manage,meetings:manage,sop:manage', 'TRUE'],
+    ['SiteEngineer', 'moona-v2-laporan-build-v4.html', 'dashboard:manage,laporan-design:manage,laporan-build:manage,aset:view,meetings:manage,sop:manage', 'TRUE'],
+    ['Sales', 'moona-v2-crm.html', 'dashboard:manage,crm:manage,client-portal:manage,projects:manage,meetings:manage,sop:manage', 'TRUE'],
+    ['Marketing', 'moona-v2-content.html', 'dashboard:manage,crm:view,client-portal:manage,content:manage,meetings:manage,sop:manage', 'TRUE'],
+    ['Finance', 'moona-v2-finance.html', 'dashboard:manage,client-portal:manage,aset:view,finance:manage,meetings:manage,sop:manage', 'TRUE']
+  ];
+  seed.forEach(function (r) { sh.appendRow(r); });
+  return 'RoleAccess ditulis ulang dengan level.';
 }

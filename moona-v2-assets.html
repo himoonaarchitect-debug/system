@@ -365,8 +365,10 @@ if (!S) { location.href = 'moona-v2-login.html'; }
 else { document.getElementById('sf-name').textContent = S.nama + ' - ' + (S.jobTitle || S.role); }
 
 // Role gating
-var CAN_MANAGE_ASSET = ['Owner','OperasionalManager'].indexOf((S||{}).role) >= 0;          // CRUD penuh
-var CAN_UPDATE_ASSET = CAN_MANAGE_ASSET || ['StudioHead','SiteEngineer'].indexOf((S||{}).role) >= 0; // edit terbatas
+var __accA = null; try { __accA = JSON.parse(localStorage.getItem('moona_v2_access')); } catch(e){}
+var __lvlAset = (__accA && __accA.levels && __accA.levels.aset) ? __accA.levels.aset : null;
+var CAN_MANAGE_ASSET = __lvlAset ? (__lvlAset === 'manage') : (['Owner','OperasionalManager'].indexOf((S||{}).role) >= 0);          // CRUD penuh
+var CAN_UPDATE_ASSET = __lvlAset ? (__lvlAset === 'manage') : (CAN_MANAGE_ASSET || ['StudioHead','SiteEngineer'].indexOf((S||{}).role) >= 0); // 3-level: edit = Kelola
 
 // HELPERS
 function p(o) {
