@@ -43,7 +43,7 @@ body{background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI
   <div class="footer">Moona Architect · Sistem Internal v2</div>
 </div>
 <script>
-const API='https://script.google.com/macros/s/AKfycbyRP1nO8wOiZBaRQ365w8KYW6HCtT251196vQV7L4npq4MVkCFbRyydOmUAZvAcBfbByw/exec';
+const API='https://script.google.com/macros/s/AKfycbws3SFlbnOZaETvt1HeDO2ju65I8L5Lk4KBTcrj6QUGuyl-r8xkaPnCVU7peQ5vMwk9fA/exec';
 
 // Auto-attribution untuk Log Aktivitas: sisipkan actorId & actorRole ke setiap POST tulis ke API
 (function(){
@@ -92,7 +92,7 @@ async function doLogin(){
   try{
     const r=await fetch(`${API}?action=login&username=${encodeURIComponent(u)}&password=${encodeURIComponent(pw)}`);
     const d=await r.json();
-    if(d.status==='ok'){localStorage.setItem('moona_v2_session',JSON.stringify({id:d.id,nama:d.nama,role:d.role,username:d.username,jobTitle:d.jobTitle||''}));redirectByRole(d.role);}
+    if(d.status==='ok'){localStorage.setItem('moona_v2_session',JSON.stringify({id:d.id,nama:d.nama,role:d.role,username:d.username,jobTitle:d.jobTitle||''}));localStorage.setItem('moona_v2_access',JSON.stringify(d.access||null));if(d.access&&d.access.default){location.href=d.access.default;}else{redirectByRole(d.role);}}
     else{err.textContent='Username atau password salah.';err.classList.add('show');btn.disabled=false;btn.textContent='Masuk';}
   }catch(e){err.textContent='Gagal terhubung. Coba lagi.';err.classList.add('show');btn.disabled=false;btn.textContent='Masuk';}
 }

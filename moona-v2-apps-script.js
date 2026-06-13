@@ -19,6 +19,10 @@ function doPost(e) {
 function dispatchPost(action, data) {
     // AUTH
     if (action === 'addUser') return addUser(data);
+    if (action === 'updateUser') return updateUser(data);
+    if (action === 'setUserActive') return setUserActive(data);
+    if (action === 'resetPassword') return resetPassword(data);
+    if (action === 'saveRoleAccess') return saveRoleAccess(data);
     // CRM
     if (action === 'addLead') return addLead(data);
     if (action === 'updateLead') return updateLead(data);
@@ -115,6 +119,8 @@ function doGet(e) {
   if (action === 'getAssetAgenda') return getAssetAgenda();
   if (action === 'getActivityLog') return getActivityLog(e.parameter);
   if (action === 'getActivityRecap') return getActivityRecap(e.parameter);
+  if (action === 'getAccessMap') return getAccessMap();
+  if (action === 'getAllUsers') return getAllUsers();
   return response({ status: 'ok', message: 'Moona API v2 aktif' });
 }
 
@@ -194,7 +200,7 @@ function login(params) {
       String(aktif).trim().toUpperCase() === 'TRUE'
     ) {
       logActivity(id, role, 'login', '', 'ok', '');
-      return response({ status: 'ok', id, nama, username, role, jobTitle: String(jobTitle || '') });
+      return response({ status: 'ok', id, nama, username, role, jobTitle: String(jobTitle || ''), access: getAccessForRole(role) });
     }
   }
   return response({ status: 'error', message: 'Login gagal' });
@@ -1322,4 +1328,132 @@ function isoDay(waktu) {
   var m = String(waktu || '').match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
   if (!m) return '';
   return m[3] + '-' + ('0' + m[2]).slice(-2) + '-' + ('0' + m[1]).slice(-2);
+}
+
+// ════════════════════════════════════════════════════
+// MODUL USER MANAGEMENT (RoleAccess + User CRUD)
+// ════════════════════════════════════════════════════
+
+// Jalankan SEKALI dari editor. Seed = persis MOONA_ACCESS sekarang (akses tidak berubah hari pertama).
+function setupRoleAccess() {
+  var ssx = ss();
+  var sh = ssx.getSheetByName('RoleAccess');
+  if (!sh) {
+    sh = ssx.insertSheet('RoleAccess');
+    sh.appendRow(['Role', 'DefaultModule', 'Modules', 'Aktif']);
+    sh.setFrozenRows(1);
+    var seed = [
+      ['Owner', 'moona-v2-dashboard.html', 'dashboard,crm,client-portal,projects,laporan-design,laporan-build,aset,meetings,finance,content,sop,activity,usermgmt', 'TRUE'],
+      ['OperasionalManager', 'moona-v2-dashboard.html', 'dashboard,crm,client-portal,projects,laporan-design,laporan-build,aset,meetings,finance,sop,activity', 'TRUE'],
+      ['StudioHead', 'moona-v2-dashboard.html', 'dashboard,client-portal,projects,laporan-design,laporan-build,aset,meetings,sop', 'TRUE'],
+      ['Designer', 'moona-v2-laporan-design-v4.html', 'dashboard,laporan-design,laporan-build,meetings,sop', 'TRUE'],
+      ['Estimator', 'moona-v2-projects.html', 'dashboard,projects,laporan-design,laporan-build,meetings,sop', 'TRUE'],
+      ['SiteEngineer', 'moona-v2-laporan-build-v4.html', 'dashboard,laporan-design,laporan-build,aset,meetings,sop', 'TRUE'],
+      ['Sales', 'moona-v2-crm.html', 'dashboard,crm,client-portal,projects,meetings,sop', 'TRUE'],
+      ['Marketing', 'moona-v2-content.html', 'dashboard,crm,client-portal,content,meetings,sop', 'TRUE'],
+      ['Finance', 'moona-v2-finance.html', 'dashboard,client-portal,aset,finance,meetings,sop', 'TRUE']
+    ];
+    seed.forEach(function (r) { sh.appendRow(r); });
+  }
+  return 'Sheet RoleAccess siap.';
+}
+
+// Akses 1 role → {modules:[...], default:'file'} ; null kalau tak ada.
+function getAccessForRole(role) {
+  try {
+    var sh = ss().getSheetByName('RoleAccess');
+    if (!sh) return null;
+    var vals = sh.getDataRange().getValues();
+    for (var i = 1; i < vals.length; i++) {
+      if (String(vals[i][0]).trim() === String(role).trim()) {
+        if (String(vals[i][3]).trim().toUpperCase() === 'FALSE') return null;
+        var mods = String(vals[i][2] || '').split(',').map(function (x) { return x.trim(); }).filter(function (x) { return x; });
+        return { modules: mods, default: String(vals[i][1] || 'moona-v2-dashboard.html') };
+      }
+    }
+    return null;
+  } catch (e) { return null; }
+}
+
+// Seluruh matriks untuk UI.
+function getAccessMap() {
+  var sh = ss().getSheetByName('RoleAccess');
+  if (!sh) return response({ status: 'ok', data: [] });
+  var vals = sh.getDataRange().getValues();
+  var out = [];
+  for (var i = 1; i < vals.length; i++) {
+    if (!vals[i][0]) continue;
+    out.push({
+      role: String(vals[i][0]),
+      defaultModule: String(vals[i][1] || ''),
+      modules: String(vals[i][2] || '').split(',').map(function (x) { return x.trim(); }).filter(function (x) { return x; }),
+      aktif: String(vals[i][3]).trim().toUpperCase() !== 'FALSE'
+    });
+  }
+  return response({ status: 'ok', data: out });
+}
+
+// Simpan akses 1 role (update / insert).
+function saveRoleAccess(data) {
+  var sh = ss().getSheetByName('RoleAccess');
+  if (!sh) return response({ status: 'error', message: 'Sheet RoleAccess belum ada' });
+  var mods = Array.isArray(data.modules) ? data.modules.join(',') : String(data.modules || '');
+  var def = data.defaultModule || 'moona-v2-dashboard.html';
+  var vals = sh.getDataRange().getValues();
+  for (var i = 1; i < vals.length; i++) {
+    if (String(vals[i][0]).trim() === String(data.role).trim()) {
+      sh.getRange(i + 1, 2).setValue(def);
+      sh.getRange(i + 1, 3).setValue(mods);
+      return response({ status: 'ok' });
+    }
+  }
+  sh.appendRow([data.role, def, mods, 'TRUE']);
+  return response({ status: 'ok' });
+}
+
+// --- User CRUD (index-based; kolom: 1=ID 2=Nama 3=Username 4=Password 5=Role 6=Aktif 7=JobTitle) ---
+function findUserRow_(id) {
+  var sh = sheet('Users');
+  var vals = sh.getDataRange().getValues();
+  for (var i = 1; i < vals.length; i++) {
+    if (String(vals[i][0]) === String(id)) return { sh: sh, row: i + 1 };
+  }
+  return null;
+}
+function updateUser(data) {
+  var r = findUserRow_(data.id);
+  if (!r) return response({ status: 'error', message: 'User tidak ditemukan' });
+  if (data.nama !== undefined) r.sh.getRange(r.row, 2).setValue(data.nama);
+  if (data.username !== undefined) r.sh.getRange(r.row, 3).setValue(data.username);
+  if (data.role !== undefined) r.sh.getRange(r.row, 5).setValue(data.role);
+  if (data.jobTitle !== undefined) r.sh.getRange(r.row, 7).setValue(data.jobTitle);
+  return response({ status: 'ok' });
+}
+function setUserActive(data) {
+  var r = findUserRow_(data.id);
+  if (!r) return response({ status: 'error', message: 'User tidak ditemukan' });
+  var v = (data.aktif === true || String(data.aktif).toUpperCase() === 'TRUE') ? 'TRUE' : 'FALSE';
+  r.sh.getRange(r.row, 6).setValue(v);
+  return response({ status: 'ok' });
+}
+function resetPassword(data) {
+  var r = findUserRow_(data.id);
+  if (!r) return response({ status: 'error', message: 'User tidak ditemukan' });
+  r.sh.getRange(r.row, 4).setValue(data.password || '');
+  return response({ status: 'ok' });
+}
+
+// Semua user (termasuk nonaktif) + field lengkap untuk modul User Management. Password tidak diekspos.
+function getAllUsers() {
+  var rows = sheet('Users').getDataRange().getValues();
+  var out = [];
+  for (var i = 1; i < rows.length; i++) {
+    if (!rows[i][0]) continue;
+    out.push({
+      id: String(rows[i][0]), nama: String(rows[i][1]), username: String(rows[i][2]),
+      role: String(rows[i][4]), aktif: String(rows[i][5]).trim().toUpperCase() === 'TRUE',
+      jobTitle: String(rows[i][6] || '')
+    });
+  }
+  return response({ status: 'ok', data: out });
 }
