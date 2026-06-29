@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Moona v2 — Playbook</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f8f7f4;--card:#fff;--border:#e5e3dc;--border2:#d0cec7;
+  --text:#1a1a18;--text2:#6b6a64;--text3:#9d9b94;
+  --brand:#406EB6;--brand-bg:#E8F0FA;
+  --coral:#993C1D;--coral-mid:#D85A30;--coral-bg:#FAECE7;
+  --purple:#534AB7;--purple-bg:#EEEDFE;
+  --teal:#0F6E56;--teal-bg:#E1F5EE;
+  --amber:#854F0B;--amber-bg:#FAEEDA;
+  --red:#A32D2D;--red-bg:#FCEBEB;
+  --green:#3B6D11;--green-bg:#EAF3DE;
+  --blue:#185FA5;--blue-bg:#E6F1FB;
+  --gray:#5F5E5A;--gray-bg:#F1EFE8;
+  --radius:10px;--radius-sm:6px;
+}
+html{scroll-behavior:smooth}
+body{background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:var(--text);font-size:14px;min-height:100vh;line-height:1.55}
+.app{display:flex;min-height:100vh}
+
+/* SIDEBAR — konsisten dengan modul lain */
+.sidebar{width:220px;min-width:220px;background:var(--card);border-right:0.5px solid var(--border);display:flex;flex-direction:column;position:fixed;top:0;left:0;height:100vh;z-index:10;overflow-y:auto}
+.logo-name{font-size:15px;font-weight:600}
+.nav-section{padding:10px 8px 3px;font-size:9px;font-weight:600;color:var(--text3);letter-spacing:.06em;text-transform:uppercase}
+.nav-item{display:flex;align-items:center;gap:8px;padding:7px 12px;margin:1px 4px;border-radius:var(--radius-sm);cursor:pointer;font-size:12px;color:var(--text2)}
+.nav-item:hover{background:var(--bg)}
+.nav-item.active{background:var(--gray-bg);color:var(--gray);font-weight:500}
+.nav-dot{width:6px;height:6px;border-radius:50%}
+.sidebar-footer{margin-top:auto;padding:12px 16px;border-top:0.5px solid var(--border)}
+.sf-label{font-size:10px;color:var(--text3)}
+.sf-name{font-size:11px;font-weight:500;margin-top:2px}
+.sf-logout{font-size:10px;color:var(--gray);margin-top:4px;cursor:pointer}
+
+/* MAIN LAYOUT */
+.main{margin-left:220px;flex:1;padding:22px 28px 60px;max-width:1200px}
+.topbar{margin-bottom:18px}
+.page-title{font-size:20px;font-weight:600}
+.page-sub{font-size:11px;color:var(--text3);margin-top:2px}
+
+/* PETA SWITCHER */
+.peta-switcher{display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap}
+.peta-card{flex:0 0 auto;min-width:200px;padding:11px 14px;border:0.5px solid var(--border);background:var(--card);border-radius:var(--radius);cursor:pointer;transition:border-color .12s;position:relative}
+.peta-card:hover{border-color:var(--border2)}
+.peta-card.active{border:1.5px solid var(--brand);background:var(--brand-bg);padding:10.5px 13.5px}
+.peta-card.disabled{cursor:not-allowed;opacity:.6;background:var(--bg)}
+.peta-label{font-size:10px;color:var(--text3);font-weight:500;text-transform:uppercase;letter-spacing:.04em;margin-bottom:3px}
+.peta-name{font-size:13px;font-weight:600;color:var(--text)}
+.peta-meta{font-size:10px;color:var(--text3);margin-top:3px}
+.peta-card.active .peta-label{color:var(--brand)}
+
+/* META BAR */
+.meta-bar{display:flex;gap:14px;padding:9px 14px;background:var(--card);border:0.5px solid var(--border);border-radius:var(--radius);margin-bottom:18px;flex-wrap:wrap;font-size:11px;color:var(--text2)}
+.meta-bar strong{color:var(--text)}
+.status-locked{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:10px;background:var(--green-bg);color:var(--green);font-weight:600;font-size:10px}
+
+/* TWO-COL LAYOUT */
+.layout{display:grid;grid-template-columns:200px 1fr;gap:28px;align-items:flex-start}
+
+/* TOC */
+.toc{position:sticky;top:18px;padding:14px;background:var(--card);border:0.5px solid var(--border);border-radius:var(--radius);max-height:calc(100vh - 36px);overflow-y:auto}
+.toc-title{font-size:9px;font-weight:700;color:var(--text3);letter-spacing:.07em;text-transform:uppercase;margin-bottom:8px}
+.toc a{display:block;font-size:12px;color:var(--text2);padding:5px 7px;border-radius:var(--radius-sm);text-decoration:none;line-height:1.35;margin-bottom:1px}
+.toc a:hover{background:var(--bg);color:var(--text)}
+.toc a.active{background:var(--brand-bg);color:var(--brand);font-weight:600}
+.toc-group{font-size:9px;font-weight:600;color:var(--text3);letter-spacing:.06em;text-transform:uppercase;padding:9px 7px 3px;margin-top:3px}
+
+/* CONTENT */
+.content{min-width:0}
+section{background:var(--card);border:0.5px solid var(--border);border-radius:var(--radius);padding:22px 26px;margin-bottom:18px;scroll-margin-top:18px}
+.eyebrow{display:inline-block;font-size:9px;font-weight:700;color:var(--brand);letter-spacing:.08em;text-transform:uppercase;background:var(--brand-bg);padding:3px 9px;border-radius:10px;margin-bottom:10px}
+h2{font-size:18px;font-weight:600;margin-bottom:4px;line-height:1.3}
+h3{font-size:13px;font-weight:600;color:var(--text);margin:20px 0 9px;letter-spacing:.01em}
+.lede{font-size:12.5px;color:var(--text2);line-height:1.7;margin-bottom:14px}
+.lede strong{color:var(--text);font-weight:600}
+
+/* KEBIJAKAN GRID */
+.kebijakan-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:10px}
+.kebijakan-item{padding:10px 12px;background:var(--bg);border-left:2px solid var(--brand);border-radius:var(--radius-sm)}
+.kebijakan-judul{font-size:11.5px;font-weight:600;color:var(--text);margin-bottom:3px;line-height:1.35}
+.kebijakan-desc{font-size:11px;color:var(--text2);line-height:1.55}
+
+/* SVG SWIMLANE */
+.swimlane-wrap{margin:14px 0 6px;background:#F6F9FE;border:0.5px solid var(--border);border-radius:var(--radius);padding:10px;overflow-x:auto}
+.swimlane-wrap svg{display:block;max-width:100%;height:auto;margin:0 auto}
+.swimlane-wrap svg .bt{font-family:'Inter','Segoe UI',sans-serif;font-weight:700;font-size:13px}
+.swimlane-wrap svg .bs{font-family:'Inter','Segoe UI',sans-serif;font-weight:500;font-size:11px}
+.swimlane-caption{font-size:10.5px;color:var(--text3);margin-top:4px;font-style:italic;text-align:center}
+
+/* ACTIVITY TABLE */
+.tbl{width:100%;border-collapse:collapse;margin-top:6px;font-size:11.5px}
+.tbl th{text-align:left;font-weight:600;color:var(--text3);font-size:10px;letter-spacing:.04em;text-transform:uppercase;padding:8px 10px;border-bottom:0.5px solid var(--border)}
+.tbl td{padding:9px 10px;border-bottom:0.5px solid var(--border);vertical-align:top;line-height:1.5}
+.tbl tr:last-child td{border-bottom:none}
+.tbl tr:hover td{background:#FCFBF7}
+.code{display:inline-block;font-family:'SF Mono','IBM Plex Mono',monospace;font-size:10px;font-weight:600;background:var(--gray-bg);color:var(--gray);padding:2px 7px;border-radius:5px;letter-spacing:.01em}
+.code.sop{background:var(--blue-bg);color:var(--blue)}
+.code.ik{background:var(--purple-bg);color:var(--purple)}
+.code.gold{background:var(--amber-bg);color:var(--amber)}
+.code.lane{background:var(--coral-bg);color:var(--coral)}
+.gel{display:inline-block;font-size:9px;font-weight:600;padding:2px 7px;border-radius:10px}
+.gel-1{background:#FAEEDA;color:#854F0B}
+.gel-2{background:#E1F5EE;color:#0F6E56}
+.gel-3{background:var(--gray-bg);color:var(--gray)}
+
+/* GATE CARDS */
+.gates-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px}
+.gate-card{background:var(--amber-bg);border:0.5px solid #E5C57B;border-radius:var(--radius);padding:12px 14px}
+.gate-card.closing{background:var(--purple-bg);border-color:#C6BFFC}
+.gate-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.gate-kode{font-size:10px;font-weight:700;color:var(--amber);letter-spacing:.04em}
+.gate-card.closing .gate-kode{color:var(--purple)}
+.gate-nama{font-size:13px;font-weight:600;color:var(--text);margin-bottom:2px}
+.gate-sub{font-size:10.5px;color:var(--text2);margin-bottom:8px}
+.gate-checklist{margin-top:6px}
+.gate-item{display:flex;align-items:flex-start;gap:7px;font-size:11px;color:var(--text);padding:4px 0;line-height:1.45}
+.gate-item .chk{flex:0 0 12px;width:12px;height:12px;border:1px solid #B68A35;background:#fff;border-radius:3px;margin-top:2px}
+.gate-card.closing .gate-item .chk{border-color:#9A93E0}
+.gate-owner{font-size:10px;color:var(--text2);margin-top:8px;padding-top:8px;border-top:0.5px solid rgba(0,0,0,.07)}
+
+/* SOP MASTER TABLE */
+.filter-bar{display:flex;gap:5px;margin:10px 0 8px;flex-wrap:wrap;align-items:center}
+.fpill{padding:4px 11px;border-radius:20px;font-size:11px;font-weight:500;cursor:pointer;border:0.5px solid var(--border2);color:var(--text2);background:var(--card)}
+.fpill.active{background:var(--text);color:#fff;border-color:var(--text)}
+
+/* DISKUSI */
+.disk-list{display:grid;gap:9px;margin-top:8px}
+.disk-card{padding:11px 13px;background:var(--bg);border-left:2px solid var(--amber);border-radius:var(--radius-sm)}
+.disk-card.risk{border-left-color:var(--red);background:#FCEFEF}
+.disk-tipe{display:inline-block;font-size:9px;font-weight:700;padding:2px 7px;border-radius:10px;background:var(--amber-bg);color:var(--amber);text-transform:uppercase;letter-spacing:.04em;margin-bottom:5px}
+.disk-card.risk .disk-tipe{background:var(--red-bg);color:var(--red)}
+.disk-judul{font-size:12px;font-weight:600;color:var(--text);margin-bottom:4px;line-height:1.4}
+.disk-desc{font-size:11px;color:var(--text2);line-height:1.6}
+.disk-ref{display:inline-block;font-family:'SF Mono',monospace;font-size:9.5px;background:var(--card);color:var(--text2);padding:1px 7px;border-radius:4px;margin-left:6px;border:0.5px solid var(--border)}
+
+/* CHANGELOG */
+.cl-list{display:grid;gap:7px;margin-top:6px}
+.cl-item{display:grid;grid-template-columns:60px 1fr;gap:12px;padding:9px 12px;background:var(--bg);border-radius:var(--radius-sm);align-items:flex-start}
+.cl-versi{font-family:'SF Mono',monospace;font-size:10.5px;font-weight:700;color:var(--brand);background:var(--card);text-align:center;padding:4px 8px;border-radius:5px;border:0.5px solid var(--border)}
+.cl-ringkasan{font-size:11px;color:var(--text2);line-height:1.6}
+
+/* NOTE BOX */
+.note{margin-top:11px;font-size:10.5px;color:var(--text3);font-style:italic;padding:8px 11px;background:var(--bg);border-radius:var(--radius-sm);line-height:1.55}
+
+/* COMING SOON OVERLAY */
+.coming-soon{padding:40px 20px;text-align:center;color:var(--text3);font-size:13px}
+.coming-soon .cs-icon{font-size:36px;margin-bottom:8px;opacity:.5}
+
+/* LOADING */
+.loading{padding:60px 20px;text-align:center;color:var(--text3);font-size:12px}
+
+@media(max-width:960px){
+  .layout{grid-template-columns:1fr;gap:16px}
+  .toc{position:relative;top:0;max-height:none;overflow-y:visible}
+  .toc-content{display:none}
+  .toc.expanded .toc-content{display:block}
+  .toc-mobile-toggle{display:block;font-size:12px;font-weight:600;cursor:pointer}
+}
+@media(max-width:768px){
+  .sidebar{display:none}.main{margin-left:0;padding:14px 16px 40px}
+  section{padding:18px 16px}
+  .kebijakan-grid,.gates-grid{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- ========== SIDEBAR ========== -->
+<div class="sidebar">
+  <div class="logo" style="padding:16px 16px 12px;border-bottom:0.5px solid var(--border)">
+    <img src="data:image/svg+xml;base64,PHN2ZyB2aWV3Qm94PSIxODIgMTI3IDE4NTMgMTE5NCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTAgMCBDOTYuNjkgMCAxOTMuMzggMCAyOTMgMCBDMjkzIDk5LjY2IDI5MyAxOTkuMzIgMjkzIDMwMiBDODA3LjggMzAyIDEzMjIuNiAzMDIgMTg1MyAzMDIgQzE4NTMgNTk2LjM2IDE4NTMgODkwLjcyIDE4NTMgMTE5NCBDMTc1Ni45NyAxMTk0IDE2NjAuOTQgMTE5NCAxNTYyIDExOTQgQzE1NjIgOTk1LjY3IDE1NjIgNzk3LjM0IDE1NjIgNTkzIEMxNDAxLjYyIDU5MyAxMjQxLjI0IDU5MyAxMDc2IDU5MyBDMTA3NiA3OTAuNjcgMTA3NiA5ODguMzQgMTA3NiAxMTkyIEM5NzguOTggMTE5MiA4ODEuOTYgMTE5MiA3ODIgMTE5MiBDNzgyIDk5NC4zMyA3ODIgNzk2LjY2IDc4MiA1OTMgQzYyMS4yOSA1OTMgNDYwLjU4IDU5MyAyOTUgNTkzIEMyOTUgNzkxLjMzIDI5NSA5ODkuNjYgMjk1IDExOTQgQzUgMTE5NCA1IDExOTQgMCAxMTkyIEMwIDc5OC42NCAwIDQwNS4yOCAwIDAgWiIgZmlsbD0iIzQwNkVCNiIgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMTgyLDEyNykiLz4KPHBhdGggZD0iTTAgMCBDNTAuNTEzNDYzNjEgLTEuNjU5NTc5OTEgOTguNzA2NjAyODYgMTUuNzkxMTc0MTYgMTM1Ljg3MDExNzE5IDUwLjA3ODEyNSBDMTM2LjQ1MDAzNDE4IDUwLjYxMjc2MzY3IDEzNy4wMjk5NTExNyA1MS4xNDc0MDIzNCAxMzcuNjI3NDQxNDEgNTEuNjk4MjQyMTkgQzE3MS41NDMyODYgODMuMzc3OTgwMDYgMTkyLjg3ODY0OTg1IDEyOS4yMjAwODgyNiAxOTUuMDM0MTc5NjkgMTc1LjYwODg4NjcyIEMxOTYuNzI0NDQ4MTggMjI5LjY0ODE3ODk3IDE3OS40NjIxNDk2OSAyNzguMjk2Nzc5NDYgMTQyLjQzNjUyMzQ0IDMxNy43Njk1MzEyNSBDMTI5LjYwMTg0MTc2IDMzMS4xNTg3MjM1MyAxMTUuMTQ1NzU3NDQgMzQyLjE5NTQ4NzQ0IDk4Ljg3MDExNzE5IDM1MS4wNzgxMjUgQzk3LjkyOTY2NTUzIDM1MS41OTM2Njk0MyA5Ny45Mjk2NjU1MyAzNTEuNTkzNjY5NDMgOTYuOTcwMjE0ODQgMzUyLjExOTYyODkxIEM1My4zNjI3NjU3IDM3NS42OTkyOTc1NSAxLjkyNTkyNDcyIDM4MC40MDM3MzYwOSAtNDUuNTk4NjMyODEgMzY2LjgwMDc4MTI1IEMtODIuNTc4MTkzODYgMzU1LjU5OTc0NDUyIC0xMTUuMzE5OTc1NDEgMzMzLjUzNjI1MzMgLTEzOS4xMjk4ODI4MSAzMDMuMDc4MTI1IEMtMTM5LjU1MTQwNjI1IDMwMi41NDg5NjQ4NCAtMTM5Ljk3MjkyOTY5IDMwMi4wMTk4MDQ2OSAtMTQwLjQwNzIyNjU2IDMwMS40NzQ2MDkzOCBDLTE2NC44MTg5OTg5MiAyNzAuNjUyMDMwMzMgLTE3Ny42ODUzNzA3NyAyMzIuMTcwMjMyMTcgLTE3OS4xMjk4ODI4MSAxOTMuMDc4MTI1IEMtMTc5LjE5MTc1NzgxIDE5MS42ODIwNzAzMSAtMTc5LjE5MTc1NzgxIDE5MS42ODIwNzAzMSAtMTc5LjI1NDg4MjgxIDE5MC4yNTc4MTI1IEMtMTc5Ljk3NTQzNDMgMTU4LjY0MzYxNTkxIC0xNzIuMjg1MjcwODIgMTI2Ljc2NzA4MjgzIC0xNTcuMTI5ODgyODEgOTkuMDc4MTI1IEMtMTU2LjY2MzI0MjE5IDk4LjE0NzQyMTg3IC0xNTYuMTk2NjAxNTYgOTcuMjE2NzE4NzUgLTE1NS43MTU4MjAzMSA5Ni4yNTc4MTI1IEMtMTQ5LjEwNjcyMTQ0IDgzLjMxMDE2MjY2IC0xNDAuMDc4Mjg1OTUgNzEuNjA4MzA2MSAtMTMwLjEyOTg4MjgxIDYxLjA3ODEyNSBDLTEyOS4wMDAyNjA0OCA1OS43NDg3MDU1MiAtMTI3Ljg3NTA4OTY5IDU4LjQxNTQ4NzgyIC0xMjYuNzU0ODgyODEgNTcuMDc4MTI1IEMtOTcuMjE2ODU4OTIgMjMuNDM1NzI4NzcgLTUxLjg2MzQ2OCA0Ljg3NTk0MDM5IC04LjA2NzM4MjgxIDAuMzI4MTI1IEMtNS4zNzg2MzU2NCAwLjE3NDkyMDAzIC0yLjY5MTAzMjQ2IDAuMDk4NzA4MjEgMCAwIFoiIGZpbGw9IiM0MDZFQjYiIHRyYW5zZm9ybT0idHJhbnNsYXRlKDIzMDQuMTI5ODgyODEyNSw5NDYuOTIxODc1KSIvPgo8L3N2Zz4=" alt="Moona" style="height:28px;width:auto;display:block;margin-bottom:6px">
+    <div style="font-size:9px;color:var(--text3);letter-spacing:.07em;text-transform:uppercase;font-weight:500">Architect System <span style="background:var(--brand-bg);color:var(--brand);font-size:8px;padding:1px 5px;border-radius:4px;margin-left:2px">v2</span></div>
+  </div>
+  <div class="nav-section">Utama</div>
+  <div class="nav-item" onclick="go('moona-v2-dashboard.html')"><span class="nav-dot" style="background:#888780"></span>Dashboard</div>
+  <div class="nav-section">Sales</div>
+  <div class="nav-item" onclick="go('moona-v2-crm.html')"><span class="nav-dot" style="background:var(--coral-mid)"></span>CRM &amp; Sales</div>
+  <div class="nav-item" onclick="go('moona-v2-client-portal.html')"><span class="nav-dot" style="background:var(--blue)"></span>Client Portal</div>
+  <div class="nav-section">Operasional</div>
+  <div class="nav-item" onclick="go('moona-v2-projects.html')"><span class="nav-dot" style="background:var(--teal)"></span>Project Management</div>
+  <div class="nav-item" onclick="go('moona-v2-laporan-design-v4.html')"><span class="nav-dot" style="background:var(--purple)"></span>Laporan Design</div>
+  <div class="nav-item" onclick="go('moona-v2-laporan-build-v4.html')"><span class="nav-dot" style="background:var(--teal)"></span>Laporan Build</div>
+  <div class="nav-item" onclick="go('moona-v2-assets.html')"><span class="nav-dot" style="background:var(--brand)"></span>Aset</div>
+  <div class="nav-section">Lainnya</div>
+  <div class="nav-item" onclick="go('moona-v2-meetings.html')"><span class="nav-dot" style="background:var(--purple)"></span>Meeting Tracker</div>
+  <div class="nav-item" onclick="go('moona-v2-finance.html')"><span class="nav-dot" style="background:var(--amber)"></span>Finance</div>
+  <div class="nav-item" onclick="go('moona-v2-content.html')"><span class="nav-dot" style="background:var(--coral-mid)"></span>Content Planner</div>
+  <div class="nav-item active"><span class="nav-dot" style="background:#888780"></span>Playbook</div>
+  <div class="nav-item" onclick="go('moona-v2-sop.html')"><span class="nav-dot" style="background:var(--blue)"></span>SOP &amp; Dokumen</div>
+  <div class="nav-item" onclick="go('moona-v2-activity.html')"><span class="nav-dot" style="background:var(--purple)"></span>Log Aktivitas</div>
+  <div class="nav-item" onclick="go('moona-v2-usermgmt.html')"><span class="nav-dot" style="background:#5F5E5A"></span>User Management</div>
+  <div class="sidebar-footer">
+    <div class="sf-label">Login sebagai</div>
+    <div class="sf-name" id="sf-name" style="color:var(--brand);font-weight:600">–</div>
+    <div class="sf-logout" onclick="logout()">Keluar →</div>
+  </div>
+</div>
+
+<!-- ========== MAIN ========== -->
+<div class="main">
+
+  <div class="topbar">
+    <div class="page-title">Playbook · Peta Sistem Operasional</div>
+    <div class="page-sub">Guideline tim — alur, kebijakan, gate, SOP, dan IK per layanan</div>
+  </div>
+
+  <!-- PETA SWITCHER -->
+  <div class="peta-switcher" id="peta-switcher">
+    <div class="loading" style="padding:14px">Memuat peta…</div>
+  </div>
+
+  <!-- CONTENT (single peta detail) -->
+  <div id="peta-detail"><div class="loading">Pilih peta untuk mulai.</div></div>
+
+</div>
+</div>
+
+<script>
+var API = 'https://script.google.com/macros/s/AKfycbx8-PT1ZpbuCfSLoso8gF2JDpuN7nKI1zU1K-7AA4sBVZhrRyU_w_rN6KjBuQoKtGQQkw/exec';
+
+// ── Fetch wrapper: auto-attribution Log Aktivitas ──
+(function(){
+  if (window.__moonaFetchWrapped) return; window.__moonaFetchWrapped = true;
+  var _f = window.fetch.bind(window);
+  window.fetch = function(url, opts){
+    try {
+      if (opts && opts.method === 'POST' && typeof url === 'string' && url.indexOf(API) === 0 && typeof opts.body === 'string') {
+        var s = JSON.parse(localStorage.getItem('moona_v2_session') || 'null');
+        if (s && s.id) {
+          var b = JSON.parse(opts.body);
+          if (b && b.action) {
+            if (b.actorId === undefined) b.actorId = s.id;
+            if (b.actorRole === undefined) b.actorRole = s.role;
+            opts = Object.assign({}, opts, { body: JSON.stringify(b) });
+          }
+        }
+      }
+    } catch(e){}
+    return _f(url, opts);
+  };
+})();
+
+// ── Access control (fallback hardcoded sampai RoleAccess sheet di-update via grantPlaybookAccess) ──
+const MOONA_ACCESS = {
+  Owner:               ['dashboard','crm','client-portal','projects','laporan-design','laporan-build','aset','meetings','finance','content','sop','playbook'],
+  OperasionalManager:  ['dashboard','crm','client-portal','projects','laporan-design','laporan-build','aset','meetings','finance','sop','playbook'],
+  StudioHead:          ['dashboard','client-portal','projects','laporan-design','laporan-build','aset','meetings','sop','playbook'],
+  Designer:            ['dashboard','laporan-design','laporan-build','meetings','sop','playbook'],
+  Estimator:           ['dashboard','projects','laporan-design','laporan-build','meetings','sop','playbook'],
+  SiteEngineer:        ['dashboard','laporan-design','laporan-build','aset','meetings','sop','playbook'],
+  Sales:               ['dashboard','crm','client-portal','projects','meetings','sop','playbook'],
+  Marketing:           ['dashboard','crm','client-portal','content','meetings','sop','playbook'],
+  Finance:             ['dashboard','client-portal','aset','finance','meetings','sop','playbook']
+};
+const MOONA_DEFAULT_MODULE = {
+  Owner:'moona-v2-dashboard.html', OperasionalManager:'moona-v2-dashboard.html', StudioHead:'moona-v2-dashboard.html',
+  Designer:'moona-v2-laporan-design-v4.html', Estimator:'moona-v2-projects.html', SiteEngineer:'moona-v2-laporan-build-v4.html',
+  Sales:'moona-v2-crm.html', Marketing:'moona-v2-content.html', Finance:'moona-v2-finance.html'
+};
+function moonaRequireAccess(currentModule) {
+  let s = null;
+  try { s = JSON.parse(localStorage.getItem('moona_v2_session')); } catch(e){}
+  if (!s) { location.href = 'moona-v2-login.html'; return false; }
+  let acc = null; try { acc = JSON.parse(localStorage.getItem('moona_v2_access')); } catch(e){}
+  // Allowed: union dari acc.modules (server) DAN fallback hardcoded — supaya playbook auto-aktif
+  // walau RoleAccess sheet belum di-update. Begitu grantPlaybookAccess() jalan & user re-login,
+  // 'playbook' sudah ada di acc.modules dan kondisi normal berlaku.
+  let allowedServer = (acc && acc.modules) ? acc.modules : [];
+  let allowedFallback = MOONA_ACCESS[s.role] || [];
+  let allowed = Array.from(new Set(allowedServer.concat(allowedFallback)));
+  const defFile = (acc && acc.default) ? acc.default : (MOONA_DEFAULT_MODULE[s.role] || 'moona-v2-dashboard.html');
+  if (allowed.indexOf(currentModule) >= 0) return true;
+  document.body.innerHTML = `<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:#f8f7f4;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;padding:20px">
+    <div style="max-width:420px;background:#fff;border:0.5px solid #e5e3dc;border-radius:12px;padding:32px;text-align:center">
+      <div style="font-size:42px;margin-bottom:14px;line-height:1">🔒</div>
+      <div style="font-size:18px;font-weight:600;color:#1a1a18;margin-bottom:6px">Akses ditolak</div>
+      <div style="font-size:13px;color:#6b6a64;line-height:1.55;margin-bottom:18px">Modul ini tidak tersedia untuk role <strong>${s.jobTitle || s.role}</strong>.<br>Silakan kembali ke modul yang sesuai.</div>
+      <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
+        <a href="${defFile}" style="display:inline-block;padding:9px 18px;background:#406EB6;color:#fff;text-decoration:none;border-radius:8px;font-size:12px;font-weight:600">Buka modul utama saya →</a>
+        <button onclick="localStorage.removeItem('moona_v2_session');location.href='moona-v2-login.html'" style="padding:9px 18px;background:#fff;color:#6b6a64;border:0.5px solid #d0cec7;border-radius:8px;font-size:12px;cursor:pointer;font-family:inherit">Logout</button>
+      </div>
+      <div style="font-size:10px;color:#9d9b94;margin-top:14px">Login sebagai: <strong>${s.nama}</strong></div>
+    </div>
+  </div>`;
+  return false;
+}
+if (!moonaRequireAccess('playbook')) throw new Error('Akses ditolak');
+
+function go(u) { location.href = u; }
+function getSession() { try { return JSON.parse(localStorage.getItem('moona_v2_session')); } catch(e) { return null; } }
+function logout() { localStorage.removeItem('moona_v2_session'); location.href = 'moona-v2-login.html'; }
+function p(o) { for (var i = 1; i < arguments.length; i++) { var k = arguments[i]; if (o[k] !== undefined && o[k] !== null && String(o[k]).trim() !== '') return String(o[k]); } return ''; }
+function esc(s) { return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+var S = getSession();
+if (S) document.getElementById('sf-name').textContent = S.nama + ' - ' + (S.jobTitle || S.role);
+
+// ── State ──
+var playbooks = [];
+var activePeta = null;
+var detail = null;
+var filterSOP = 'all'; // all / spine / pendukung
+var filterIK = 'all'; // all / Gel.1 / Gel.2 / Gel.3
+
+window.onload = function() { loadPlaybooks(); };
+
+function loadPlaybooks() {
+  return fetch(API + '?action=getPlaybooks').then(function(r){return r.json();}).then(function(d){
+    if (d.status !== 'ok') return showError('Gagal memuat daftar playbook.');
+    playbooks = d.data || [];
+    renderSwitcher();
+    if (playbooks.length) selectPeta(playbooks[0]['Layanan']);
+  }).catch(function(){ showError('Gagal memuat daftar playbook.'); });
+}
+
+function renderSwitcher() {
+  var html = '';
+  // Aktif: dari data
+  playbooks.forEach(function(pb){
+    var isActive = activePeta && activePeta === pb['Layanan'];
+    html += '<div class="peta-card ' + (isActive ? 'active' : '') + '" onclick="selectPeta(\'' + esc(pb['Layanan']) + '\')">';
+    html += '<div class="peta-label">Peta Sistem</div>';
+    html += '<div class="peta-name">Layanan ' + esc(pb['Layanan']) + '</div>';
+    html += '<div class="peta-meta">' + esc(pb['Versi']) + ' · ' + esc(pb['Status']) + ' · ' + esc(pb['TanggalTerbit']) + '</div>';
+    html += '</div>';
+  });
+  // Coming soon untuk layanan yang belum ada (placeholder Eksterior)
+  var existing = playbooks.map(function(pb){return String(pb['Layanan']).toLowerCase();});
+  if (existing.indexOf('eksterior') < 0) {
+    html += '<div class="peta-card disabled" title="Belum tersedia">';
+    html += '<div class="peta-label">Peta Sistem</div>';
+    html += '<div class="peta-name">Layanan Eksterior</div>';
+    html += '<div class="peta-meta">Belum tersedia</div>';
+    html += '</div>';
+  }
+  document.getElementById('peta-switcher').innerHTML = html;
+}
+
+function selectPeta(layanan) {
+  activePeta = layanan;
+  renderSwitcher();
+  document.getElementById('peta-detail').innerHTML = '<div class="loading">Memuat detail peta…</div>';
+  fetch(API + '?action=getPlaybookDetail&layanan=' + encodeURIComponent(layanan))
+    .then(function(r){return r.json();})
+    .then(function(d){
+      if (d.status !== 'ok') return showError('Gagal memuat detail peta.');
+      detail = d.data;
+      renderDetail();
+      attachScrollSpy();
+    })
+    .catch(function(){ showError('Gagal memuat detail peta.'); });
+}
+
+function showError(msg) {
+  document.getElementById('peta-detail').innerHTML = '<div class="loading">' + esc(msg) + '</div>';
+}
+
+function renderDetail() {
+  if (!detail) return;
+  var pb = detail.playbook;
+  var html = '';
+
+  // META BAR
+  html += '<div class="meta-bar">';
+  html += '<span><strong>' + esc(pb.NamaPlaybook) + '</strong></span>';
+  html += '<span>Versi <strong>' + esc(pb.Versi) + '</strong></span>';
+  html += '<span>Terbit <strong>' + esc(pb.TanggalTerbit) + '</strong></span>';
+  html += '<span><span class="status-locked">🔒 ' + esc(pb.Status) + '</span></span>';
+  html += '<span style="margin-left:auto;color:var(--text3);font-size:10px">Read-only · edit via Google Sheets</span>';
+  html += '</div>';
+
+  // 2-COL LAYOUT
+  html += '<div class="layout">';
+
+  // ── TOC ──
+  html += '<aside class="toc">';
+  html += '<div class="toc-title">Daftar Isi</div>';
+  html += '<a href="#pengantar" data-toc>Pengantar</a>';
+  html += '<a href="#kebijakan" data-toc>Kebijakan kunci</a>';
+  html += '<div class="toc-group">Fase</div>';
+  detail.fase.forEach(function(f){
+    html += '<a href="#fase-' + f.Nomor + '" data-toc>' + esc(f.Eyebrow) + '</a>';
+  });
+  html += '<div class="toc-group">Checkpoint</div>';
+  html += '<a href="#gates" data-toc>Checklist gate</a>';
+  html += '<div class="toc-group">Dokumen</div>';
+  html += '<a href="#sop" data-toc>Master SOP</a>';
+  html += '<a href="#ik" data-toc>Daftar IK</a>';
+  html += '<div class="toc-group">Catatan</div>';
+  html += '<a href="#diskusi" data-toc>Diskusi &amp; risiko</a>';
+  html += '<a href="#changelog" data-toc>Changelog</a>';
+  html += '</aside>';
+
+  // ── CONTENT ──
+  html += '<div class="content">';
+
+  // PENGANTAR
+  html += '<section id="pengantar">';
+  html += '<div class="eyebrow">Pendahuluan</div>';
+  html += '<h2>Cara membaca peta ini</h2>';
+  html += '<p class="lede">' + esc(pb.CaraBaca) + '</p>';
+  html += '<div class="note">' + esc(pb.Pengantar) + '</div>';
+  html += '</section>';
+
+  // KEBIJAKAN
+  html += '<section id="kebijakan">';
+  html += '<div class="eyebrow">Kebijakan</div>';
+  html += '<h2>Kebijakan kunci yang sudah disepakati</h2>';
+  html += '<p class="lede">Sepuluh keputusan yang sudah dikunci tim. Diberlakukan di semua project layanan ini — bukan saran, tapi aturan.</p>';
+  html += '<div class="kebijakan-grid">';
+  detail.kebijakan.forEach(function(k){
+    html += '<div class="kebijakan-item">';
+    html += '<div class="kebijakan-judul">' + esc(k.Judul) + '</div>';
+    html += '<div class="kebijakan-desc">' + esc(k.Deskripsi) + '</div>';
+    html += '</div>';
+  });
+  html += '</div></section>';
+
+  // FASE
+  detail.fase.forEach(function(f){
+    html += '<section id="fase-' + f.Nomor + '">';
+    html += '<div class="eyebrow">' + esc(f.Eyebrow) + '</div>';
+    html += '<h2>' + esc(f.Nama) + '</h2>';
+    html += '<p class="lede">' + esc(f.Lede) + '</p>';
+    // SVG swimlane
+    html += '<div class="swimlane-wrap">' + (f.SVG || '') + '</div>';
+    html += '<div class="swimlane-caption">Swimlane Fase ' + f.Nomor + ' — kolom = peran, kotak biru = aktivitas, kotak kuning = SOP pendukung, kotak gelap = titik keputusan</div>';
+    // Aktivitas table for this fase
+    var aktInFase = detail.aktivitas.filter(function(a){ return String(a.Fase_ID) === 'FASE-INT-' + f.Nomor; });
+    if (aktInFase.length) {
+      html += '<h3>Aktivitas di fase ini</h3>';
+      html += '<table class="tbl">';
+      html += '<thead><tr><th>Kotak</th><th>Lane</th><th>Pemilik</th><th>SOP induk</th><th>IK</th><th>Gel.</th></tr></thead><tbody>';
+      aktInFase.forEach(function(a){
+        html += '<tr>';
+        html += '<td><strong>' + esc(a.Nama) + '</strong><div style="font-size:10px;color:var(--text3);margin-top:2px">Kode: ' + esc(a.Kode) + '</div></td>';
+        html += '<td><span class="code lane">' + esc(a.Lane) + '</span></td>';
+        html += '<td>' + esc(a.Pemilik) + '</td>';
+        html += '<td><span class="code sop">' + esc(a.SOPInduk_Kode) + '</span></td>';
+        html += '<td><span class="code ik">' + esc(a.IK_Kode) + '</span></td>';
+        html += '<td>' + gelBadge(a.Gelombang) + '</td>';
+        html += '</tr>';
+      });
+      html += '</tbody></table>';
+    }
+    html += '</section>';
+  });
+
+  // GATES
+  html += '<section id="gates">';
+  html += '<div class="eyebrow">Checkpoint</div>';
+  html += '<h2>Checklist gate</h2>';
+  html += '<p class="lede">Gate bukan SOP — dokumen satu halaman berisi syarat lolos. Project tidak boleh pindah fase sebelum semua item tercentang. Penanggung jawab gate: Manager Operational.</p>';
+  html += '<div class="gates-grid">';
+  detail.gate.forEach(function(g){
+    var isClosing = String(g.Kode).toLowerCase().indexOf('g4') >= 0 || String(g.Nama).toLowerCase().indexOf('closing') >= 0;
+    html += '<div class="gate-card ' + (isClosing ? 'closing' : '') + '">';
+    html += '<div class="gate-head"><span class="gate-kode">' + esc(g.Kode) + ' · ' + esc(g.Nama) + '</span></div>';
+    html += '<div class="gate-sub">' + esc(g.Subtitle) + '</div>';
+    html += '<div class="gate-checklist">';
+    String(g.Checklist || '').split(';').forEach(function(item){
+      var it = item.trim();
+      if (!it) return;
+      html += '<div class="gate-item"><div class="chk"></div><div>' + esc(it) + '</div></div>';
+    });
+    html += '</div>';
+    html += '<div class="gate-owner">Owner: <strong>' + esc(g.Owner) + '</strong></div>';
+    html += '</div>';
+  });
+  html += '</div></section>';
+
+  // SOP MASTER
+  html += '<section id="sop">';
+  html += '<div class="eyebrow">Master list</div>';
+  html += '<h2>Master SOP — spine &amp; pendukung</h2>';
+  html += '<p class="lede">Daftar SOP yang dirujuk peta. <strong>Spine</strong> = SOP yang lahir dari fase (interior-specific). <strong>Pendukung</strong> = SOP lintas-project milik departemen, dipanggil dari alur utama via kotak kuning.</p>';
+  html += '<div class="filter-bar">';
+  html += '<span style="font-size:11px;color:var(--text3);margin-right:4px">Filter:</span>';
+  html += '<div class="fpill ' + (filterSOP==='all'?'active':'') + '" onclick="setFilterSOP(\'all\')">Semua</div>';
+  html += '<div class="fpill ' + (filterSOP==='spine'?'active':'') + '" onclick="setFilterSOP(\'spine\')">Spine</div>';
+  html += '<div class="fpill ' + (filterSOP==='pendukung'?'active':'') + '" onclick="setFilterSOP(\'pendukung\')">Pendukung</div>';
+  html += '</div>';
+  html += '<div id="sop-table-wrap">' + renderSOPTable() + '</div>';
+  html += '</section>';
+
+  // IK LIST
+  html += '<section id="ik">';
+  html += '<div class="eyebrow">Daftar IK</div>';
+  html += '<h2>Instruksi Kerja — satu per kotak aktivitas</h2>';
+  html += '<p class="lede">Tidak ditulis sekaligus — <strong>Gel. 1</strong> dulu (paling sering bikin masalah di lapangan), lalu Gel. 2 dan Gel. 3 menyusul. Kotak admin murni (mis. "DP cair") tidak butuh IK terpisah — langkahnya sudah ada di SOP pendukung.</p>';
+  html += '<div class="filter-bar">';
+  html += '<span style="font-size:11px;color:var(--text3);margin-right:4px">Gelombang:</span>';
+  html += '<div class="fpill ' + (filterIK==='all'?'active':'') + '" onclick="setFilterIK(\'all\')">Semua</div>';
+  html += '<div class="fpill ' + (filterIK==='Gel.1'?'active':'') + '" onclick="setFilterIK(\'Gel.1\')">Gel. 1</div>';
+  html += '<div class="fpill ' + (filterIK==='Gel.2'?'active':'') + '" onclick="setFilterIK(\'Gel.2\')">Gel. 2</div>';
+  html += '<div class="fpill ' + (filterIK==='Gel.3'?'active':'') + '" onclick="setFilterIK(\'Gel.3\')">Gel. 3</div>';
+  html += '</div>';
+  html += '<div id="ik-table-wrap">' + renderIKTable() + '</div>';
+  html += '</section>';
+
+  // DISKUSI
+  html += '<section id="diskusi">';
+  html += '<div class="eyebrow">Untuk dibahas bareng tim</div>';
+  html += '<h2>Titik diskusi &amp; catatan risiko</h2>';
+  html += '<p class="lede">Keputusan yang masih terbuka untuk dibawa ke meeting tim, plus catatan risiko yang diparkir.</p>';
+  html += '<div class="disk-list">';
+  detail.diskusi.forEach(function(d){
+    var isRisk = String(d.Tipe).toLowerCase() === 'risk';
+    html += '<div class="disk-card ' + (isRisk?'risk':'') + '">';
+    html += '<span class="disk-tipe">' + (isRisk ? 'Risk parked' : 'Open') + '</span>';
+    if (d.RefKode) html += '<span class="disk-ref">' + esc(d.RefKode) + '</span>';
+    html += '<div class="disk-judul">' + esc(d.Judul) + '</div>';
+    html += '<div class="disk-desc">' + esc(d.Deskripsi) + '</div>';
+    html += '</div>';
+  });
+  html += '</div></section>';
+
+  // CHANGELOG
+  html += '<section id="changelog">';
+  html += '<div class="eyebrow">Riwayat</div>';
+  html += '<h2>Changelog</h2>';
+  html += '<div class="cl-list">';
+  detail.changelog.forEach(function(c){
+    html += '<div class="cl-item">';
+    html += '<div class="cl-versi">' + esc(c.Versi) + '</div>';
+    html += '<div class="cl-ringkasan">' + esc(c.Ringkasan) + '</div>';
+    html += '</div>';
+  });
+  html += '</div></section>';
+
+  html += '</div></div>'; // close .content, .layout
+
+  document.getElementById('peta-detail').innerHTML = html;
+}
+
+function gelBadge(g) {
+  var s = String(g || '');
+  if (s.indexOf('1') >= 0) return '<span class="gel gel-1">' + esc(s) + '</span>';
+  if (s.indexOf('2') >= 0) return '<span class="gel gel-2">' + esc(s) + '</span>';
+  if (s.indexOf('3') >= 0) return '<span class="gel gel-3">' + esc(s) + '</span>';
+  return '<span class="gel gel-3">' + esc(s) + '</span>';
+}
+
+function renderSOPTable() {
+  var rows = detail.sop;
+  if (filterSOP !== 'all') {
+    rows = rows.filter(function(s){ return String(s.Jenis).toLowerCase() === filterSOP; });
+  }
+  if (!rows.length) return '<div class="loading">Tidak ada SOP yang cocok dengan filter.</div>';
+  var html = '<table class="tbl"><thead><tr><th>Kode</th><th>Nama SOP</th><th>Jenis</th><th>Pemilik</th><th>Dipanggil di</th><th>Status</th></tr></thead><tbody>';
+  rows.forEach(function(s){
+    var jenisClass = String(s.Jenis).toLowerCase() === 'spine' ? 'sop' : 'gold';
+    html += '<tr>';
+    html += '<td><span class="code ' + jenisClass + '">' + esc(s.Kode) + '</span></td>';
+    html += '<td>' + esc(s.Nama) + '</td>';
+    html += '<td>' + esc(s.Jenis) + '</td>';
+    html += '<td>' + esc(s.Pemilik) + '</td>';
+    html += '<td style="font-size:10.5px;color:var(--text2)">' + esc(s.DipanggilDi) + '</td>';
+    html += '<td><span class="gel ' + (String(s.Status).toLowerCase().indexOf('baru') >= 0 ? 'gel-1' : 'gel-2') + '">' + esc(s.Status) + '</span></td>';
+    html += '</tr>';
+  });
+  html += '</tbody></table>';
+  html += '<div class="note">Status <em>Baru</em> = SOP belum ditulis · <em>Update Canva lama</em> = sudah ada di Canva, tinggal porting ke modul SOP &amp; Dokumen. Koneksi 2-arah Peta ↔ SOP &amp; Dokumen akan diaktifkan di tahap berikutnya.</div>';
+  return html;
+}
+
+function renderIKTable() {
+  // Sumber data: PlaybookAktivitas yang punya IK_Kode
+  var rows = detail.aktivitas.filter(function(a){ return p(a,'IK_Kode'); });
+  if (filterIK !== 'all') {
+    rows = rows.filter(function(a){ return String(a.Gelombang).indexOf(filterIK.replace('Gel.','')) >= 0; });
+  }
+  // Sort by gelombang then kode
+  rows.sort(function(a,b){
+    var ga = parseInt(String(a.Gelombang).replace(/[^0-9]/g,'')) || 9;
+    var gb = parseInt(String(b.Gelombang).replace(/[^0-9]/g,'')) || 9;
+    if (ga !== gb) return ga - gb;
+    return String(a.IK_Kode).localeCompare(String(b.IK_Kode));
+  });
+  if (!rows.length) return '<div class="loading">Tidak ada IK yang cocok dengan filter.</div>';
+  var html = '<table class="tbl"><thead><tr><th>Kotak aktivitas</th><th>SOP induk</th><th>IK</th><th>Pemilik</th><th>Gelombang</th></tr></thead><tbody>';
+  rows.forEach(function(a){
+    html += '<tr>';
+    html += '<td><strong>' + esc(a.Nama) + '</strong></td>';
+    html += '<td><span class="code sop">' + esc(a.SOPInduk_Kode) + '</span></td>';
+    html += '<td><span class="code ik">' + esc(a.IK_Kode) + '</span></td>';
+    html += '<td>' + esc(a.Pemilik) + '</td>';
+    html += '<td>' + gelBadge(a.Gelombang) + '</td>';
+    html += '</tr>';
+  });
+  html += '</tbody></table>';
+  // Stat ringkas
+  var g1 = detail.aktivitas.filter(function(a){return String(a.Gelombang).indexOf('1')>=0;}).length;
+  var g2 = detail.aktivitas.filter(function(a){return String(a.Gelombang).indexOf('2')>=0;}).length;
+  var g3 = detail.aktivitas.filter(function(a){return String(a.Gelombang).indexOf('3')>=0;}).length;
+  html += '<div class="note">Beban dokumentasi: <strong>' + g1 + '</strong> IK gelombang 1 · <strong>' + g2 + '</strong> gelombang 2 · <strong>' + g3 + '</strong> gelombang 3. Total ' + (g1+g2+g3) + ' IK.</div>';
+  return html;
+}
+
+function setFilterSOP(v) {
+  filterSOP = v;
+  // Re-render in-place
+  renderDetail();
+  // Scroll back to section
+  setTimeout(function(){ location.hash = '#sop'; }, 30);
+}
+function setFilterIK(v) {
+  filterIK = v;
+  renderDetail();
+  setTimeout(function(){ location.hash = '#ik'; }, 30);
+}
+
+// ── ScrollSpy: highlight TOC link saat section visible ──
+function attachScrollSpy() {
+  var sections = document.querySelectorAll('section[id]');
+  var tocLinks = document.querySelectorAll('.toc a[data-toc]');
+  if (!sections.length || !tocLinks.length) return;
+
+  function onScroll() {
+    var scrollPos = window.scrollY + 100;
+    var current = '';
+    sections.forEach(function(sec){
+      if (sec.offsetTop <= scrollPos) current = sec.id;
+    });
+    tocLinks.forEach(function(a){
+      a.classList.toggle('active', a.getAttribute('href') === '#' + current);
+    });
+  }
+  window.removeEventListener('scroll', window.__pbScroll || function(){});
+  window.__pbScroll = onScroll;
+  window.addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
+}
+</script>
+</body>
+</html>

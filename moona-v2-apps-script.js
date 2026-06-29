@@ -121,6 +121,9 @@ function doGet(e) {
   if (action === 'getActivityRecap') return getActivityRecap(e.parameter);
   if (action === 'getAccessMap') return getAccessMap();
   if (action === 'getAllUsers') return getAllUsers();
+  // ── PLAYBOOK MODULE ──
+  if (action === 'getPlaybooks')      return getPlaybooks();
+  if (action === 'getPlaybookDetail') return getPlaybookDetail(e.parameter);
   return response({ status: 'ok', message: 'Moona API v2 aktif' });
 }
 
@@ -1267,6 +1270,7 @@ function moduleOf(action) {
   if (a.indexOf('Task') >= 0) return 'Tasks';
   if (a.indexOf('Asset') >= 0 || a.indexOf('Agenda') >= 0) return 'Aset';
   if (a.indexOf('User') >= 0) return 'Auth';
+  if (a.indexOf('Playbook') >= 0) return 'Playbook';
   return 'Lainnya';
 }
 
@@ -1486,4 +1490,573 @@ function reseedRoleAccessLevels() {
   ];
   seed.forEach(function (r) { sh.appendRow(r); });
   return 'RoleAccess ditulis ulang dengan level.';
+}
+
+
+// ─── PLAYBOOK SETUP & SEED ───────────────────────────────────
+
+function setupPlaybookSheets() {
+  var ssx = ss();
+  var sheets = [
+    { name: 'Playbooks',          headers: ['ID','NamaPlaybook','Versi','Layanan','TanggalTerbit','Status','Pengantar','CaraBaca'] },
+    { name: 'PlaybookKebijakan',  headers: ['ID','Playbook_ID','Urutan','Judul','Deskripsi'] },
+    { name: 'PlaybookFase',       headers: ['ID','Playbook_ID','Nomor','Eyebrow','Nama','Lede','SVG','CRMStage'] },
+    { name: 'PlaybookAktivitas',  headers: ['ID','Playbook_ID','Fase_ID','Kode','Nama','Lane','Pemilik','SOPInduk_Kode','IK_Kode','Gelombang','Urutan','CRMStage'] },
+    { name: 'PlaybookGate',       headers: ['ID','Playbook_ID','Kode','Nama','Subtitle','Owner','Checklist','Urutan'] },
+    { name: 'PlaybookSOPItem',    headers: ['ID','Playbook_ID','Kode','Nama','Jenis','Pemilik','Status','DipanggilDi','Dok_ID','Urutan'] },
+    { name: 'PlaybookDiskusi',    headers: ['ID','Playbook_ID','Tipe','Urutan','Judul','Deskripsi','RefKode'] },
+    { name: 'PlaybookChangelog',  headers: ['ID','Playbook_ID','Versi','Urutan','Ringkasan'] }
+  ];
+  var created = [], exist = [];
+  sheets.forEach(function(spec){
+    var sh = ssx.getSheetByName(spec.name);
+    if (sh) { exist.push(spec.name); return; }
+    sh = ssx.insertSheet(spec.name);
+    sh.appendRow(spec.headers);
+    sh.setFrozenRows(1);
+    created.push(spec.name);
+  });
+  return 'Created: ' + (created.length ? created.join(', ') : '(none)') + ' | Already exist: ' + (exist.length ? exist.join(', ') : '(none)');
+}
+
+// Tambah module 'playbook' ke RoleAccess untuk role-role yang butuh.
+// Default: Owner, OperasionalManager, StudioHead → manage. Sales, Designer, Estimator, SiteEngineer, Marketing, Finance → manage (read-only di praktiknya).
+// Aman dijalankan berulang kali — kalau sudah ada, di-skip.
+function grantPlaybookAccess() {
+  var sh = ss().getSheetByName('RoleAccess');
+  if (!sh) return 'Sheet RoleAccess belum ada — jalankan setupRoleAccess() dulu.';
+  var vals = sh.getDataRange().getValues();
+  var changes = [];
+  for (var i = 1; i < vals.length; i++) {
+    var role = String(vals[i][0] || '').trim();
+    if (!role) continue;
+    var modules = String(vals[i][2] || '');
+    var toks = modules.split(',').map(function(x){return x.trim();}).filter(function(x){return x;});
+    var keys = toks.map(function(t){ return t.split(':')[0].trim(); });
+    if (keys.indexOf('playbook') >= 0) continue; // sudah ada
+    // Tambahkan 'playbook' (level default — manage)
+    toks.push('playbook');
+    sh.getRange(i + 1, 3).setValue(toks.join(','));
+    changes.push(role);
+  }
+  return changes.length ? ('Added playbook access to: ' + changes.join(', ')) : 'Semua role sudah punya akses playbook.';
+}
+
+// Dangerous: wipe semua data playbook (kecuali RoleAccess). Untuk reseed.
+function wipePlaybookData() {
+  var names = ['Playbooks','PlaybookKebijakan','PlaybookFase','PlaybookAktivitas','PlaybookGate','PlaybookSOPItem','PlaybookDiskusi','PlaybookChangelog'];
+  var wiped = [];
+  names.forEach(function(n){
+    var sh = ss().getSheetByName(n);
+    if (!sh) return;
+    var last = sh.getLastRow();
+    if (last > 1) {
+      sh.getRange(2, 1, last - 1, sh.getLastColumn()).clearContent();
+      wiped.push(n);
+    }
+  });
+  return 'Wiped data rows in: ' + wiped.join(', ');
+}
+
+// ─── PLAYBOOK GETTERS (frontend API) ─────────────────────────
+
+// List semua playbook (metadata saja, untuk switcher).
+function getPlaybooks() {
+  var sh = ss().getSheetByName('Playbooks');
+  if (!sh) return response({ status: 'ok', data: [] });
+  return response({ status: 'ok', data: norm(sh.getDataRange().getValues()) });
+}
+
+// Detail lengkap 1 playbook (semua tab join). Params: ?id=PB-xxx atau ?layanan=Interior
+function getPlaybookDetail(params) {
+  var pid = String(params.id || '').trim();
+  var layanan = String(params.layanan || '').trim();
+  // Resolve playbook id
+  var pbSh = ss().getSheetByName('Playbooks');
+  if (!pbSh) return response({ status: 'error', message: 'Sheet Playbooks belum ada' });
+  var playbooks = norm(pbSh.getDataRange().getValues());
+  var pb = null;
+  if (pid) {
+    for (var i = 0; i < playbooks.length; i++) { if (playbooks[i]['ID'] === pid) { pb = playbooks[i]; break; } }
+  } else if (layanan) {
+    for (var j = 0; j < playbooks.length; j++) { if (String(playbooks[j]['Layanan']).toLowerCase() === layanan.toLowerCase()) { pb = playbooks[j]; break; } }
+  } else if (playbooks.length) {
+    pb = playbooks[0]; // default: first
+  }
+  if (!pb) return response({ status: 'error', message: 'Playbook tidak ditemukan' });
+  pid = pb['ID'];
+
+  function rowsFor(name) {
+    var sh = ss().getSheetByName(name);
+    if (!sh) return [];
+    return norm(sh.getDataRange().getValues()).filter(function(r){ return r['Playbook_ID'] === pid; });
+  }
+  function sortByUrutan(a, b) {
+    return (parseInt(a['Urutan']) || 0) - (parseInt(b['Urutan']) || 0);
+  }
+
+  return response({ status: 'ok', data: {
+    playbook:    pb,
+    kebijakan:   rowsFor('PlaybookKebijakan').sort(sortByUrutan),
+    fase:        rowsFor('PlaybookFase').sort(function(a,b){ return (parseInt(a['Nomor'])||0) - (parseInt(b['Nomor'])||0); }),
+    aktivitas:   rowsFor('PlaybookAktivitas').sort(sortByUrutan),
+    gate:        rowsFor('PlaybookGate').sort(sortByUrutan),
+    sop:         rowsFor('PlaybookSOPItem').sort(sortByUrutan),
+    diskusi:     rowsFor('PlaybookDiskusi').sort(sortByUrutan),
+    changelog:   rowsFor('PlaybookChangelog').sort(sortByUrutan)
+  } });
+}
+
+
+// ─── SEEDER: Peta Sistem Interior v2.2 ──────────────────────
+//
+// Idempotent partial: kalau Playbooks sudah punya entry layanan='Interior',
+// fungsi ini akan tolak (untuk safety). Pakai wipePlaybookData() kalau mau reseed.
+function seedPlaybook_Interior_v2_2() {
+  var pbSh = sheet('Playbooks');
+  if (!pbSh) return 'Sheet Playbooks belum ada — jalankan setupPlaybookSheets() dulu.';
+  // Cek duplikat
+  var existing = norm(pbSh.getDataRange().getValues());
+  for (var e = 0; e < existing.length; e++) {
+    if (String(existing[e]['Layanan']).toLowerCase() === 'interior') {
+      return 'Playbook layanan Interior sudah ada (' + existing[e]['ID'] + '). Hapus dulu atau pakai wipePlaybookData().';
+    }
+  }
+
+  var PID = 'PB-INT';  // fixed ID untuk Peta Interior — mudah di-reference
+
+  // ── 1. PLAYBOOK METADATA ──
+  pbSh.appendRow([
+    PID,
+    'Peta Sistem Operasional — Layanan Interior',
+    'v2.2',
+    'Interior',
+    'Juni 2026',
+    'Locked',
+    'Peta sistem operasional untuk semua project layanan interior Moona. Dokumen ini menjadi guideline tim — bukan sekadar referensi, tapi sumber kebenaran untuk siapa-melakukan-apa-kapan. Tiga lapis dokumen: Peta (helikopter, dokumen ini) → SOP (proses lintas peran per fase) → IK (cara satu orang mengerjakan satu kotak, langkah demi langkah).',
+    'Alur dibaca dari atas ke bawah. Setiap kolom (lane) adalah satu peran — kotak di kolom itu berarti tugasnya peran tersebut. Panah lintas kolom = serah terima antar divisi. Tiap kotak biru memikul dua kode — SOP induk & IK. Peta hanya memuat hal yang berlaku untuk semua project; variasi per-project (jumlah tahap desain, jenis kanal komunikasi) hidup di dalam SOP.'
+  ]);
+
+  // ── 2. KEBIJAKAN KUNCI ──
+  var kebSh = sheet('PlaybookKebijakan');
+  var kebijakan = [
+    ['Respon lead < 2 jam',            'SLA first response oleh Account Manager.'],
+    ['Survey wajib',                   'Tidak ada jalur tanpa survey untuk project interior.'],
+    ['Biaya survey deductible',        'Dipotong dari nilai kontrak saat deal — bukan hangus.'],
+    ['No-addendum',                    'Harga kontrak terkunci. Konsekuensinya: RAB wajib akurat sebelum kontrak.'],
+    ['RAB oleh Estimator',             'Penyusunan RAB dipegang Hilmi (Estimator & Cost Control), bukan Manops.'],
+    ['Handover Sales → Ops di Gate 1', 'Brief signed adalah dokumen serah terimanya.'],
+    ['Desain bertahap, approval per tahap', 'Jumlah tahap mengikuti scope project; presisi RAB naik tiap tahap; effort render selalu di tahap belakang.'],
+    ['Termin cair sebelum instalasi',  'Barang tidak keluar workshop sebelum pembayaran termin masuk.'],
+    ['QC workshop 3 lapis = gate uang','Lolos berurut SE → Arsitek → Manops baru termin ditagih. Manops pemegang sign-off final.'],
+    ['Walkthrough & BAST satu aktivitas', 'Punch list harus nol baru BAST diteken; BAST memicu pelunasan. Punch list hanya cacat-vs-scope, bukan permintaan baru.']
+  ];
+  kebijakan.forEach(function(k, i){
+    kebSh.appendRow(['KEB-INT-' + (i+1), PID, i+1, k[0], k[1]]);
+  });
+
+  // ── 3. FASE (dengan SVG snapshot) ──
+  var fsSh = sheet('PlaybookFase');
+  var faseData = [
+    {
+      no: 1,
+      eyebrow: 'Fase 1 · Akuisisi',
+      nama: 'Dari lead masuk sampai brief signed',
+      lede: 'Lead datang dari dua arah — klien menghubungi (inbound) atau Moona menghubungi (outbound) — keduanya di-fuel konten Marketing di hulu (SOP-MKT-01). Begitu biaya survey cair, Admin Client langsung menyiapkan kanal komunikasi project: grup WA internal, grup WA klien, dan link portal klien di Moona System. Fase ditutup dengan serah terima resmi ke Operasional di Gate 1.',
+      svg: `<svg viewBox="0 0 680 790" role="img" xmlns="http://www.w3.org/2000/svg">
+  <title>Swimlane Fase 1 Akuisisi v2.2</title>
+  <defs><marker id="ar1" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker></defs>
+  <rect x="16" y="16" width="156" height="32" rx="8" fill="#0C2D5C"/><text class="bt" x="94" y="32" text-anchor="middle" dominant-baseline="central" fill="#FFFFFF">Klien</text>
+  <rect x="180" y="16" width="156" height="32" rx="8" fill="#0C2D5C"/><text class="bt" x="258" y="32" text-anchor="middle" dominant-baseline="central" fill="#FFFFFF">Sales</text>
+  <rect x="344" y="16" width="156" height="32" rx="8" fill="#0C2D5C"/><text class="bt" x="422" y="32" text-anchor="middle" dominant-baseline="central" fill="#FFFFFF">Studio</text>
+  <rect x="508" y="16" width="156" height="32" rx="8" fill="#0C2D5C"/><text class="bt" x="586" y="32" text-anchor="middle" dominant-baseline="central" fill="#FFFFFF">Finance</text>
+  <line x1="176" y1="56" x2="176" y2="708" stroke="#D8E3F4" stroke-dasharray="5 5"/>
+  <line x1="340" y1="56" x2="340" y2="708" stroke="#D8E3F4" stroke-dasharray="5 5"/>
+  <line x1="504" y1="56" x2="504" y2="708" stroke="#D8E3F4" stroke-dasharray="5 5"/>
+  <rect x="20" y="70" width="148" height="72" rx="8" fill="#2665D6"/>
+  <text class="bt" x="94" y="88" text-anchor="middle" dominant-baseline="central" fill="#FFFFFF">Lead masuk</text>
+  <text class="bs" x="94" y="110" text-anchor="middle" dominant-baseline="central" fill="#C3D7F8">klien hubungi /</text>
+  <text class="bs" x="94" y="126" text-anchor="middle" dominant-baseline="central" fill="#C3D7F8">Moona hubungi</text>
+  <line x1="168" y1="106" x2="184" y2="106" stroke="#0C2D5C" stroke-width="1.5" marker-end="url(#ar1)"/>
+  <rect x="184" y="70" width="148" height="72" rx="8" fill="#2665D6"/>
+  <text class="bt" x="258" y="88" text-anchor="middle" dominant-baseline="central" fill="#FFFFFF">Capture &amp; tag</text>
+  <text class="bs" x="258" y="110" text-anchor="middle" dominant-baseline="central" fill="#C3D7F8">Admin Client</text>
+  <text class="bs" x="258" y="126" text-anchor="middle" dominant-baseline="central" fill="#C3D7F8">respon &lt;2 jam (AM)</text>
+  <line x1="258" y1="142" x2="258" y2="166" stroke="#0C2D5C" stroke-width="1.5" marker-end="url(#ar1)"/>
+  <rect x="184" y="166" width="148" height="72" rx="8" fill="#2665D6"/>
+  <text class="bt" x="258" y="184" text-anchor="middle" dominant-baseline="central" fill="#FFFFFF">Konsultasi</text>
+  <text class="bs" x="258" y="206" text-anchor="middle" dominant-baseline="central" fill="#C3D7F8">Account Manager</text>
+  <text class="bs" x="258" y="222" text-anchor="middle" dominant-baseline="central" fill="#C3D7F8">+ kalkulator</text>
+  <line x1="258" y1="238" x2="258" y2="262" stroke="#0C2D5C" stroke-width="1.5" marker-end="url(#ar1)"/>
+  <rect x="184" y="262" width="148" height="56" rx="8" fill="#0C2D5C"/>
+  <text class="bt" x="258" y="282" text-anchor="middle" dominant-baseline="central" fill="#FFFFFF">Klien lanjut?</text>
+  <text class="bs" x="258" y="300" text-anchor="middle" dominant-baseline="central" fill="#9DB7E0">ya ↓ · tidak ←</text>
+  <line x1="184" y1="294" x2="168" y2="294" stroke="#0C2D5C" stroke-width="1.5" marker-end="url(#ar1)"/>
+  <rect x="20" y="258" width="148" height="72" rx="8" fill="#2B2B28"/>
+  <text class="bt" x="94" y="276" text-anchor="middle" dominant-baseline="central" fill="#FFFFFF">Loss leads</text>
+  <text class="bs" x="94" y="298" text-anchor="middle" dominant-baseline="central" fill="#BDBBB2">follow-up [AM]</text>
+  <text class="bs" x="94" y="314" text-anchor="middle" dominant-baseline="central" fill="#BDBBB2">end · database</text>
+  <path d="M258 318 L258 342 L586 342 L586 364" fill="none" stroke="#0C2D5C" stroke-width="1.5" marker-end="url(#ar1)"/>
+  <rect x="512" y="364" width="148" height="72" rx="8" fill="#2665D6"/>
+  <text class="bt" x="586" y="382" text-anchor="middle" dominant-baseline="central" fill="#FFFFFF">Biaya survey</text>
+  <text class="bs" x="586" y="404" text-anchor="middle" dominant-baseline="central" fill="#C3D7F8">Admin Finance</text>
+  <text class="bs" x="586" y="420" text-anchor="middle" dominant-baseline="central" fill="#C3D7F8">cair · deductible</text>
+  <line x1="586" y1="436" x2="586" y2="456" stroke="#8A6206" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#ar1)"/>
+  <rect x="512" y="456" width="148" height="56" rx="8" fill="#E9AE24" stroke="#8A6206" stroke-dasharray="5 4" stroke-width="1.2"/>
+  <text class="bt" x="586" y="476" text-anchor="middle" dominant-baseline="central" fill="#3A2A03">SOP penerimaan</text>
+  <text class="bs" x="586" y="494" text-anchor="middle" dominant-baseline="central" fill="#5F4607">pembayaran · FIN-01</text>
+  <path d="M512 400 L258 400 L258 420" fill="none" stroke="#0C2D5C" stroke-width="1.5" marker-end="url(#ar1)"/>
+  <rect x="184" y="420" width="148" height="72" rx="8" fill="#2665D6"/>
+  <text class="bt" x="258" y="438" text-anchor="middle" dominant-baseline="central" fill="#FFFFFF">Setup kanal</text>
+  <text class="bs" x="258" y="460" text-anchor="middle" dominant-baseline="central" fill="#C3D7F8">Admin Client</text>
+  <text class="bs" x="258" y="476" text-anchor="middle" dominant-baseline="central" fill="#C3D7F8">WA + portal klien</text>
+  <path d="M258 492 L258 510 L422 510 L422 528" fill="none" stroke="#0C2D5C" stroke-width="1.5" marker-end="url(#ar1)"/>
+  <rect x="348" y="528" width="148" height="56" rx="8" fill="#2665D6"/>
+  <text class="bt" x="422" y="548" text-anchor="middle" dominant-baseline="central" fill="#FFFFFF">Site survey</text>
+  <text class="bs" x="422" y="566" text-anchor="middle" dominant-baseline="central" fill="#C3D7F8">Head of Studio</text>
+  <path d="M422 584 L422 602 L258 602 L258 618" fill="none" stroke="#0C2D5C" stroke-width="1.5" marker-end="url(#ar1)"/>
+  <rect x="184" y="618" width="148" height="72" rx="8" fill="#2665D6"/>
+  <text class="bt" x="258" y="636" text-anchor="middle" dominant-baseline="central" fill="#FFFFFF">Brief detail</text>
+  <text class="bs" x="258" y="658" text-anchor="middle" dominant-baseline="central" fill="#C3D7F8">AM + klien ttd</text>
+  <text class="bs" x="258" y="674" text-anchor="middle" dominant-baseline="central" fill="#C3D7F8">output: brief fix</text>
+  <line x1="258" y1="690" x2="258" y2="718" stroke="#0C2D5C" stroke-width="1.5" marker-end="url(#ar1)"/>
+  <rect x="12" y="718" width="656" height="48" rx="8" fill="#E9AE24"/>
+  <text class="bt" x="340" y="734" text-anchor="middle" dominant-baseline="central" fill="#3A2A03">Gate 1 — handover Sales → Operasional</text>
+  <text class="bs" x="340" y="752" text-anchor="middle" dominant-baseline="central" fill="#5F4607">brief signed · biaya survey cair · kanal komunikasi aktif</text>
+  </svg>`
+    },
+    {
+      no: 2,
+      eyebrow: 'Fase 2 · Desain',
+      nama: 'Dari kickoff desain sampai siap produksi',
+      lede: 'Design development berjalan sebagai loop bertahap: jumlah tahap ditentukan di kickoff berdasarkan scope project (kecil 2 tahap, kompleks 3–4 tahap). Empat aturan main di tiap project: (1) Approval tiap tahap — tidak ada tahap berikutnya tanpa persetujuan klien; (2) Presisi RAB naik tiap tahap — dari kisaran ke detail & lock di tahap final; (3) Effort mahal di belakang — render & detailing hanya setelah arah & budget disepakati; (4) Tahap final = siap penawaran — output: desain final + RAB detail.',
+      svg: `<svg viewBox="0 0 680 694" role="img" xmlns="http://www.w3.org/2000/svg">
+  <title>Swimlane Fase 2 Desain v2.2</title>
+  <defs><marker id="ar2" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker></defs>
+  <rect x="16" y="16" width="156" height="32" rx="8" fill="#0C2D5C"/><text class="bt" x="94" y="32" text-anchor="middle" dominant-baseline="central" fill="#FFFFFF">Studio</text>
+  <rect x="180" y="16" width="156" height="32" rx="8" fill="#0C2D5C"/><text class="bt" x="258" y="32" text-anchor="middle" dominant-baseline="central" fill="#FFFFFF">Sales &amp; Direktur</text>
+  <rect x="344" y="16" width="156" height="32" rx="8" fill="#0C2D5C"/><text class="bt" x="422" y="32" text-anchor="middle" dominant-baseline="central" fill="#FFFFFF">Klien</text>
+  <rect x="508" y="16" width="156" height="32" rx="8" fill="#0C2D5C"/><text class="bt" x="586" y="32" text-anchor="middle" dominant-baseline="central" fill="#FFFFFF">Finance</text>
+  <line x1="176" y1="56" x2="176" y2="612" stroke="#D8E3F4" stroke-dasharray="5 5"/>
+  <line x1="340" y1="56" x2="340" y2="612" stroke="#D8E3F4" stroke-dasharray="5 5"/>
+  <line x1="504" y1="56" x2="504" y2="612" stroke="#D8E3F4" stroke-dasharray="5 5"/>
+  <rect x="20" y="70" width="148" height="72" rx="8" fill="#2665D6"/>
+  <text class="bt" x="94" y="88" text-anchor="middle" dominant-baseline="central" fill="#FFFFFF">Kickoff desain</text>
+  <text class="bs" x="94" y="110" text-anchor="middle" dominant-baseline="central" fill="#C3D7F8">tentukan jumlah</text>
+  <text class="bs" x="94" y="126" text-anchor="middle" dominant-baseline="central" fill="#C3D7F8">tahap dari scope</text>
+  <line x1="94" y1="142" x2="94" y2="166" stroke="#0C2D5C" stroke-width="1.5" marker-end="url(#ar2)"/>
+  <rect x="20" y="166" width="148" height="72" rx="8" fill="#2665D6"/>
+  <text class="bt" x="94" y="184" text-anchor="middle" dominant-baseline="central" fill="#FFFFFF">Desain tahap-n</text>
+  <text class="bs" x="94" y="206" text-anchor="middle" dominant-baseline="central" fill="#C3D7F8">tim studio</text>
+  <text class="bs" x="94" y="222" text-anchor="middle" dominant-baseline="central" fill="#C3D7F8">makin detail</text>
+  <line x1="94" y1="238" x2="94" y2="262" stroke="#0C2D5C" stroke-width="1.5" marker-end="url(#ar2)"/>
+  <rect x="20" y="262" width="148" height="72" rx="8" fill="#2665D6"/>
+  <text class="bt" x="94" y="280" text-anchor="middle" dominant-baseline="central" fill="#FFFFFF">RAB tahap-n</text>
+  <text class="bs" x="94" y="302" text-anchor="middle" dominant-baseline="central" fill="#C3D7F8">Estimator (Hilmi)</text>
+  <text class="bs" x="94" y="318" text-anchor="middle" dominant-baseline="central" fill="#C3D7F8">presisi naik</text>
+  <line x1="168" y1="298" x2="184" y2="298" stroke="#0C2D5C" stroke-width="1.5" marker-end="url(#ar2)"/>
+  <rect x="184" y="262" width="148" height="72" rx="8" fill="#2665D6"/>
+  <text class="bt" x="258" y="280" text-anchor="middle" dominant-baseline="central" fill="#FFFFFF">Presentasi</text>
+  <text class="bs" x="258" y="302" text-anchor="middle" dominant-baseline="central" fill="#C3D7F8">desain + RAB</text>
+  <text class="bs" x="258" y="318" text-anchor="middle" dominant-baseline="central" fill="#C3D7F8">tahap berjalan</text>
+  <line x1="332" y1="298" x2="348" y2="298" stroke="#0C2D5C" stroke-width="1.5" marker-end="url(#ar2)"/>
+  <rect x="348" y="262" width="148" height="72" rx="8" fill="#0C2D5C"/>
+  <text class="bt" x="422" y="280" text-anchor="middle" dominant-baseline="central" fill="#FFFFFF">Approve tahap?</text>
+  <text class="bs" x="422" y="302" text-anchor="middle" dominant-baseline="central" fill="#9DB7E0">tahap final: ↓</text>
+  <text class="bs" x="422" y="318" text-anchor="middle" dominant-baseline="central" fill="#9DB7E0">selain itu: ↻</text>
+  <path d="M422 262 L422 202 L168 202" fill="none" stroke="#0C2D5C" stroke-width="1.5" marker-end="url(#ar2)"/>
+  <text class="bs" x="295" y="188" text-anchor="middle" dominant-baseline="central" fill="#5A6B86">↻ tahap berikut / revisi</text>
+  <path d="M422 334 L422 350 L258 350 L258 366" fill="none" stroke="#0C2D5C" stroke-width="1.5" marker-end="url(#ar2)"/>
+  <rect x="184" y="366" width="148" height="72" rx="8" fill="#2665D6"/>
+  <text class="bt" x="258" y="384" text-anchor="middle" dominant-baseline="central" fill="#FFFFFF">Penawaran</text>
+  <text class="bs" x="258" y="406" text-anchor="middle" dominant-baseline="central" fill="#C3D7F8">AM + Direktur</text>
+  <text class="bs" x="258" y="422" text-anchor="middle" dominant-baseline="central" fill="#C3D7F8">nego harga</text>
+  <line x1="332" y1="402" x2="348" y2="402" stroke="#0C2D5C" stroke-width="1.5" marker-end="url(#ar2)"/>
+  <rect x="348" y="366" width="148" height="72" rx="8" fill="#2665D6"/>
+  <text class="bt" x="422" y="384" text-anchor="middle" dominant-baseline="central" fill="#FFFFFF">Ttd kontrak</text>
+  <text class="bs" x="422" y="406" text-anchor="middle" dominant-baseline="central" fill="#C3D7F8">harga lock</text>
+  <text class="bs" x="422" y="422" text-anchor="middle" dominant-baseline="central" fill="#C3D7F8">no-addendum</text>
+  <path d="M422 438 L422 458 L586 458 L586 474" fill="none" stroke="#0C2D5C" stroke-width="1.5" marker-end="url(#ar2)"/>
+  <rect x="512" y="474" width="148" height="56" rx="8" fill="#2665D6"/>
+  <text class="bt" x="586" y="494" text-anchor="middle" dominant-baseline="central" fill="#FFFFFF">DP cair</text>
+  <text class="bs" x="586" y="512" text-anchor="middle" dominant-baseline="central" fill="#C3D7F8">Admin Finance</text>
+  <line x1="586" y1="530" x2="586" y2="550" stroke="#8A6206" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#ar2)"/>
+  <rect x="512" y="550" width="148" height="56" rx="8" fill="#E9AE24" stroke="#8A6206" stroke-dasharray="5 4" stroke-width="1.2"/>
+  <text class="bt" x="586" y="570" text-anchor="middle" dominant-baseline="central" fill="#3A2A03">SOP penerimaan</text>
+  <text class="bs" x="586" y="588" text-anchor="middle" dominant-baseline="central" fill="#5F4607">pembayaran · FIN-01</text>
+  <path d="M512 502 L94 502 L94 526" fill="none" stroke="#0C2D5C" stroke-width="1.5" marker-end="url(#ar2)"/>
+  <rect x="20" y="526" width="148" height="72" rx="8" fill="#2665D6"/>
+  <text class="bt" x="94" y="544" text-anchor="middle" dominant-baseline="central" fill="#FFFFFF">Gambar kerja</text>
+  <text class="bs" x="94" y="566" text-anchor="middle" dominant-baseline="central" fill="#C3D7F8">Drafter + SE</text>
+  <text class="bs" x="94" y="582" text-anchor="middle" dominant-baseline="central" fill="#C3D7F8">pengadaan: Manops</text>
+  <line x1="94" y1="598" x2="94" y2="622" stroke="#0C2D5C" stroke-width="1.5" marker-end="url(#ar2)"/>
+  <rect x="12" y="622" width="656" height="48" rx="8" fill="#E9AE24"/>
+  <text class="bt" x="340" y="638" text-anchor="middle" dominant-baseline="central" fill="#3A2A03">Gate 2 — siap produksi</text>
+  <text class="bs" x="340" y="656" text-anchor="middle" dominant-baseline="central" fill="#5F4607">kontrak ttd · DP cair · gambar kerja final</text>
+  </svg>`
+    },
+    {
+      no: 3,
+      eyebrow: 'Fase 3 · Produksi',
+      nama: 'Dari pengadaan sampai instalasi tuntas',
+      lede: 'Penagihan termin pindah ke setelah produksi workshop, sebelum instalasi site — barang tidak keluar workshop sebelum termin cair. Konsekuensinya QC terjadi dua kali: QC workshop (dasar penagihan termin) dan QC site (syarat Gate 3). QC workshop kini tiga lapis berurut — SE (mutu bangun) → Arsitek (kesetiaan desain) → Manops (scope/RAB & sign-off final) — karena dia gate uang, bukan QC biasa. SOP pendukung paling banyak dipanggil di fase ini.',
+      svg: `<svg viewBox="0 0 680 654" role="img" xmlns="http://www.w3.org/2000/svg">
+  <title>Swimlane Fase 3 Produksi v2.2</title>
+  <defs><marker id="ar3" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker></defs>
+  <rect x="16" y="16" width="156" height="32" rx="8" fill="#0C2D5C"/><text class="bt" x="94" y="32" text-anchor="middle" dominant-baseline="central" fill="#FFFFFF">Manops</text>
+  <rect x="180" y="16" width="156" height="32" rx="8" fill="#0C2D5C"/><text class="bt" x="258" y="32" text-anchor="middle" dominant-baseline="central" fill="#FFFFFF">Site Engineer</text>
+  <rect x="344" y="16" width="156" height="32" rx="8" fill="#0C2D5C"/><text class="bt" x="422" y="32" text-anchor="middle" dominant-baseline="central" fill="#FFFFFF">Finance</text>
+  <rect x="508" y="16" width="156" height="32" rx="8" fill="#0C2D5C"/><text class="bt" x="586" y="32" text-anchor="middle" dominant-baseline="central" fill="#FFFFFF">SOP pendukung</text>
+  <line x1="176" y1="56" x2="176" y2="572" stroke="#D8E3F4" stroke-dasharray="5 5"/>
+  <line x1="340" y1="56" x2="340" y2="572" stroke="#D8E3F4" stroke-dasharray="5 5"/>
+  <line x1="504" y1="56" x2="504" y2="572" stroke="#D8E3F4" stroke-dasharray="5 5"/>
+  <rect x="20" y="70" width="148" height="56" rx="8" fill="#2665D6"/>
+  <text class="bt" x="94" y="90" text-anchor="middle" dominant-baseline="central" fill="#FFFFFF">Pengadaan</text>
+  <text class="bs" x="94" y="108" text-anchor="middle" dominant-baseline="central" fill="#C3D7F8">material &amp; vendor</text>
+  <line x1="168" y1="98" x2="508" y2="98" stroke="#8A6206" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#ar3)"/>
+  <rect x="512" y="70" width="148" height="56" rx="8" fill="#E9AE24" stroke="#8A6206" stroke-dasharray="5 4" stroke-width="1.2"/>
+  <text class="bt" x="586" y="90" text-anchor="middle" dominant-baseline="central" fill="#3A2A03">SOP PR · PO</text>
+  <text class="bs" x="586" y="108" text-anchor="middle" dominant-baseline="central" fill="#5F4607">terima barang</text>
+  <path d="M94 126 L94 146 L258 146 L258 162" fill="none" stroke="#0C2D5C" stroke-width="1.5" marker-end="url(#ar3)"/>
+  <rect x="184" y="162" width="148" height="72" rx="8" fill="#2665D6"/>
+  <text class="bt" x="258" y="180" text-anchor="middle" dominant-baseline="central" fill="#FFFFFF">Produksi</text>
+  <text class="bs" x="258" y="202" text-anchor="middle" dominant-baseline="central" fill="#C3D7F8">workshop</text>
+  <text class="bs" x="258" y="218" text-anchor="middle" dominant-baseline="central" fill="#C3D7F8">furniture custom</text>
+  <line x1="332" y1="198" x2="508" y2="198" stroke="#8A6206" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#ar3)"/>
+  <rect x="512" y="170" width="148" height="56" rx="8" fill="#E9AE24" stroke="#8A6206" stroke-dasharray="5 4" stroke-width="1.2"/>
+  <text class="bt" x="586" y="190" text-anchor="middle" dominant-baseline="central" fill="#3A2A03">Dokumentasi</text>
+  <text class="bs" x="586" y="208" text-anchor="middle" dominant-baseline="central" fill="#5F4607">konten · MKT-02</text>
+  <path d="M258 234 L258 254 L94 254 L94 270" fill="none" stroke="#0C2D5C" stroke-width="1.5" marker-end="url(#ar3)"/>
+  <rect x="20" y="270" width="148" height="72" rx="8" fill="#2665D6"/>
+  <text class="bt" x="94" y="288" text-anchor="middle" dominant-baseline="central" fill="#FFFFFF">QC workshop</text>
+  <text class="bs" x="94" y="310" text-anchor="middle" dominant-baseline="central" fill="#C3D7F8">SE→Arsitek→Manops</text>
+  <text class="bs" x="94" y="326" text-anchor="middle" dominant-baseline="central" fill="#C3D7F8">↻ fail: perbaikan</text>
+  <line x1="168" y1="306" x2="348" y2="306" stroke="#0C2D5C" stroke-width="1.5" marker-end="url(#ar3)"/>
+  <rect x="348" y="270" width="148" height="72" rx="8" fill="#2665D6"/>
+  <text class="bt" x="422" y="288" text-anchor="middle" dominant-baseline="central" fill="#FFFFFF">Tagih termin</text>
+  <text class="bs" x="422" y="310" text-anchor="middle" dominant-baseline="central" fill="#C3D7F8">Admin Finance</text>
+  <text class="bs" x="422" y="326" text-anchor="middle" dominant-baseline="central" fill="#C3D7F8">sblm kirim barang</text>
+  <line x1="496" y1="306" x2="512" y2="306" stroke="#8A6206" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#ar3)"/>
+  <rect x="512" y="278" width="148" height="56" rx="8" fill="#E9AE24" stroke="#8A6206" stroke-dasharray="5 4" stroke-width="1.2"/>
+  <text class="bt" x="586" y="298" text-anchor="middle" dominant-baseline="central" fill="#3A2A03">SOP invoicing</text>
+  <text class="bs" x="586" y="316" text-anchor="middle" dominant-baseline="central" fill="#5F4607">&amp; kwitansi · FIN-02</text>
+  <path d="M422 342 L422 362 L258 362 L258 378" fill="none" stroke="#0C2D5C" stroke-width="1.5" marker-end="url(#ar3)"/>
+  <rect x="184" y="378" width="148" height="72" rx="8" fill="#2665D6"/>
+  <text class="bt" x="258" y="396" text-anchor="middle" dominant-baseline="central" fill="#FFFFFF">Instalasi</text>
+  <text class="bs" x="258" y="418" text-anchor="middle" dominant-baseline="central" fill="#C3D7F8">Site Engineer</text>
+  <text class="bs" x="258" y="434" text-anchor="middle" dominant-baseline="central" fill="#C3D7F8">stlh termin cair</text>
+  <path d="M258 450 L258 470 L94 470 L94 486" fill="none" stroke="#0C2D5C" stroke-width="1.5" marker-end="url(#ar3)"/>
+  <rect x="20" y="486" width="148" height="72" rx="8" fill="#2665D6"/>
+  <text class="bt" x="94" y="504" text-anchor="middle" dominant-baseline="central" fill="#FFFFFF">Progress &amp; QC</text>
+  <text class="bs" x="94" y="526" text-anchor="middle" dominant-baseline="central" fill="#C3D7F8">site · Manops+AIC</text>
+  <text class="bs" x="94" y="542" text-anchor="middle" dominant-baseline="central" fill="#C3D7F8">↻ fail: perbaikan</text>
+  <line x1="94" y1="558" x2="94" y2="582" stroke="#0C2D5C" stroke-width="1.5" marker-end="url(#ar3)"/>
+  <rect x="12" y="582" width="656" height="48" rx="8" fill="#E9AE24"/>
+  <text class="bt" x="340" y="598" text-anchor="middle" dominant-baseline="central" fill="#3A2A03">Gate 3 — produksi tuntas</text>
+  <text class="bs" x="340" y="616" text-anchor="middle" dominant-baseline="central" fill="#5F4607">QC site passed · termin terbayar</text>
+  </svg>`
+    },
+    {
+      no: 4,
+      eyebrow: 'Fase 4 · Handover',
+      nama: 'Dari walkthrough sampai garansi & closure',
+      lede: 'Walkthrough & BAST digabung jadi satu aktivitas (F4-01) — kalau ada catatan, perbaikan dikerjakan langsung lalu walkthrough ulang sampai punch list nol, baru BAST diteken. Dua rem yang dikunci: BAST = gate uang (memicu pelunasan), dan punch list hanya untuk cacat-vs-scope kontrak, bukan permintaan baru — permintaan baru jadi penawaran terpisah, melindungi no-addendum di garis finish. Setelah serah terima: styling & foto jadi amunisi konten, garansi jadi alasan klien tenang, lessons learned jadi input perbaikan sistem.',
+      svg: `<svg viewBox="0 0 680 452" role="img" xmlns="http://www.w3.org/2000/svg">
+  <title>Swimlane Fase 4 Handover v2.2</title>
+  <defs><marker id="ar4" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker></defs>
+  <rect x="16" y="16" width="156" height="32" rx="8" fill="#0C2D5C"/><text class="bt" x="94" y="32" text-anchor="middle" dominant-baseline="central" fill="#FFFFFF">Manops</text>
+  <rect x="180" y="16" width="156" height="32" rx="8" fill="#0C2D5C"/><text class="bt" x="258" y="32" text-anchor="middle" dominant-baseline="central" fill="#FFFFFF">Klien</text>
+  <rect x="344" y="16" width="156" height="32" rx="8" fill="#0C2D5C"/><text class="bt" x="422" y="32" text-anchor="middle" dominant-baseline="central" fill="#FFFFFF">Finance</text>
+  <rect x="508" y="16" width="156" height="32" rx="8" fill="#0C2D5C"/><text class="bt" x="586" y="32" text-anchor="middle" dominant-baseline="central" fill="#FFFFFF">Sales</text>
+  <line x1="176" y1="56" x2="176" y2="390" stroke="#D8E3F4" stroke-dasharray="5 5"/>
+  <line x1="340" y1="56" x2="340" y2="390" stroke="#D8E3F4" stroke-dasharray="5 5"/>
+  <line x1="504" y1="56" x2="504" y2="390" stroke="#D8E3F4" stroke-dasharray="5 5"/>
+
+  <!-- merged-activity band: walkthrough + BAST = satu aktivitas, loop tetap tampak -->
+  <rect x="10" y="84" width="332" height="208" rx="14" fill="#EAF1FC"/>
+  <text class="bs" x="16" y="76" text-anchor="start" fill="#1D4FAE" style="font-weight:700">Satu aktivitas · F4-01 — loop perbaikan tetap tampak</text>
+
+  <rect x="16" y="96" width="140" height="48" rx="8" fill="#2665D6"/>
+  <text class="bt" x="86" y="114" text-anchor="middle" dominant-baseline="central" fill="#FFFFFF">Walkthrough</text>
+  <text class="bs" x="86" y="132" text-anchor="middle" dominant-baseline="central" fill="#C3D7F8">+ punch list</text>
+  <line x1="86" y1="144" x2="86" y2="162" stroke="#0C2D5C" stroke-width="1.5" marker-end="url(#ar4)"/>
+
+  <rect x="16" y="162" width="140" height="48" rx="8" fill="#0C2D5C"/>
+  <text class="bt" x="86" y="180" text-anchor="middle" dominant-baseline="central" fill="#FFFFFF">Punch list nol?</text>
+  <text class="bs" x="86" y="196" text-anchor="middle" dominant-baseline="central" fill="#9DB7E0">ya → · belum ↻</text>
+  <line x1="86" y1="210" x2="86" y2="228" stroke="#0C2D5C" stroke-width="1.5" marker-end="url(#ar4)"/>
+
+  <rect x="16" y="228" width="140" height="48" rx="8" fill="#2665D6"/>
+  <text class="bt" x="86" y="246" text-anchor="middle" dominant-baseline="central" fill="#FFFFFF">Perbaikan</text>
+  <text class="bs" x="86" y="264" text-anchor="middle" dominant-baseline="central" fill="#C3D7F8">ulangi walkthrough</text>
+  <path d="M156 252 L172 252 L172 120 L156 120" fill="none" stroke="#0C2D5C" stroke-width="1.5" marker-end="url(#ar4)"/>
+  <text class="bs" x="177" y="150" text-anchor="start" fill="#5A6B86">↻</text>
+
+  <rect x="188" y="162" width="140" height="48" rx="8" fill="#2665D6"/>
+  <text class="bt" x="258" y="180" text-anchor="middle" dominant-baseline="central" fill="#FFFFFF">BAST ttd</text>
+  <text class="bs" x="258" y="196" text-anchor="middle" dominant-baseline="central" fill="#C3D7F8">serah terima</text>
+  <line x1="156" y1="186" x2="188" y2="186" stroke="#0C2D5C" stroke-width="1.5" marker-end="url(#ar4)"/>
+
+  <line x1="328" y1="186" x2="352" y2="186" stroke="#0C2D5C" stroke-width="1.5" marker-end="url(#ar4)"/>
+  <rect x="352" y="162" width="140" height="48" rx="8" fill="#2665D6"/>
+  <text class="bt" x="422" y="180" text-anchor="middle" dominant-baseline="central" fill="#FFFFFF">Pelunasan</text>
+  <text class="bs" x="422" y="196" text-anchor="middle" dominant-baseline="central" fill="#C3D7F8">Admin Finance</text>
+  <line x1="422" y1="210" x2="422" y2="228" stroke="#8A6206" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#ar4)"/>
+  <rect x="352" y="228" width="140" height="48" rx="8" fill="#E9AE24" stroke="#8A6206" stroke-dasharray="5 4" stroke-width="1.2"/>
+  <text class="bt" x="422" y="246" text-anchor="middle" dominant-baseline="central" fill="#3A2A03">SOP penerimaan</text>
+  <text class="bs" x="422" y="264" text-anchor="middle" dominant-baseline="central" fill="#5F4607">pembayaran · FIN-01</text>
+
+  <path d="M258 162 L258 124 L512 124" fill="none" stroke="#0C2D5C" stroke-width="1.5" marker-end="url(#ar4)"/>
+  <rect x="512" y="96" width="148" height="56" rx="8" fill="#2665D6"/>
+  <text class="bt" x="586" y="114" text-anchor="middle" dominant-baseline="central" fill="#FFFFFF">Styling &amp; foto</text>
+  <text class="bs" x="586" y="132" text-anchor="middle" dominant-baseline="central" fill="#C3D7F8">Marketing + AM</text>
+  <line x1="586" y1="152" x2="586" y2="172" stroke="#0C2D5C" stroke-width="1.5" marker-end="url(#ar4)"/>
+  <rect x="512" y="172" width="148" height="56" rx="8" fill="#2665D6"/>
+  <text class="bt" x="586" y="190" text-anchor="middle" dominant-baseline="central" fill="#FFFFFF">Garansi</text>
+  <text class="bs" x="586" y="208" text-anchor="middle" dominant-baseline="central" fill="#C3D7F8">after-sales · AM</text>
+  <path d="M586 228 L586 300 L86 300 L86 320" fill="none" stroke="#0C2D5C" stroke-width="1.5" marker-end="url(#ar4)"/>
+
+  <rect x="16" y="320" width="140" height="56" rx="8" fill="#2665D6"/>
+  <text class="bt" x="86" y="340" text-anchor="middle" dominant-baseline="central" fill="#FFFFFF">Closure</text>
+  <text class="bs" x="86" y="358" text-anchor="middle" dominant-baseline="central" fill="#C3D7F8">lessons + Direktur</text>
+  <line x1="86" y1="376" x2="86" y2="396" stroke="#0C2D5C" stroke-width="1.5" marker-end="url(#ar4)"/>
+  <rect x="12" y="396" width="656" height="48" rx="8" fill="#E9AE24"/>
+  <text class="bt" x="340" y="412" text-anchor="middle" dominant-baseline="central" fill="#3A2A03">Closing gate — project selesai</text>
+  <text class="bs" x="340" y="430" text-anchor="middle" dominant-baseline="central" fill="#5F4607">BAST ttd · lunas · dokumentasi terarsip</text>
+  </svg>`
+    }
+  ];
+  faseData.forEach(function(f){
+    fsSh.appendRow(['FASE-INT-' + f.no, PID, f.no, f.eyebrow, f.nama, f.lede, f.svg, '']);
+  });
+
+  // ── 4. AKTIVITAS (19 kotak; lane assignment dari swimlane) ──
+  var akSh = sheet('PlaybookAktivitas');
+  var aktivitas = [
+    // FASE 1 — 4 aktivitas
+    ['AK-INT-F1-01', 1, 'F1-01', 'Lead masuk & capture',          'Sales',  'Admin Client',         'SOP-INT-F1-01', 'IK-INT-F1-01',     'Gel.2', 1],
+    ['AK-INT-F1-02', 1, 'F1-02', 'Konsultasi & kalkulator',       'Sales',  'Account Manager',      'SOP-INT-F1-01', 'IK-INT-F1-02',     'Gel.2', 2],
+    ['AK-INT-F1-03', 1, 'F1-04', 'Site survey',                   'Studio', 'Head of Studio',       'SOP-INT-F1-02', 'IK-INT-F1-04',     'Gel.1', 3],
+    ['AK-INT-F1-04', 1, 'F1-05', 'Brief detail & approval',       'Sales',  'AM + Klien',           'SOP-INT-F1-03', 'IK-INT-F1-05',     'Gel.2', 4],
+    // FASE 2 — 5 aktivitas
+    ['AK-INT-F2-01', 2, 'F2-01', 'Kickoff & desain tahap-n',      'Studio', 'HoS + Studio',         'SOP-INT-F2-01', 'IK-INT-F2-01/02',  'Gel.2', 1],
+    ['AK-INT-F2-02', 2, 'F2-03', 'Penyusunan RAB tahap-n',        'Studio', 'Estimator (Hilmi)',    'SOP-INT-F2-02', 'IK-INT-F2-03',     'Gel.1', 2],
+    ['AK-INT-F2-03', 2, 'F2-04', 'Presentasi & approval desain',  'Sales',  'AM + Studio',          'SOP-INT-F2-03', 'IK-INT-F2-04',     'Gel.2', 3],
+    ['AK-INT-F2-04', 2, 'F2-05', 'Penawaran & kontrak',           'Sales',  'AM + Direktur',        'SOP-INT-F2-04', 'IK-INT-F2-05/06',  'Gel.2', 4],
+    ['AK-INT-F2-05', 2, 'F2-07', 'Gambar kerja & rencana pengadaan', 'Studio', 'Drafter + SE',      'SOP-INT-F2-05', 'IK-INT-F2-07',     'Gel.1', 5],
+    // FASE 3 — 5 aktivitas
+    ['AK-INT-F3-01', 3, 'F3-01', 'Pengadaan material & vendor',   'Manops', 'Manops',               'SOP-INT-F3-01', 'IK-INT-F3-01',     'Gel.2', 1],
+    ['AK-INT-F3-02', 3, 'F3-02', 'Produksi workshop',             'SE',     'Site Engineer',        'SOP-INT-F3-02', 'IK-INT-F3-02',     'Gel.2', 2],
+    ['AK-INT-F3-03', 3, 'F3-03', 'QC workshop (3 lapis)',         'Manops', 'SE → Arsitek → Manops','SOP-INT-F3-04', 'IK-INT-F3-03',     'Gel.1', 3],
+    ['AK-INT-F3-04', 3, 'F3-05', 'Instalasi site',                'SE',     'Site Engineer',        'SOP-INT-F3-03', 'IK-INT-F3-05',     'Gel.1', 4],
+    ['AK-INT-F3-05', 3, 'F3-06', 'Progress & QC site',            'Manops', 'Manops + AIC',         'SOP-INT-F3-04', 'IK-INT-F3-06',     'Gel.1', 5],
+    // FASE 4 — 4 aktivitas
+    ['AK-INT-F4-01', 4, 'F4-01', 'Walkthrough, punch list & BAST','Manops', 'Manops + AM',          'SOP-INT-F4-01', 'IK-INT-F4-01',     'Gel.1', 1],
+    ['AK-INT-F4-02', 4, 'F4-02', 'Styling, foto & testimonial',   'Sales',  'Marketing + AM',       'SOP-INT-F4-02', 'IK-INT-F4-02',     'Gel.3', 2],
+    ['AK-INT-F4-03', 4, 'F4-03', 'After-sales & garansi',         'Sales',  'Account Manager',      'SOP-INT-F4-03', 'IK-INT-F4-03',     'Gel.3', 3],
+    ['AK-INT-F4-04', 4, 'F4-04', 'Closure & lessons learned',     'Manops', 'Manops + Direktur',    'SOP-INT-F4-04', 'IK-INT-F4-04',     'Gel.3', 4],
+    // LINTAS FASE — pelaporan klien (panggilan dari F2 & F3)
+    ['AK-INT-X-01',  0, 'MKT-04','Pelaporan progres klien',       'Lintas','Darma (kemas & kirim)', 'SOP-MKT-04',    'IK-MKT-04',        'Gel.2', 1]
+  ];
+  aktivitas.forEach(function(a){
+    var faseId = a[1] === 0 ? '' : ('FASE-INT-' + a[1]);
+    akSh.appendRow([a[0], PID, faseId, a[2], a[3], a[4], a[5], a[6], a[7], a[8], a[9], '']);
+  });
+
+  // ── 5. GATE (4 gate + checklist) ──
+  var gtSh = sheet('PlaybookGate');
+  var gates = [
+    ['GT-INT-G1', 'CHK-G1', 'Gate 1', 'Akuisisi → Desain (handover Sales → Ops)',
+      'Manager Operational',
+      'Brief detail ditandatangani klien;Biaya survey cair & tercatat (deductible);Data survey lengkap di Drive Project;Kanal komunikasi aktif: grup WA internal, grup WA klien, portal klien Moona System',
+      1],
+    ['GT-INT-G2', 'CHK-G2', 'Gate 2', 'Desain → Produksi',
+      'Manager Operational',
+      'Seluruh tahap desain approved klien (sampai tahap final);Kontrak ditandatangani (harga lock, no-addendum);DP cair & tercatat;Gambar kerja final & procurement plan disetujui Manops',
+      2],
+    ['GT-INT-G3', 'CHK-G3', 'Gate 3', 'Produksi → Handover',
+      'Manager Operational',
+      'QC workshop lolos sebelum barang dikirim;Termin cair sebelum instalasi dimulai;QC site lolos (Manops + AIC);Laporan progres & dokumentasi konten lengkap',
+      3],
+    ['GT-INT-G4', 'CHK-G4', 'Closing gate', 'Project resmi selesai',
+      'Manager Operational',
+      'BAST ditandatangani klien;Pelunasan masuk & tercatat;Foto, testimonial & arsip dokumen lengkap;Lessons learned tercatat (Manops + Direktur)',
+      4]
+  ];
+  gates.forEach(function(g){
+    gtSh.appendRow([g[0], PID, g[1], g[2], g[3], g[4], g[5], g[6]]);
+  });
+
+  // ── 6. SOP MASTER LIST (16 spine + 11 pendukung) ──
+  var spSh = sheet('PlaybookSOPItem');
+  var sopItems = [
+    // SPINE — Fase 1
+    ['SOP-INT-F1-01', 'Lead Management & Konsultasi', 'Spine', 'Admin Client + AM',          'Update Canva lama', 'Lead masuk · Capture & tag · Konsultasi · Klien lanjut? · Setup kanal'],
+    ['SOP-INT-F1-02', 'Site Survey Interior',         'Spine', 'Head of Studio',             'Baru',              'Site survey'],
+    ['SOP-INT-F1-03', 'Brief Detail & Approval',      'Spine', 'AM + Klien',                 'Baru',              'Brief detail'],
+    // SPINE — Fase 2
+    ['SOP-INT-F2-01', 'Design Development',           'Spine', 'HoS + AIC + Drafter',        'Baru',              'Kickoff · Desain tahap-n'],
+    ['SOP-INT-F2-02', 'Penyusunan RAB',               'Spine', 'Estimator (Hilmi)',          'Baru',              'RAB tahap-n'],
+    ['SOP-INT-F2-03', 'Presentasi & Approval Desain', 'Spine', 'AM + Studio',                'Baru',              'Presentasi · Approve tahap?'],
+    ['SOP-INT-F2-04', 'Penawaran & Kontrak',          'Spine', 'AM + Direktur',              'Baru',              'Penawaran · Ttd kontrak'],
+    ['SOP-INT-F2-05', 'Gambar Kerja & Rencana Pengadaan', 'Spine', 'Drafter + SE + Manops',  'Baru',              'Gambar kerja'],
+    // SPINE — Fase 3
+    ['SOP-INT-F3-01', 'Pengadaan Material & Vendor',  'Spine', 'Manops',                     'Baru',              'Pengadaan'],
+    ['SOP-INT-F3-02', 'Produksi Workshop',            'Spine', 'Site Engineer',              'Baru',              'Produksi workshop'],
+    ['SOP-INT-F3-03', 'Instalasi Site',               'Spine', 'Site Engineer',              'Baru',              'Instalasi'],
+    ['SOP-INT-F3-04', 'Progress Report & QC',         'Spine', 'SE → Arsitek → Manops',      'Baru',              'QC workshop · Tagih termin · Progress & QC site'],
+    // SPINE — Fase 4
+    ['SOP-INT-F4-01', 'Walkthrough, Punch List & BAST','Spine','Manops + AM',                'Baru',              'Walkthrough · Punch list · BAST (satu aktivitas)'],
+    ['SOP-INT-F4-02', 'Styling, Foto & Testimonial',  'Spine', 'Marketing + AM',             'Baru',              'Styling & foto'],
+    ['SOP-INT-F4-03', 'After-Sales & Garansi',        'Spine', 'Account Manager',            'Baru',              'Garansi'],
+    ['SOP-INT-F4-04', 'Closure & Lessons Learned',    'Spine', 'Manops + Direktur',          'Baru',              'Closure'],
+    // PENDUKUNG — Finance
+    ['SOP-FIN-01', 'Penerimaan Pembayaran',           'Pendukung', 'Finance',                'Update Canva lama', 'Biaya survey (F1) · DP (F2) · Pelunasan (F4)'],
+    ['SOP-FIN-02', 'Invoicing & Kwitansi',            'Pendukung', 'Finance',                'Update Canva lama', 'Termin (F3, setelah QC workshop) · semua penagihan'],
+    ['SOP-FIN-03', 'Pembayaran Vendor',               'Pendukung', 'Finance',                'Update Canva lama', 'Pengadaan (F3)'],
+    // PENDUKUNG — Procurement
+    ['SOP-PRC-01', 'Purchase Request',                'Pendukung', 'Manops',                 'Update Canva lama', 'F3-01'],
+    ['SOP-PRC-02', 'Purchase Order',                  'Pendukung', 'Manops',                 'Update Canva lama', 'F3-01'],
+    ['SOP-PRC-03', 'Penerimaan Barang',               'Pendukung', 'Manops',                 'Update Canva lama', 'F3-01'],
+    ['SOP-PRC-04', 'Dokumentasi Pembelian',           'Pendukung', 'Manops',                 'Update Canva lama', 'F3-01'],
+    // PENDUKUNG — Marketing
+    ['SOP-MKT-01', 'Lead Generation Content',         'Pendukung', 'Marketing',              'Baru',              'Hulu, sebelum F1'],
+    ['SOP-MKT-02', 'Dokumentasi Konten Lapangan',     'Pendukung', 'Marketing',              'Baru',              'F3'],
+    ['SOP-MKT-03', 'Kalkulator Interior',             'Pendukung', 'Marketing',              'Baru',              'Konsultasi (F1)'],
+    ['SOP-MKT-04', 'Pelaporan Progres Klien',         'Pendukung', 'Darma (kemas & kirim)',  'Baru',              'Approval tiap tahap desain (F2) · milestone produksi (F3)']
+  ];
+  sopItems.forEach(function(s, i){
+    spSh.appendRow(['SP-' + s[0], PID, s[0], s[1], s[2], s[3], s[4], s[5], '', i+1]);
+  });
+
+  // ── 7. DISKUSI (titik diskusi + risk note) ──
+  var dkSh = sheet('PlaybookDiskusi');
+  var diskusi = [
+    ['Diskusi', 'Bobot % per milestone untuk laporan progres', 'Laporan ke klien pakai persen ditimbang per milestone (bukan rata-rata kasar) supaya angka tidak jadi sumber sengketa di bawah no-addendum. Pembagian bobotnya perlu dikunci: mis. desain disetujui 20 — material datang 30 — produksi workshop 30 — instalasi 15 — BAST 5. Angka finalnya berapa, dan sama untuk semua ukuran project?', 'SOP-MKT-04'],
+    ['Diskusi', 'Konfirmasi daftar IK gelombang 1', 'Tujuh IK diusulkan ditulis duluan atas dasar risiko: site survey, RAB, gambar kerja, QC workshop 3-lapis, instalasi, QC site, walkthrough/BAST. Ada yang harus naik/turun prioritas menurut lapangan? IK ditulis bertahap, bukan sekaligus.', 'IK gelombang 1'],
+    ['Diskusi', 'Rumah SOP pelaporan klien — Marketing atau Client-Relations', 'Pelaporan progres untuk sementara ditaruh di bawah Marketing (MKT-04) karena belum ada bucket khusus. Tapi fungsinya klien-facing murni, bukan akuisisi. Begitu volume relasi-klien bertambah, layak dipertimbangkan bucket Client-Relations sendiri. Buat sekarang atau nanti?', 'SOP-MKT-04'],
+    ['Diskusi', 'Urutan & override sign-off QC workshop 3-lapis', 'QC workshop berurut SE→Arsitek→Manops, Manops pemegang sign-off final (gate uang, memicu termin). Pertanyaan: kalau SE atau Arsitek menolak tapi Manops mau lolos demi jadwal — siapa yang menang? Usulan: temuan SE/Arsitek bersifat blocking, Manops tidak bisa override mutu/desain, hanya scope. Setuju?', 'SOP-INT-F3-04'],
+    ['Diskusi', 'Batas revisi per tahap desain', 'Dengan desain bertahap, batas revisi bisa dibedakan: tahap awal longgar (effort murah, belum render), tahap final ketat (render ulang mahal) — misal maksimal 2x lalu berbayar. Angka finalnya berapa?', 'SOP-INT-F2-03'],
+    ['Diskusi', 'Struktur pembayaran termin', 'Posisi termin sudah dikunci: setelah QC workshop, sebelum instalasi, dan instalasi menunggu termin cair. Yang tersisa: komposisi pembayaran (mis. DP 40 — termin 40 — pelunasan 20) dan apakah komposisinya sama untuk semua ukuran project.', 'SOP-INT-F3-04 · FIN-02'],
+    ['Diskusi', 'Posisi styling & testimonial', 'Diusulkan jadi alur utama (bukan SOP pendukung Marketing) karena klien-facing dan punya urutan wajib — momen foto harus sebelum serah terima penuh. Setuju?', 'SOP-INT-F4-02'],
+    ['Diskusi', 'SLA respon lead <2 jam', 'Realistis di luar jam kerja? Perlu definisi jam operasional respon (mis. 08.00–20.00) supaya SLA-nya bisa diukur adil.', 'SOP-INT-F1-01'],
+    ['Diskusi', 'Flag kontrol: double-hat Account Manager + Finance Manager', 'Saat ini satu orang memegang negosiasi penjualan sekaligus kontrol uang. Aman untuk ukuran tim sekarang, tapi begitu tim bertambah, validasi pembayaran harus dipisah dari fungsi penjualan. Dicatat sebagai agenda struktur, bukan masalah hari ini.', ''],
+    ['Risk', 'Klien mundur setelah tahap final desain', 'Klien mundur setelah tahap final desain (render sudah jadi, harga detail sudah keluar). Keputusan saat ini: status quo — approval per tahap tanpa fee komitmen tambahan; biaya survey deductible hanya menutup effort tahap awal. Bila terjadi kasus nyata, opsi yang sudah disiapkan: komitmen tertulis saat approval tiap tahap, atau design fee tahap lanjut yang juga bersifat deductible.', '']
+  ];
+  diskusi.forEach(function(d, i){
+    dkSh.appendRow(['DSK-INT-' + (i+1), PID, d[0], i+1, d[1], d[2], d[3]]);
+  });
+
+  // ── 8. CHANGELOG ──
+  var clSh = sheet('PlaybookChangelog');
+  var changelog = [
+    ['v2.2', 'Review tim lanjutan: (1) tiap kotak aktivitas kini bertanda kode SOP induk + IK satu-halaman — model dokumen 3 lapis Peta→SOP→IK; (2) QC workshop dipertegas 3 lapis berurut SE→Arsitek→Manops, Manops sign-off final sebagai gate uang (anti-diffusion); (3) walkthrough + BAST digabung jadi satu aktivitas F4-01 dengan loop perbaikan terlihat, BAST hanya diteken saat punch list nol, BAST memicu pelunasan; (4) SOP-MKT-04 Pelaporan Progres Klien ditambah — input di sumber (SE/Studio log ke Hub), Darma mengemas & mengirim, persen ditimbang per milestone; (5) titik diskusi & changelog disesuaikan.'],
+    ['v2.1', 'Hasil review tim: (1) "Buat grup WA" jadi "Setup kanal komunikasi" — WA internal, WA klien, portal klien Moona System, semua di satu titik setelah biaya survey cair; (2) design development jadi loop bertahap generik, jumlah tahap by scope; (3) penagihan termin pindah ke setelah QC workshop, sebelum instalasi — instalasi menunggu termin cair; (4) QC jadi dua titik (workshop & site); (5) checklist gate & titik diskusi disesuaikan; (6) catatan risiko ditambahkan.'],
+    ['v2.0', 'Draft awal: peta sistem 4 fase + gate, master list 16 SOP spine + 10 SOP pendukung + 4 checklist gate, 6 titik diskusi.']
+  ];
+  changelog.forEach(function(c, i){
+    clSh.appendRow(['CL-INT-' + (i+1), PID, c[0], i+1, c[1]]);
+  });
+
+  return 'Seeded Peta Sistem Interior v2.2 (ID: ' + PID + ') — 1 playbook, 10 kebijakan, 4 fase, 19 aktivitas, 4 gate, 27 SOP item, 10 diskusi/risk, 3 changelog.';
 }
