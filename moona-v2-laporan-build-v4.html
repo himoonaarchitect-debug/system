@@ -164,12 +164,15 @@ textarea.form-input{resize:vertical;min-height:56px;line-height:1.5}
   </div>
 
   <div class="filter-bar">
+    <select id="f-project" class="form-input" style="width:auto;min-width:240px;max-width:340px;padding:5px 9px;font-size:12px" onchange="setProjectFilter(this.value)"><option value="">Semua proyek</option></select>
+    <span style="width:1px;height:18px;background:var(--border2);margin:0 4px"></span>
     <div class="fpill active" onclick="setStatus('',this)">Semua</div>
     <div class="fpill" onclick="setStatus('Pending',this)">Pending</div>
     <div class="fpill" onclick="setStatus('Approved',this)">Approved</div>
     <div class="fpill" onclick="setStatus('Rejected',this)">Rejected</div>
   </div>
 
+  <div id="proj-banner" style="display:none;background:var(--brand-bg);color:var(--brand);border-radius:var(--radius-sm);padding:9px 13px;margin-bottom:10px;font-size:12px"></div>
   <div class="card">
     <div class="card-header"><span class="card-title">Laporan harian terbaru</span></div>
     <div id="lap-list"><div class="loading">Memuat...</div></div>
@@ -308,10 +311,33 @@ function fmtDT(s) {
   return d ? d.toLocaleString('id-ID', { day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' }) : String(s);
 }
 function closeModal(id) { document.getElementById(id).classList.remove('open'); }
-function setStatus(s, el) { filterStatus = s; var pills = document.querySelectorAll('.fpill'); for (var i = 0; i < pills.length; i++) pills[i].classList.remove('active'); el.classList.add('active'); renderLaps(); }
+function setStatus(s, el) { filterStatus = s; var pills = document.querySelectorAll('.filter-bar .fpill'); for (var i = 0; i < pills.length; i++) pills[i].classList.remove('active'); el.classList.add('active'); renderLaps(); }
 
+var TIPE_OK = ['Build','Design+Build'];
+var filterProject = new URLSearchParams(location.search).get('project') || '';
+function setProjectFilter(v) {
+  filterProject = v || '';
+  var u = new URL(location.href); if (filterProject) u.searchParams.set('project', filterProject); else u.searchParams.delete('project');
+  history.replaceState(null, '', u.toString());
+  renderProjectFilter(); renderLaps(); updateStats();
+}
+function projName(id) { for (var i = 0; i < projects.length; i++) if (p(projects[i],'ID') === id) return p(projects[i],'NamaProyek') + (p(projects[i],'NamaKlien') ? ' — ' + p(projects[i],'NamaKlien') : ''); return id; }
+// Dropdown berisi proyek yang punya laporan + proyek aktif yang relevan
+function renderProjectFilter() {
+  var sel = document.getElementById('f-project'); if (!sel) return;
+  var ids = {}, list = [];
+  laps.forEach(function(l){ var id = p(l,'Project_ID'); if (id && !ids[id]) { ids[id] = 1; list.push(id); } });
+  projects.forEach(function(x){ var id = p(x,'ID'); if (!ids[id] && TIPE_OK.indexOf(p(x,'TipeProyek')) >= 0 && (p(x,'StatusProyek') === 'Aktif' || !p(x,'StatusProyek'))) { ids[id] = 1; list.push(id); } });
+  if (filterProject && !ids[filterProject]) list.push(filterProject);
+  list.sort(function(a,b){ return projName(a).localeCompare(projName(b)); });
+  var cnt = {}; laps.forEach(function(l){ var id = p(l,'Project_ID'); cnt[id] = (cnt[id]||0) + 1; });
+  sel.innerHTML = '<option value="">Semua proyek</option>' + list.map(function(id){ return '<option value="' + id + '"' + (id === filterProject ? ' selected' : '') + '>' + projName(id) + ' (' + (cnt[id]||0) + ')</option>'; }).join('');
+  var bn = document.getElementById('proj-banner');
+  if (filterProject) { bn.style.display = 'block'; bn.innerHTML = 'Menampilkan laporan untuk <strong>' + projName(filterProject) + '</strong> · <a href="#" onclick="setProjectFilter(\'\');return false" style="color:inherit">lihat semua proyek</a>'; }
+  else bn.style.display = 'none';
+}
 window.onload = function() {
-  Promise.all([loadLaps(), loadProjects(), loadRAB(), loadUsers()]);
+  Promise.all([loadLaps(), loadProjects(), loadRAB(), loadUsers()]).then(function(){ renderProjectFilter(); renderLaps(); updateStats(); });
 };
 
 function loadLaps() {
@@ -382,10 +408,11 @@ function updateStats() {
 function renderLaps() {
   var f = [];
   for (var i = 0; i < laps.length; i++) {
+    if (filterProject && p(laps[i],'Project_ID') !== filterProject) continue;
     if (!filterStatus || (p(laps[i],'StatusApproval') || 'Pending') === filterStatus) f.push(laps[i]);
   }
   var el = document.getElementById('lap-list');
-  if (!f.length) { el.innerHTML = '<div class="empty">Belum ada laporan.</div>'; return; }
+  if (!f.length) { el.innerHTML = '<div class="empty">' + (filterProject ? 'Belum ada laporan untuk proyek ini.' : 'Belum ada laporan.') + '</div>'; return; }
   var parts = [];
   var sorted = f.slice().reverse();
   for (var k = 0; k < sorted.length; k++) {
@@ -435,6 +462,9 @@ function openLapForm() {
   document.getElementById('items-section').style.display = 'none';
   document.getElementById('shared-fields').style.display = 'none';
   document.getElementById('no-rab-warning').style.display = 'none';
+  // Kalau sedang memfilter 1 proyek, langsung pilih proyek itu
+  var lfp = document.getElementById('lf-project');
+  if (filterProject && lfp.querySelector('option[value="' + filterProject + '"]')) { lfp.value = filterProject; loadRABItems(); }
   document.getElementById('modal-lap').classList.add('open');
 }
 

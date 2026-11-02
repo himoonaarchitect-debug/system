@@ -332,7 +332,7 @@ textarea.form-input{resize:vertical;min-height:60px;line-height:1.5}
     <div class="dpanel" id="dp-lapdesign" style="display:none">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
         <div style="font-size:12px;font-weight:500">Laporan harian tim design</div>
-        <a class="btn btn-sm btn-primary" href="moona-v2-laporan-design-v4.html">Buka modul laporan →</a>
+        <a class="btn btn-sm btn-primary" id="lnk-lapdesign" href="moona-v2-laporan-design-v4.html">Buka laporan proyek ini →</a>
       </div>
       <div id="lapdesign-rows"><div class="loading">Memuat...</div></div>
     </div>
@@ -341,7 +341,7 @@ textarea.form-input{resize:vertical;min-height:60px;line-height:1.5}
     <div class="dpanel" id="dp-lapbuild" style="display:none">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
         <div style="font-size:12px;font-weight:500">Laporan harian tim build</div>
-        <a class="btn btn-sm btn-primary" href="moona-v2-laporan-build-v4.html">Buka modul laporan →</a>
+        <a class="btn btn-sm btn-primary" id="lnk-lapbuild" href="moona-v2-laporan-build-v4.html">Buka laporan proyek ini →</a>
       </div>
       <div id="lapbuild-rows"><div class="loading">Memuat...</div></div>
     </div>
@@ -1615,6 +1615,7 @@ function renderRAB(){
 }
 
 function renderLapDesign(){
+  const lnk=document.getElementById('lnk-lapdesign'); if(lnk) lnk.href='moona-v2-laporan-design-v4.html?project='+encodeURIComponent(selectedId||'');
   const items=lapDesign.filter(l=>p(l,'Project_ID')===selectedId);
   const el=document.getElementById('lapdesign-rows');
   if(!items.length){el.innerHTML='<div class="empty">Belum ada laporan design untuk proyek ini.</div>';return;}
@@ -1630,6 +1631,7 @@ function renderLapDesign(){
 }
 
 function renderLapBuild(){
+  const lnk=document.getElementById('lnk-lapbuild'); if(lnk) lnk.href='moona-v2-laporan-build-v4.html?project='+encodeURIComponent(selectedId||'');
   const items=lapBuild.filter(l=>p(l,'Project_ID')===selectedId);
   const el=document.getElementById('lapbuild-rows');
   if(!items.length){el.innerHTML='<div class="empty">Belum ada laporan build untuk proyek ini.</div>';return;}
