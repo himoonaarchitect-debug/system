@@ -80,7 +80,7 @@ body{background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap">
-<link rel="stylesheet" href="moona-ui.css?v=3">
+<link rel="stylesheet" href="moona-ui.css?v=4">
 </head>
 <body>
 <div class="app">
@@ -214,7 +214,7 @@ body{background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI
 </div>
 </div>
 
-<script src="moona-core.js?v=3"></script>
+<script src="moona-core.js?v=4"></script>
 <script>
 const API=MOONA_API;
 
@@ -240,7 +240,7 @@ const API=MOONA_API;
   };
 })();
 function getSession(){try{return JSON.parse(localStorage.getItem('moona_v2_session'));}catch(e){return null;}}
-function logout(){localStorage.removeItem('moona_v2_session');location.href='moona-v2-login.html';}
+function logout() { moonaLogout(); }
 if (!moonaRequireAccess('dashboard')) throw new Error('Akses ditolak');
 
 function go(u){location.href=u;}
@@ -258,8 +258,10 @@ function rp(n){if(!n||isNaN(n))return'–';const v=parseFloat(n);if(v>=1e9)retur
 
 window.onload=async()=>{
   const staffName=S?S.nama:'';
+  // Data lead hanya untuk akun yang punya akses CRM (server juga menolaknya)
+  const HAS_CRM=moonaHas('crm');
   const [leadsRes,projRes,actRes,meetRes,taskRes,cntRes]=await Promise.allSettled([
-    fetch(API+'?action=getLeads').then(r=>r.json()),
+    HAS_CRM?fetch(API+'?action=getLeads').then(r=>r.json()):Promise.resolve({status:'skip',data:[]}),
     fetch(API+'?action=getProjects').then(r=>r.json()),
     fetch(API+'?action=getActionItems').then(r=>r.json()),
     fetch(API+'?action=getMeetings').then(r=>r.json()),
@@ -278,6 +280,13 @@ window.onload=async()=>{
   renderStats(leads,projects,myItems);
   renderActions(myItems);
   renderFU(leads);
+  if(!HAS_CRM){
+    ['s-lead','s-fu'].forEach(id=>{document.getElementById(id).textContent='–';});
+    document.getElementById('s-lead-note').textContent='Khusus tim CRM';
+    document.getElementById('s-fu-note').textContent='';
+    document.getElementById('fu-list').innerHTML='<div class="empty">Follow-up lead hanya tampil untuk tim CRM.</div>';
+    const lnk=document.querySelector('#fu-list')?.closest('.card')?.querySelector('.card-link'); if(lnk) lnk.style.display='none';
+  }
   renderProjects(projects);
   renderMeetings(meetings);
   if(tasks.length) renderMyTasks(tasks);

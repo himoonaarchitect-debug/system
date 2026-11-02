@@ -90,6 +90,48 @@ function moonaFmtDate(v) {
 }
 
 function moonaSession() { try { return JSON.parse(localStorage.getItem('moona_v2_session')); } catch (e) { return null; } }
+
+// ── Sesi server ───────────────────────────────────────────────
+// Saat login, server memberi "sid" (kunci sesi bertanda tangan, berlaku 30 hari).
+// Semua permintaan ke backend otomatis membawanya. Kalau server menjawab code AUTH
+// (sesi habis, password diganti, atau akun dinonaktifkan) → kembali ke halaman login.
+function moonaSid() { try { return localStorage.getItem('moona_v2_sid') || ''; } catch (e) { return ''; } }
+function moonaClearSession() {
+  try { ['moona_v2_session', 'moona_v2_access', 'moona_v2_sid'].forEach(function (k) { localStorage.removeItem(k); }); } catch (e) {}
+}
+function moonaSessionExpired() {
+  if (window.__moonaExpired) return; window.__moonaExpired = true;
+  moonaClearSession();
+  location.href = 'moona-v2-login.html?expired=1';
+}
+(function () {
+  if (window.__moonaFetchWrapped || typeof window.fetch !== 'function') return;
+  // Portal klien & halaman login tidak memakai sesi tim
+  if (/moona-v2-(client-view|login)(\.html)?$/.test(location.pathname)) return;
+  window.__moonaFetchWrapped = true;   // pembungkus lama di tiap halaman otomatis tidak aktif
+  var _f = window.fetch.bind(window);
+  window.fetch = function (url, opts) {
+    if (typeof url !== 'string' || url.indexOf(MOONA_API) !== 0) return _f(url, opts);
+    var sid = moonaSid(), s = moonaSession();
+    try {
+      var method = String((opts && opts.method) || 'GET').toUpperCase();
+      if (method === 'POST' && typeof opts.body === 'string') {
+        var b = JSON.parse(opts.body);
+        if (b && b.action) {
+          if (sid) b.sid = sid;
+          if (s && s.id) { if (b.actorId === undefined) b.actorId = s.id; if (b.actorRole === undefined) b.actorRole = s.role; }
+          opts = Object.assign({}, opts, { body: JSON.stringify(b) });
+        }
+      } else if (method === 'GET' && sid && !/[?&]sid=/.test(url)) {
+        url += (url.indexOf('?') >= 0 ? '&' : '?') + 'sid=' + encodeURIComponent(sid);
+      }
+    } catch (e) {}
+    return _f(url, opts).then(function (res) {
+      try { res.clone().json().then(function (d) { if (d && d.code === 'AUTH') moonaSessionExpired(); }, function () {}); } catch (e) {}
+      return res;
+    });
+  };
+})();
 function moonaAccess() {
   var acc = null; try { acc = JSON.parse(localStorage.getItem('moona_v2_access')); } catch (e) {}
   if (acc && acc.modules) return acc;
@@ -145,7 +187,7 @@ function moonaInitials(nama) {
   return ((w[0][0] || '') + (w.length > 1 ? w[w.length - 1][0] : (w[0][1] || ''))).toUpperCase();
 }
 function moonaLogout() {
-  localStorage.removeItem('moona_v2_session'); localStorage.removeItem('moona_v2_access');
+  moonaClearSession();
   location.href = 'moona-v2-login.html';
 }
 
@@ -246,10 +288,7 @@ function moonaRefreshAccess() {
     .then(function (r) { return r.json(); })
     .then(function (d) {
       if (!d || d.status !== 'ok' || !d.access) return; // backend lama → pakai yang tersimpan
-      if (d.aktif === false) {
-        localStorage.removeItem('moona_v2_session'); localStorage.removeItem('moona_v2_access');
-        location.href = 'moona-v2-login.html'; return;
-      }
+      if (d.aktif === false) { moonaClearSession(); location.href = 'moona-v2-login.html'; return; }
       var after = JSON.stringify(d.access);
       localStorage.setItem('moona_v2_access', after);
       var ns = Object.assign({}, s, { nama: d.nama || s.nama, role: d.role || s.role, jobTitle: d.jobTitle || s.jobTitle || '' });
