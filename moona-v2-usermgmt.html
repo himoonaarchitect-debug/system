@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Moona v2 — User Management</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -11,7 +12,7 @@
   --text:#1a1a18;--text2:#6b6a64;--text3:#9d9b94;
   --brand:#406EB6;--brand-bg:#E8F0FA;
   --coral-mid:#D85A30;--purple:#534AB7;--purple-bg:#EEEDFE;
-  --teal:#0F6E56;--amber:#854F0B;--red:#A32D2D;--red-bg:#FCEBEB;
+  --teal:#0F6E56;--teal-bg:#E1F5EE;--amber:#854F0B;--amber-bg:#FAEEDA;--red:#A32D2D;--red-bg:#FCEBEB;
   --green:#3B6D11;--green-bg:#EAF3DE;--blue:#185FA5;
   --gray:#5F5E5A;--gray-bg:#F1EFE8;
   --radius:10px;--radius-sm:6px;
@@ -30,58 +31,130 @@ body{background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI
 .sf-logout{font-size:10px;color:var(--gray);margin-top:4px;cursor:pointer}
 
 .main{margin-left:220px;flex:1;padding:22px;max-width:1180px}
-.topbar{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:18px;gap:10px;flex-wrap:wrap}
+.topbar{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:14px;gap:10px;flex-wrap:wrap}
 .page-title{font-size:19px;font-weight:600}
-.page-sub{font-size:11px;color:var(--text3);margin-top:2px}
-.btn{padding:7px 14px;border-radius:var(--radius-sm);border:0.5px solid var(--border2);background:var(--card);color:var(--text);font-size:12px;font-weight:500;cursor:pointer;white-space:nowrap}
+.page-sub{font-size:12px;color:var(--text2);margin-top:3px}
+.btn{padding:7px 14px;border-radius:var(--radius-sm);border:0.5px solid var(--border2);background:var(--card);color:var(--text);font-size:12px;font-weight:500;cursor:pointer;white-space:nowrap;font-family:inherit}
 .btn:hover{background:var(--bg)}
-.btn-primary{background:var(--gray);color:#fff;border-color:var(--gray)}
-.btn-primary:hover{opacity:.92;background:var(--gray)}
-.btn-sm{padding:4px 9px;font-size:11px}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn-primary{background:var(--brand);color:#fff;border-color:var(--brand)}
+.btn-primary:hover{opacity:.92;background:var(--brand)}
+.btn-sm{padding:4px 10px;font-size:11px}
 .btn-danger{color:var(--red);border-color:#e6b8b8}
+.btn-danger:hover{background:var(--red-bg)}
+
+/* Panduan */
+.guide{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px}
+.guide-step{background:var(--card);border:0.5px solid var(--border);border-radius:var(--radius);padding:11px 13px;display:flex;gap:10px;align-items:flex-start}
+.guide-num{flex:0 0 22px;height:22px;border-radius:50%;background:var(--brand-bg);color:var(--brand);font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center}
+.guide-t{font-size:12px;font-weight:600;margin-bottom:2px}
+.guide-d{font-size:11px;color:var(--text2);line-height:1.5}
 
 .tabs{display:flex;border-bottom:0.5px solid var(--border);margin-bottom:14px}
 .tab{padding:8px 16px;font-size:12px;color:var(--text2);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-0.5px}
-.tab.active{color:var(--gray);border-bottom-color:var(--gray);font-weight:600}
+.tab.active{color:var(--brand);border-bottom-color:var(--brand);font-weight:600}
+.tab .cnt{font-size:10px;background:var(--gray-bg);color:var(--text2);padding:1px 6px;border-radius:8px;margin-left:4px;font-weight:500}
+
+.toolbar{display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;align-items:center}
+.search{flex:1;min-width:180px;max-width:300px}
+.fpill{padding:4px 11px;border-radius:20px;font-size:11px;font-weight:500;cursor:pointer;border:0.5px solid var(--border2);color:var(--text2);background:var(--card)}
+.fpill.active{background:var(--text);color:#fff;border-color:var(--text)}
 
 .card{background:var(--card);border:0.5px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:10px}
 .tablewrap{overflow-x:auto}
 table{width:100%;border-collapse:collapse;font-size:12px}
 th{padding:9px 12px;text-align:left;font-size:10px;font-weight:600;color:var(--text3);background:var(--bg);text-transform:uppercase;letter-spacing:.04em;border-bottom:0.5px solid var(--border);white-space:nowrap}
-td{padding:9px 12px;border-bottom:0.5px solid var(--border);vertical-align:middle}
+td{padding:10px 12px;border-bottom:0.5px solid var(--border);vertical-align:middle}
 tr:last-child td{border-bottom:none}
-tr:hover td{background:#fcfbf9}
-.center{text-align:center}
+tbody tr{cursor:pointer}
+tbody tr:hover td{background:#fcfbf9}
+.u-name{font-weight:600}
+.u-sub{font-size:10.5px;color:var(--text3);margin-top:1px}
+.row-off td{opacity:.5}
 
-.pill{display:inline-flex;padding:2px 9px;border-radius:7px;font-size:10px;font-weight:600}
+.pill{display:inline-flex;align-items:center;gap:4px;padding:2px 9px;border-radius:8px;font-size:10px;font-weight:600;white-space:nowrap}
 .pill-on{background:var(--green-bg);color:var(--green)}
 .pill-off{background:var(--gray-bg);color:var(--text2)}
 .pill-role{background:var(--purple-bg);color:var(--purple)}
-.row-off td{opacity:.55}
+.pill-khusus{background:var(--amber-bg);color:var(--amber)}
+.pill-view{background:var(--brand-bg);color:var(--brand)}
 
-.matrix th.mod{font-size:9px;writing-mode:vertical-rl;transform:rotate(180deg);height:90px;padding:6px 2px;text-align:left}
-.matrix td.center input{width:15px;height:15px;cursor:pointer;accent-color:var(--gray)}
-.matrix select{padding:4px 6px;border:0.5px solid var(--border2);border-radius:5px;font-size:11px;font-family:inherit}
-.rolename{font-weight:600;white-space:nowrap}
+/* Role tab */
+.role-layout{display:grid;grid-template-columns:240px 1fr;gap:12px;align-items:start}
+.role-list{background:var(--card);border:0.5px solid var(--border);border-radius:var(--radius);overflow:hidden}
+.role-item{padding:10px 13px;border-bottom:0.5px solid var(--border);cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.role-item:last-of-type{border-bottom:none}
+.role-item:hover{background:var(--bg)}
+.role-item.active{background:var(--brand-bg)}
+.role-item.active .ri-name{color:var(--brand)}
+.ri-name{font-size:12.5px;font-weight:600}
+.ri-sub{font-size:10.5px;color:var(--text3);margin-top:1px}
+.role-add{padding:10px 13px;border-top:0.5px solid var(--border);background:var(--bg)}
 
-.actions{display:flex;gap:5px;flex-wrap:wrap}
+.editor{background:var(--card);border:0.5px solid var(--border);border-radius:var(--radius)}
+.ed-head{padding:14px 16px;border-bottom:0.5px solid var(--border);display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap}
+.ed-title{font-size:15px;font-weight:600}
+.ed-sub{font-size:11px;color:var(--text2);margin-top:2px}
+.ed-body{padding:6px 16px 14px}
+.ed-foot{padding:11px 16px;border-top:0.5px solid var(--border);display:flex;gap:8px;align-items:center;flex-wrap:wrap;background:var(--bg);border-radius:0 0 var(--radius) var(--radius)}
 
-.modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:100;align-items:center;justify-content:center;padding:16px}
+.grp-title{font-size:9.5px;font-weight:700;color:var(--text3);letter-spacing:.07em;text-transform:uppercase;margin:14px 0 4px}
+.mod-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:0.5px solid var(--border)}
+.mod-row:last-child{border-bottom:none}
+.mod-name{flex:1;font-size:12.5px}
+.mod-name small{display:block;font-size:10.5px;color:var(--text3);margin-top:1px}
+.mod-name.off{color:var(--text3)}
+
+/* switch */
+.sw{position:relative;width:34px;height:19px;flex:0 0 34px;cursor:pointer}
+.sw input{opacity:0;width:0;height:0;position:absolute}
+.sw span{position:absolute;inset:0;background:#d6d4cd;border-radius:20px;transition:.15s}
+.sw span:before{content:'';position:absolute;width:15px;height:15px;left:2px;top:2px;background:#fff;border-radius:50%;transition:.15s;box-shadow:0 1px 2px rgba(0,0,0,.2)}
+.sw input:checked + span{background:var(--teal)}
+.sw input:checked + span:before{transform:translateX(15px)}
+
+.seg{display:inline-flex;border:0.5px solid var(--border2);border-radius:6px;overflow:hidden}
+.seg button{border:none;background:var(--card);padding:4px 9px;font-size:11px;cursor:pointer;color:var(--text2);font-family:inherit}
+.seg button+button{border-left:0.5px solid var(--border2)}
+.seg button.on{background:var(--text);color:#fff}
+.seg button:disabled{cursor:not-allowed;opacity:.4}
+
+.sel{padding:5px 8px;border:0.5px solid var(--border2);border-radius:6px;font-size:11.5px;font-family:inherit;background:#fff}
+.sel.changed{border-color:var(--amber);background:var(--amber-bg)}
+
+/* modal */
+.modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:100;align-items:flex-start;justify-content:center;padding:28px 14px;overflow-y:auto}
 .modal.show{display:flex}
-.modal-box{background:#fff;border-radius:12px;width:100%;max-width:420px;padding:20px;max-height:90vh;overflow-y:auto}
-.modal-title{font-size:15px;font-weight:600;margin-bottom:14px}
-.form-row{margin-bottom:11px}
+.modal-box{background:#fff;border-radius:12px;width:100%;max-width:440px}
+.modal-box.wide{max-width:620px}
+.mb-head{padding:14px 18px;border-bottom:0.5px solid var(--border);display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.mb-title{font-size:15px;font-weight:600}
+.mb-sub{font-size:11px;color:var(--text2);margin-top:2px}
+.mb-close{width:26px;height:26px;border-radius:6px;border:0.5px solid var(--border);background:none;cursor:pointer;font-size:14px;color:var(--text2)}
+.mb-tabs{display:flex;gap:2px;padding:0 18px;border-bottom:0.5px solid var(--border)}
+.mb-tab{padding:9px 12px;font-size:12px;color:var(--text2);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-0.5px}
+.mb-tab.active{color:var(--brand);border-bottom-color:var(--brand);font-weight:600}
+.mb-body{padding:16px 18px;max-height:62vh;overflow-y:auto}
+.mb-foot{padding:11px 18px;border-top:0.5px solid var(--border);display:flex;gap:8px;justify-content:flex-end;align-items:center;flex-wrap:wrap}
+.form-row{margin-bottom:12px}
 .form-row label{display:block;font-size:11px;color:var(--text2);margin-bottom:4px;font-weight:500}
 .form-input{width:100%;padding:8px 10px;border:0.5px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;background:#fff;outline:none;font-family:inherit}
-.form-input:focus{border-color:var(--gray)}
-.modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:16px}
+.form-input:focus{border-color:var(--brand)}
+.hint{font-size:10.5px;color:var(--text3);margin-top:4px;line-height:1.5}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 
-.note{font-size:11px;color:var(--text2);background:var(--gray-bg);border-radius:var(--radius-sm);padding:9px 12px;margin-bottom:12px;line-height:1.55}
+.note{font-size:11.5px;color:var(--text2);background:var(--bg);border-radius:var(--radius-sm);padding:10px 12px;margin-bottom:12px;line-height:1.55}
+.note.warn{background:var(--amber-bg);color:var(--amber)}
+.sec-block{border:0.5px solid var(--border);border-radius:var(--radius-sm);padding:12px 14px;margin-bottom:10px}
+.sec-t{font-size:12.5px;font-weight:600;margin-bottom:3px}
+.sec-d{font-size:11px;color:var(--text2);margin-bottom:9px;line-height:1.5}
+
 .toast{position:fixed;bottom:20px;right:20px;background:var(--text);color:#fff;padding:9px 14px;border-radius:var(--radius-sm);font-size:12px;z-index:200;opacity:0;transition:opacity .2s;pointer-events:none}
 .toast.show{opacity:1}
-.loading{text-align:center;padding:20px;color:var(--text3);font-size:11px}
+.loading,.empty{text-align:center;padding:28px;color:var(--text3);font-size:11.5px}
 
-@media(max-width:768px){.sidebar{display:none}.main{margin-left:0;padding:12px}}
+@media(max-width:900px){.role-layout{grid-template-columns:1fr}.guide{grid-template-columns:1fr}}
+@media(max-width:768px){.sidebar{display:none}.main{margin-left:0;padding:12px}.two{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -116,66 +189,142 @@ tr:hover td{background:#fcfbf9}
   </div>
 </div>
 
+
 <div class="main">
   <div class="topbar">
-    <div><div class="page-title">User Management</div><div class="page-sub">Kelola user &amp; hak akses tiap role</div></div>
+    <div>
+      <div class="page-title">User Management</div>
+      <div class="page-sub">Atur siapa yang bisa login dan modul apa saja yang bisa mereka buka.</div>
+    </div>
     <button class="btn" onclick="reloadAll()">↻ Muat ulang</button>
   </div>
 
-  <div class="tabs">
-    <div class="tab active" id="tab-btn-user" onclick="switchTab('user')">Daftar User</div>
-    <div class="tab" id="tab-btn-akses" onclick="switchTab('akses')">Hak Akses</div>
+  <div class="guide">
+    <div class="guide-step"><div class="guide-num">1</div><div><div class="guide-t">Tiap orang punya 1 role</div><div class="guide-d">Role = paket akses (mis. Sales, Finance). Akses orang otomatis mengikuti role-nya.</div></div></div>
+    <div class="guide-step"><div class="guide-num">2</div><div><div class="guide-t">Atur paket di tab Role &amp; Akses</div><div class="guide-d">Nyalakan/matikan modul untuk satu role — berlaku ke semua orang di role itu.</div></div></div>
+    <div class="guide-step"><div class="guide-num">3</div><div><div class="guide-t">Beda untuk satu orang? Pakai Akses khusus</div><div class="guide-d">Klik nama orangnya → tab <em>Akses</em>. Hanya orang itu yang berubah.</div></div></div>
   </div>
 
-  <!-- TAB USER -->
-  <div id="tab-user">
-    <div style="display:flex;justify-content:flex-end;margin-bottom:10px">
-      <button class="btn btn-primary" onclick="openAddUser()">+ Tambah user</button>
+  <div class="tabs">
+    <div class="tab active" id="tab-btn-tim" onclick="switchTab('tim')">Tim <span class="cnt" id="cnt-tim">–</span></div>
+    <div class="tab" id="tab-btn-role" onclick="switchTab('role')">Role &amp; Akses <span class="cnt" id="cnt-role">–</span></div>
+  </div>
+
+  <!-- TAB TIM -->
+  <div id="tab-tim">
+    <div class="toolbar">
+      <input class="form-input search" id="q" placeholder="Cari nama / username…" oninput="renderUsers()">
+      <div class="fpill active" data-st="aktif" onclick="setStatusFilter('aktif',this)">Aktif</div>
+      <div class="fpill" data-st="nonaktif" onclick="setStatusFilter('nonaktif',this)">Nonaktif</div>
+      <div class="fpill" data-st="" onclick="setStatusFilter('',this)">Semua</div>
+      <div style="flex:1"></div>
+      <button class="btn btn-primary" onclick="openAddUser()">+ Tambah anggota</button>
     </div>
     <div class="card"><div class="tablewrap" id="user-wrap"><div class="loading">Memuat user…</div></div></div>
+    <div class="hint">Klik baris untuk mengubah data, akses, atau password.</div>
   </div>
 
-  <!-- TAB AKSES -->
-  <div id="tab-akses" style="display:none">
-    <div class="note"><strong>Lihat</strong> = buka &amp; lihat saja. <strong>Kelola</strong> = bisa tambah/edit/hapus. <strong>—</strong> = tak ada akses. Klik <strong>Simpan</strong> per baris; perubahan berlaku saat user itu login berikutnya. Tanda <strong>•</strong> = modul yang sudah menghormati level (Aset &amp; CRM). Modul lain: Lihat/Kelola dianggap sama (akses penuh) sampai dikonversi. Hati-hati mengubah akses Owner.</div>
-    <div class="card"><div class="tablewrap" id="akses-wrap"><div class="loading">Memuat akses…</div></div></div>
+  <!-- TAB ROLE -->
+  <div id="tab-role" style="display:none">
+    <div class="role-layout">
+      <div class="role-list" id="role-list"><div class="loading">Memuat role…</div></div>
+      <div id="role-editor" class="editor"><div class="empty">Pilih role di kiri.</div></div>
+    </div>
   </div>
 </div>
 </div>
 
-<!-- MODAL USER -->
+<!-- MODAL: TAMBAH ANGGOTA -->
+<div class="modal" id="modal-add">
+  <div class="modal-box">
+    <div class="mb-head"><div><div class="mb-title">Tambah anggota</div><div class="mb-sub">Akses awal mengikuti role yang dipilih.</div></div><button class="mb-close" onclick="closeModal('modal-add')">✕</button></div>
+    <div class="mb-body">
+      <div class="form-row"><label>Nama lengkap</label><input class="form-input" id="add-nama"></div>
+      <div class="two">
+        <div class="form-row"><label>Username (untuk login)</label><input class="form-input" id="add-username" autocomplete="off"></div>
+        <div class="form-row"><label>Password awal</label><input class="form-input" id="add-password" autocomplete="off"></div>
+      </div>
+      <div class="two">
+        <div class="form-row"><label>Role</label><select class="form-input" id="add-role" onchange="previewRole('add-role','add-role-hint')"></select></div>
+        <div class="form-row"><label>Jabatan</label><input class="form-input" id="add-jobtitle" placeholder="mis. Admin Finance"></div>
+      </div>
+      <div class="hint" id="add-role-hint"></div>
+    </div>
+    <div class="mb-foot">
+      <button class="btn" onclick="closeModal('modal-add')">Batal</button>
+      <button class="btn btn-primary" id="add-save" onclick="saveNewUser()">Tambah</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: KELOLA USER -->
 <div class="modal" id="modal-user">
-  <div class="modal-box">
-    <div class="modal-title" id="mu-title">Tambah user</div>
-    <input type="hidden" id="mu-id">
-    <div class="form-row"><label>Nama lengkap</label><input class="form-input" id="mu-nama"></div>
-    <div class="form-row"><label>Username</label><input class="form-input" id="mu-username"></div>
-    <div class="form-row" id="mu-pw-row"><label>Password</label><input class="form-input" id="mu-password" placeholder="Password awal"></div>
-    <div class="form-row"><label>Role</label><select class="form-input" id="mu-role"></select></div>
-    <div class="form-row"><label>Jabatan (job title)</label><input class="form-input" id="mu-jobtitle" placeholder="mis. Direktur Utama"></div>
-    <div class="modal-actions">
-      <button class="btn" onclick="closeModal('modal-user')">Batal</button>
-      <button class="btn btn-primary" onclick="saveUser()">Simpan</button>
+  <div class="modal-box wide">
+    <div class="mb-head">
+      <div><div class="mb-title" id="mu-title">–</div><div class="mb-sub" id="mu-sub">–</div></div>
+      <button class="mb-close" onclick="closeModal('modal-user')">✕</button>
+    </div>
+    <div class="mb-tabs">
+      <div class="mb-tab active" data-t="profil" onclick="userTab('profil')">Profil</div>
+      <div class="mb-tab" data-t="akses" onclick="userTab('akses')">Akses</div>
+      <div class="mb-tab" data-t="keamanan" onclick="userTab('keamanan')">Password &amp; Status</div>
+    </div>
+
+    <div id="ut-profil">
+      <div class="mb-body">
+        <div class="form-row"><label>Nama lengkap</label><input class="form-input" id="mu-nama"></div>
+        <div class="two">
+          <div class="form-row"><label>Username</label><input class="form-input" id="mu-username" autocomplete="off"></div>
+          <div class="form-row"><label>Jabatan</label><input class="form-input" id="mu-jobtitle"></div>
+        </div>
+        <div class="form-row"><label>Role</label><select class="form-input" id="mu-role" onchange="previewRole('mu-role','mu-role-hint')"></select>
+          <div class="hint" id="mu-role-hint"></div></div>
+      </div>
+      <div class="mb-foot"><button class="btn" onclick="closeModal('modal-user')">Tutup</button><button class="btn btn-primary" onclick="saveProfile()">Simpan profil</button></div>
+    </div>
+
+    <div id="ut-akses" style="display:none">
+      <div class="mb-body">
+        <div class="note">Defaultnya akses <strong>ikut role</strong>. Ubah hanya modul yang perlu berbeda untuk orang ini — perubahan tidak berpengaruh ke orang lain di role yang sama. Baris yang diubah ditandai kuning.</div>
+        <div id="mu-akses-list"></div>
+      </div>
+      <div class="mb-foot">
+        <button class="btn" style="margin-right:auto" onclick="resetOverrides()">Kembalikan semua ke role</button>
+        <button class="btn" onclick="closeModal('modal-user')">Tutup</button>
+        <button class="btn btn-primary" onclick="saveOverrides()">Simpan akses</button>
+      </div>
+    </div>
+
+    <div id="ut-keamanan" style="display:none">
+      <div class="mb-body">
+        <div class="sec-block">
+          <div class="sec-t">Reset password</div>
+          <div class="sec-d">Buat password baru lalu kirim ke orangnya. Password lama langsung tidak berlaku.</div>
+          <div style="display:flex;gap:8px"><input class="form-input" id="mu-newpw" placeholder="Password baru" autocomplete="off"><button class="btn" onclick="genPw()">Acak</button><button class="btn btn-primary" onclick="saveResetPw()">Simpan</button></div>
+        </div>
+        <div class="sec-block" id="mu-status-block"></div>
+      </div>
+      <div class="mb-foot"><button class="btn" onclick="closeModal('modal-user')">Tutup</button></div>
     </div>
   </div>
 </div>
 
-<!-- MODAL RESET PW -->
-<div class="modal" id="modal-pw">
+<!-- MODAL: ROLE BARU -->
+<div class="modal" id="modal-role">
   <div class="modal-box">
-    <div class="modal-title">Reset password</div>
-    <input type="hidden" id="pw-id">
-    <div class="form-row"><label>Password baru untuk <strong id="pw-nama"></strong></label><input class="form-input" id="pw-new" placeholder="Password baru"></div>
-    <div class="modal-actions">
-      <button class="btn" onclick="closeModal('modal-pw')">Batal</button>
-      <button class="btn btn-primary" onclick="saveResetPw()">Simpan</button>
+    <div class="mb-head"><div><div class="mb-title">Role baru</div><div class="mb-sub">Misalnya HRD, Admin Project, Content Creator.</div></div><button class="mb-close" onclick="closeModal('modal-role')">✕</button></div>
+    <div class="mb-body">
+      <div class="form-row"><label>Nama role</label><input class="form-input" id="nr-nama" placeholder="mis. HRD"><div class="hint">Tanpa spasi. Spasi otomatis dihapus.</div></div>
+      <div class="form-row"><label>Salin akses dari role</label><select class="form-input" id="nr-copy"></select><div class="hint">Supaya tidak mulai dari nol. Bisa diubah setelahnya.</div></div>
     </div>
+    <div class="mb-foot"><button class="btn" onclick="closeModal('modal-role')">Batal</button><button class="btn btn-primary" onclick="createRole()">Buat role</button></div>
   </div>
 </div>
 
 <div class="toast" id="toast"></div>
+<script src="moona-core.js"></script>
 <script>
-var API = 'https://script.google.com/macros/s/AKfycbx8-PT1ZpbuCfSLoso8gF2JDpuN7nKI1zU1K-7AA4sBVZhrRyU_w_rN6KjBuQoKtGQQkw/exec';
+var API = MOONA_API;
 
 // Auto-attribution untuk Log Aktivitas: sisipkan actorId & actorRole ke setiap POST tulis ke API
 (function(){
@@ -199,218 +348,312 @@ var API = 'https://script.google.com/macros/s/AKfycbx8-PT1ZpbuCfSLoso8gF2JDpuN7n
   };
 })();
 
-const ROLES = ['Owner','OperasionalManager','StudioHead','Designer','Estimator','SiteEngineer','Sales','Marketing','Finance'];
-const MODULES = [
-  {key:'dashboard',nama:'Dashboard',file:'moona-v2-dashboard.html'},
-  {key:'crm',nama:'CRM & Sales',file:'moona-v2-crm.html'},
-  {key:'client-portal',nama:'Client Portal',file:'moona-v2-client-portal.html'},
-  {key:'projects',nama:'Project Management',file:'moona-v2-projects.html'},
-  {key:'laporan-design',nama:'Laporan Design',file:'moona-v2-laporan-design-v4.html'},
-  {key:'laporan-build',nama:'Laporan Build',file:'moona-v2-laporan-build-v4.html'},
-  {key:'aset',nama:'Aset',file:'moona-v2-assets.html'},
-  {key:'meetings',nama:'Meeting Tracker',file:'moona-v2-meetings.html'},
-  {key:'finance',nama:'Finance',file:'moona-v2-finance.html'},
-  {key:'content',nama:'Content Planner',file:'moona-v2-content.html'},
-  {key:'sop',nama:'SOP & Dokumen',file:'moona-v2-sop.html'},
-  {key:'activity',nama:'Log Aktivitas',file:'moona-v2-activity.html'},
-  {key:'usermgmt',nama:'User Management',file:'moona-v2-usermgmt.html'}
-];
-
-function getSession(){ try { return JSON.parse(localStorage.getItem('moona_v2_session')); } catch(e){ return null; } }
+function getSession(){ return moonaSession(); }
 function logout(){ localStorage.removeItem('moona_v2_session'); localStorage.removeItem('moona_v2_access'); location.href='moona-v2-login.html'; }
-const MOONA_ACCESS = {
-  Owner:['dashboard','crm','client-portal','projects','laporan-design','laporan-build','aset','meetings','finance','content','sop','activity','usermgmt'],
-  OperasionalManager:['dashboard','crm','client-portal','projects','laporan-design','laporan-build','aset','meetings','finance','sop','activity'],
-  StudioHead:['dashboard','client-portal','projects','laporan-design','laporan-build','aset','meetings','sop'],
-  Designer:['dashboard','laporan-design','laporan-build','meetings','sop'],
-  Estimator:['dashboard','projects','laporan-design','laporan-build','meetings','sop'],
-  SiteEngineer:['dashboard','laporan-design','laporan-build','aset','meetings','sop'],
-  Sales:['dashboard','crm','client-portal','projects','meetings','sop'],
-  Marketing:['dashboard','crm','client-portal','content','meetings','sop'],
-  Finance:['dashboard','client-portal','aset','finance','meetings','sop']
-};
-const MOONA_DEFAULT_MODULE = {
-  Owner:'moona-v2-dashboard.html',OperasionalManager:'moona-v2-dashboard.html',StudioHead:'moona-v2-dashboard.html',
-  Designer:'moona-v2-laporan-design-v4.html',Estimator:'moona-v2-projects.html',SiteEngineer:'moona-v2-laporan-build-v4.html',
-  Sales:'moona-v2-crm.html',Marketing:'moona-v2-content.html',Finance:'moona-v2-finance.html'
-};
-function moonaRequireAccess(currentModule){
-  let s=null; try { s=JSON.parse(localStorage.getItem('moona_v2_session')); } catch(e){}
-  if(!s){ location.href='moona-v2-login.html'; return false; }
-  let acc=null; try { acc=JSON.parse(localStorage.getItem('moona_v2_access')); } catch(e){}
-  const allowed=(acc&&acc.modules)?acc.modules:(MOONA_ACCESS[s.role]||[]);
-  const defFile=(acc&&acc.default)?acc.default:(MOONA_DEFAULT_MODULE[s.role]||'moona-v2-dashboard.html');
-  if(allowed.indexOf(currentModule)>=0) return true;
-  document.body.innerHTML=`<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:#f8f7f4;font-family:-apple-system,sans-serif;padding:20px">
-    <div style="max-width:420px;background:#fff;border:0.5px solid #e5e3dc;border-radius:12px;padding:32px;text-align:center">
-      <div style="font-size:42px;margin-bottom:14px">🔒</div>
-      <div style="font-size:18px;font-weight:600;margin-bottom:6px">Akses ditolak</div>
-      <div style="font-size:13px;color:#6b6a64;line-height:1.55;margin-bottom:18px">User Management hanya untuk Owner.</div>
-      <a href="${defFile}" style="display:inline-block;padding:9px 18px;background:#5F5E5A;color:#fff;text-decoration:none;border-radius:8px;font-size:12px;font-weight:600">Kembali ke modul saya →</a>
-    </div>
-  </div>`;
-  return false;
-}
 if(!moonaRequireAccess('usermgmt')) throw new Error('Akses ditolak');
 
 function go(u){ location.href=u; }
 var S=getSession();
-if(!S){ location.href='moona-v2-login.html'; }
-else { document.getElementById('sf-name').textContent=S.nama+' - '+(S.jobTitle||S.role); }
+document.getElementById('sf-name').textContent=S.nama+' - '+(S.jobTitle||S.role);
 
-function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+var CAN_EDIT = moonaCanManage('usermgmt');
+var LEVEL_TXT = { manage:'Kelola', view:'Lihat saja', none:'Tertutup' };
+var GROUPS = ['Utama','Sales','Operasional','Lainnya','Admin'];
+
+function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
 function showToast(m){ var t=document.getElementById('toast'); t.textContent=m; t.classList.add('show'); setTimeout(function(){t.classList.remove('show');},2600); }
+function openModal(id){ document.getElementById(id).classList.add('show'); }
 function closeModal(id){ document.getElementById(id).classList.remove('show'); }
 function post(action,payload){ payload=payload||{}; payload.action=action; return fetch(API,{method:'POST',body:JSON.stringify(payload)}).then(function(r){return r.json();}); }
+function guard(){ if(!CAN_EDIT){ showToast('Akses kamu di modul ini hanya lihat'); return false; } return true; }
 
-var users=[], accessMap=[];
+var users=[], roles=[], statusFilter='aktif', selRole=null, editRole=null, curUser=null, curOver={};
 
-window.onload=function(){ if(S) reloadAll(); };
-function reloadAll(){ loadUsers(); loadAccess(); }
-
-// ---- USERS ----
-function loadUsers(){
-  fetch(API+'?action=getAllUsers').then(function(r){return r.json();}).then(function(d){
-    if(d.status==='ok'){ users=d.data||[]; renderUsers(); }
-    else document.getElementById('user-wrap').innerHTML='<div class="loading">Gagal memuat user.</div>';
-  }).catch(function(){ document.getElementById('user-wrap').innerHTML='<div class="loading">Gagal terhubung ke server.</div>'; });
+window.onload=function(){ reloadAll(); };
+function reloadAll(){
+  return Promise.all([
+    fetch(API+'?action=getAllUsers').then(function(r){return r.json();}),
+    fetch(API+'?action=getAccessMap').then(function(r){return r.json();})
+  ]).then(function(res){
+    users = (res[0].status==='ok') ? (res[0].data||[]) : [];
+    roles = (res[1].status==='ok') ? (res[1].data||[]) : [];
+    document.getElementById('cnt-tim').textContent = users.filter(function(u){return u.aktif;}).length;
+    document.getElementById('cnt-role').textContent = roles.length;
+    renderUsers(); renderRoleList();
+    if (selRole) selectRole(selRole, true);
+    if (curUser) { var u=findUser(curUser.id); if(u) curUser=u; }
+  }).catch(function(){
+    document.getElementById('user-wrap').innerHTML='<div class="empty">Gagal terhubung ke server.</div>';
+  });
 }
+
+// ── HELPERS AKSES ──
+function findUser(id){ for(var i=0;i<users.length;i++) if(String(users[i].id)===String(id)) return users[i]; return null; }
+function findRole(name){ for(var i=0;i<roles.length;i++) if(roles[i].role===name) return roles[i]; return null; }
+function roleLevels(name){
+  var r=findRole(name), out={};
+  if(!r) return out;
+  (r.modules||[]).forEach(function(m){ out[m]=(r.levels&&r.levels[m])||'manage'; });
+  return out;
+}
+function parseTok(str){ var o={}; String(str||'').split(',').forEach(function(t){ t=t.trim(); if(!t)return; var p=t.split(':'); if(p[0].trim()) o[p[0].trim()]=(p[1]||'manage').trim(); }); return o; }
+function effective(u){
+  var lv=roleLevels(u.role), ov=parseTok(u.aksesKhusus);
+  Object.keys(ov).forEach(function(k){ if(ov[k]==='none') delete lv[k]; else lv[k]=ov[k]; });
+  return lv;
+}
+function usersInRole(name){ return users.filter(function(u){ return u.role===name; }); }
+function roleOptions(sel){ return roles.map(function(r){ return '<option value="'+esc(r.role)+'"'+(r.role===sel?' selected':'')+'>'+esc(r.role)+'</option>'; }).join(''); }
+function previewRole(selId,hintId){
+  var lv=roleLevels(document.getElementById(selId).value);
+  var names=MOONA_MODULES.filter(function(m){return lv[m.key];}).map(function(m){return m.nama+(lv[m.key]==='view'?' (lihat)':'');});
+  document.getElementById(hintId).innerHTML = names.length ? '<strong>Bisa membuka:</strong> '+esc(names.join(', ')) : 'Role ini belum punya akses modul apa pun.';
+}
+
+// ── TAB TIM ──
+function setStatusFilter(v,el){ statusFilter=v; document.querySelectorAll('.toolbar .fpill').forEach(function(p){p.classList.remove('active');}); el.classList.add('active'); renderUsers(); }
 function renderUsers(){
-  if(!users.length){ document.getElementById('user-wrap').innerHTML='<div class="loading">Belum ada user.</div>'; return; }
-  var h='<table><thead><tr><th>Nama</th><th>Username</th><th>Role</th><th>Jabatan</th><th class="center">Status</th><th>Aksi</th></tr></thead><tbody>';
-  users.forEach(function(u){
-    h+='<tr class="'+(u.aktif?'':'row-off')+'">';
-    h+='<td style="font-weight:500">'+esc(u.nama)+'</td>';
-    h+='<td>'+esc(u.username)+'</td>';
-    h+='<td><span class="pill pill-role">'+esc(u.role)+'</span></td>';
+  var q=(document.getElementById('q').value||'').toLowerCase().trim();
+  var list=users.filter(function(u){
+    if(statusFilter==='aktif'&&!u.aktif) return false;
+    if(statusFilter==='nonaktif'&&u.aktif) return false;
+    if(q && (u.nama+' '+u.username+' '+u.jobTitle).toLowerCase().indexOf(q)<0) return false;
+    return true;
+  }).sort(function(a,b){ return String(a.nama).localeCompare(String(b.nama)); });
+  if(!list.length){ document.getElementById('user-wrap').innerHTML='<div class="empty">Tidak ada user yang cocok.</div>'; return; }
+  var h='<table><thead><tr><th>Nama</th><th>Jabatan</th><th>Role</th><th>Akses</th><th>Status</th><th></th></tr></thead><tbody>';
+  list.forEach(function(u){
+    var lv=effective(u), n=Object.keys(lv).length, ov=Object.keys(parseTok(u.aksesKhusus)).length;
+    h+='<tr class="'+(u.aktif?'':'row-off')+'" onclick="openUser(\''+esc(u.id)+'\')">';
+    h+='<td><div class="u-name">'+esc(u.nama||'(tanpa nama)')+'</div><div class="u-sub">@'+esc(u.username||'–')+'</div></td>';
     h+='<td>'+esc(u.jobTitle||'–')+'</td>';
-    h+='<td class="center"><span class="pill '+(u.aktif?'pill-on':'pill-off')+'">'+(u.aktif?'Aktif':'Nonaktif')+'</span></td>';
-    h+='<td><div class="actions">'
-      +'<button class="btn btn-sm" onclick="openEditUser(\''+esc(u.id)+'\')">Edit</button>'
-      +'<button class="btn btn-sm" onclick="toggleActive(\''+esc(u.id)+'\','+(u.aktif?'false':'true')+')">'+(u.aktif?'Nonaktifkan':'Aktifkan')+'</button>'
-      +'<button class="btn btn-sm" onclick="openResetPw(\''+esc(u.id)+'\')">Reset PW</button>'
-      +'</div></td>';
+    h+='<td><span class="pill pill-role">'+esc(u.role||'–')+'</span></td>';
+    h+='<td>'+n+' modul'+(ov?' <span class="pill pill-khusus" title="Punya akses khusus">+'+ov+' khusus</span>':'')+'</td>';
+    h+='<td><span class="pill '+(u.aktif?'pill-on':'pill-off')+'">'+(u.aktif?'Aktif':'Nonaktif')+'</span></td>';
+    h+='<td style="text-align:right"><button class="btn btn-sm">Kelola</button></td>';
     h+='</tr>';
   });
   h+='</tbody></table>';
   document.getElementById('user-wrap').innerHTML=h;
 }
-function roleOptions(sel){ return ROLES.map(function(r){return '<option'+(r===sel?' selected':'')+'>'+r+'</option>';}).join(''); }
+
 function openAddUser(){
-  document.getElementById('mu-title').textContent='Tambah user';
-  document.getElementById('mu-id').value='';
-  document.getElementById('mu-nama').value='';
-  document.getElementById('mu-username').value='';
-  document.getElementById('mu-password').value='';
-  document.getElementById('mu-role').innerHTML=roleOptions('Sales');
-  document.getElementById('mu-jobtitle').value='';
-  document.getElementById('mu-pw-row').style.display='';
-  document.getElementById('modal-user').classList.add('show');
+  if(!guard()) return;
+  ['add-nama','add-username','add-password','add-jobtitle'].forEach(function(id){document.getElementById(id).value='';});
+  document.getElementById('add-role').innerHTML=roleOptions(roles.length?roles[0].role:'');
+  previewRole('add-role','add-role-hint');
+  openModal('modal-add');
 }
-function openEditUser(id){
-  var u=users.find(function(x){return String(x.id)===String(id);}); if(!u) return;
-  document.getElementById('mu-title').textContent='Edit user';
-  document.getElementById('mu-id').value=u.id;
+function usernameTaken(un, exceptId){ un=String(un).trim().toLowerCase(); return users.some(function(u){ return String(u.username).trim().toLowerCase()===un && String(u.id)!==String(exceptId||''); }); }
+function saveNewUser(){
+  var nama=document.getElementById('add-nama').value.trim(), un=document.getElementById('add-username').value.trim();
+  var pw=document.getElementById('add-password').value.trim(), role=document.getElementById('add-role').value, jt=document.getElementById('add-jobtitle').value.trim();
+  if(!nama||!un||!pw){ showToast('Nama, username, dan password wajib diisi'); return; }
+  if(usernameTaken(un)){ showToast('Username sudah dipakai'); return; }
+  var b=document.getElementById('add-save'); b.disabled=true;
+  post('addUser',{nama:nama,username:un,password:pw,role:role,jobTitle:jt}).then(function(d){
+    b.disabled=false;
+    if(d.status==='ok'){ showToast(nama+' ditambahkan'); closeModal('modal-add'); reloadAll(); } else showToast(d.message||'Gagal');
+  }).catch(function(){ b.disabled=false; showToast('Gagal terhubung'); });
+}
+
+function openUser(id){
+  var u=findUser(id); if(!u) return;
+  curUser=u; curOver=parseTok(u.aksesKhusus);
+  document.getElementById('mu-title').textContent=u.nama||'(tanpa nama)';
+  document.getElementById('mu-sub').textContent='@'+(u.username||'–')+' · '+(u.jobTitle||'–')+' · Role '+u.role+(u.aktif?'':' · NONAKTIF');
   document.getElementById('mu-nama').value=u.nama;
   document.getElementById('mu-username').value=u.username;
-  document.getElementById('mu-role').innerHTML=roleOptions(u.role);
   document.getElementById('mu-jobtitle').value=u.jobTitle||'';
-  document.getElementById('mu-pw-row').style.display='none'; // password via Reset PW
-  document.getElementById('modal-user').classList.add('show');
+  document.getElementById('mu-role').innerHTML=roleOptions(u.role);
+  previewRole('mu-role','mu-role-hint');
+  document.getElementById('mu-newpw').value='';
+  renderStatusBlock();
+  renderUserAkses();
+  userTab('profil');
+  openModal('modal-user');
 }
-function saveUser(){
-  var id=document.getElementById('mu-id').value;
-  var nama=document.getElementById('mu-nama').value.trim();
-  var username=document.getElementById('mu-username').value.trim();
-  var role=document.getElementById('mu-role').value;
-  var jobTitle=document.getElementById('mu-jobtitle').value.trim();
-  if(!nama||!username){ showToast('Nama & username wajib diisi'); return; }
-  if(id){
-    post('updateUser',{id:id,nama:nama,username:username,role:role,jobTitle:jobTitle}).then(function(d){
-      if(d.status==='ok'){ showToast('User diperbarui'); closeModal('modal-user'); loadUsers(); } else showToast(d.message||'Gagal');
-    });
-  } else {
-    var password=document.getElementById('mu-password').value.trim();
-    if(!password){ showToast('Password awal wajib diisi'); return; }
-    post('addUser',{nama:nama,username:username,password:password,role:role,jobTitle:jobTitle}).then(function(d){
-      if(d.status==='ok'){ showToast('User ditambahkan'); closeModal('modal-user'); loadUsers(); } else showToast(d.message||'Gagal');
-    });
-  }
+function userTab(t){
+  document.querySelectorAll('.mb-tab').forEach(function(el){ el.classList.toggle('active', el.getAttribute('data-t')===t); });
+  ['profil','akses','keamanan'].forEach(function(x){ document.getElementById('ut-'+x).style.display = x===t?'':'none'; });
 }
-function toggleActive(id,toActive){
-  var u=users.find(function(x){return String(x.id)===String(id);}); if(!u) return;
-  if(!toActive && !confirm('Nonaktifkan '+u.nama+'? User tidak bisa login, tapi data lamanya tetap utuh.')) return;
-  post('setUserActive',{id:id,aktif:toActive}).then(function(d){
-    if(d.status==='ok'){ showToast(toActive?'User diaktifkan':'User dinonaktifkan'); loadUsers(); } else showToast(d.message||'Gagal');
-  });
-}
-function openResetPw(id){
-  var u=users.find(function(x){return String(x.id)===String(id);}); if(!u) return;
-  document.getElementById('pw-id').value=id;
-  document.getElementById('pw-nama').textContent=u.nama;
-  document.getElementById('pw-new').value='';
-  document.getElementById('modal-pw').classList.add('show');
-}
-function saveResetPw(){
-  var id=document.getElementById('pw-id').value;
-  var pw=document.getElementById('pw-new').value.trim();
-  if(!pw){ showToast('Password baru wajib diisi'); return; }
-  post('resetPassword',{id:id,password:pw}).then(function(d){
-    if(d.status==='ok'){ showToast('Password direset'); closeModal('modal-pw'); } else showToast(d.message||'Gagal');
+function saveProfile(){
+  if(!guard()) return;
+  var nama=document.getElementById('mu-nama').value.trim(), un=document.getElementById('mu-username').value.trim();
+  var role=document.getElementById('mu-role').value, jt=document.getElementById('mu-jobtitle').value.trim();
+  if(!nama||!un){ showToast('Nama & username wajib diisi'); return; }
+  if(usernameTaken(un,curUser.id)){ showToast('Username sudah dipakai'); return; }
+  if(String(curUser.id)===String(S.id) && role!==curUser.role && !roleLevels(role).usermgmt && !confirm('Role baru tidak punya akses User Management. Kamu bisa terkunci dari halaman ini. Lanjutkan?')) return;
+  post('updateUser',{id:curUser.id,nama:nama,username:un,role:role,jobTitle:jt}).then(function(d){
+    if(d.status==='ok'){ showToast('Profil disimpan'); closeModal('modal-user'); reloadAll(); } else showToast(d.message||'Gagal');
   });
 }
 
-// ---- AKSES ----
-function loadAccess(){
-  fetch(API+'?action=getAccessMap').then(function(r){return r.json();}).then(function(d){
-    if(d.status==='ok'){ accessMap=d.data||[]; renderAccess(); }
-    else document.getElementById('akses-wrap').innerHTML='<div class="loading">Gagal memuat akses. Pastikan RoleAccess sudah di-setup.</div>';
-  }).catch(function(){ document.getElementById('akses-wrap').innerHTML='<div class="loading">Gagal terhubung ke server.</div>'; });
-}
-const LEVEL_ACTIVE=['aset','crm']; // modul yang sudah menghormati level
-function renderAccess(){
-  if(!accessMap.length){ document.getElementById('akses-wrap').innerHTML='<div class="loading">Belum ada data akses. Jalankan reseedRoleAccessLevels di Apps Script.</div>'; return; }
-  var h='<table class="matrix"><thead><tr><th>Role</th>';
-  MODULES.forEach(function(m){ h+='<th class="mod">'+esc(m.nama)+(LEVEL_ACTIVE.indexOf(m.key)>=0?' •':'')+'</th>'; });
-  h+='<th>Default</th><th></th></tr></thead><tbody>';
-  accessMap.forEach(function(r){
-    h+='<tr><td class="rolename">'+esc(r.role)+'</td>';
-    MODULES.forEach(function(m){
-      var lvl = r.modules.indexOf(m.key)>=0 ? ((r.levels&&r.levels[m.key])?r.levels[m.key]:'manage') : 'none';
-      h+='<td class="center"><select class="lvl" data-role="'+esc(r.role)+'" data-mod="'+esc(m.key)+'">'
-        +'<option value="none"'+(lvl==='none'?' selected':'')+'>—</option>'
-        +'<option value="view"'+(lvl==='view'?' selected':'')+'>Lihat</option>'
-        +'<option value="manage"'+(lvl==='manage'?' selected':'')+'>Kelola</option>'
-        +'</select></td>';
+// Akses khusus per user
+function renderUserAkses(){
+  var u=curUser, base=roleLevels(u.role), h='';
+  GROUPS.forEach(function(g){
+    var mods=MOONA_MODULES.filter(function(m){return m.grup===g;}); if(!mods.length) return;
+    h+='<div class="grp-title">'+g+'</div>';
+    mods.forEach(function(m){
+      var b=base[m.key]||'none', ov=curOver[m.key];
+      var sel = ov ? ov : '';
+      var opts='<option value="">Ikut role ('+LEVEL_TXT[b]+')</option>'
+        +'<option value="manage"'+(sel==='manage'?' selected':'')+'>Buka — Kelola</option>'
+        +(m.levels?'<option value="view"'+(sel==='view'?' selected':'')+'>Buka — Lihat saja</option>':'')
+        +'<option value="none"'+(sel==='none'?' selected':'')+'>Tutup</option>';
+      var eff = ov ? ov : b;
+      h+='<div class="mod-row"><div class="mod-name'+(eff==='none'?' off':'')+'">'+esc(m.nama)+'<small>Hasil: '+LEVEL_TXT[eff]+(ov?' · khusus orang ini':' · dari role')+'</small></div>'
+        +'<select class="sel'+(ov?' changed':'')+'" '+(CAN_EDIT?'':'disabled ')+'onchange="setOver(\''+m.key+'\',this.value)">'+opts+'</select></div>';
     });
-    h+='<td><select id="def-'+esc(r.role)+'">';
-    MODULES.forEach(function(m){ h+='<option value="'+esc(m.file)+'"'+(m.file===r.defaultModule?' selected':'')+'>'+esc(m.nama)+'</option>'; });
-    h+='</select></td>';
-    h+='<td><button class="btn btn-sm btn-primary" onclick="saveRoleRow(\''+esc(r.role)+'\')">Simpan</button></td>';
-    h+='</tr>';
   });
-  h+='</tbody></table>';
-  document.getElementById('akses-wrap').innerHTML=h;
+  document.getElementById('mu-akses-list').innerHTML=h;
 }
-function saveRoleRow(role){
-  var sels=document.querySelectorAll('select.lvl[data-role="'+role.replace(/"/g,'')+'"]');
-  var mods=[]; var hasUserMgmt=false;
-  sels.forEach(function(s){ var v=s.value; var k=s.getAttribute('data-mod'); if(v!=='none'){ mods.push(k+':'+v); if(k==='usermgmt')hasUserMgmt=true; } });
-  var def=document.getElementById('def-'+role).value;
-  if(role==='Owner' && !hasUserMgmt){
-    if(!confirm('Kamu menghapus akses User Management dari Owner. Kamu bisa terkunci dari modul ini. Lanjutkan?')) return;
+function setOver(key,val){
+  var base=roleLevels(curUser.role)[key]||'none';
+  if(!val || val===base) delete curOver[key]; else curOver[key]=val;
+  renderUserAkses();
+}
+function resetOverrides(){ curOver={}; renderUserAkses(); }
+function saveOverrides(){
+  if(!guard()) return;
+  if(String(curUser.id)===String(S.id)){
+    var test=Object.assign({},curUser,{aksesKhusus:Object.keys(curOver).map(function(k){return k+':'+curOver[k];}).join(',')});
+    if(!effective(test).usermgmt && !confirm('Kamu menutup User Management untuk akunmu sendiri. Lanjutkan?')) return;
   }
-  post('saveRoleAccess',{role:role,modules:mods,defaultModule:def}).then(function(d){
-    if(d.status==='ok'){ showToast('Akses '+role+' disimpan'); } else showToast(d.message||'Gagal');
+  var akses=Object.keys(curOver).map(function(k){return k+':'+curOver[k];});
+  post('saveUserAccess',{id:curUser.id,akses:akses}).then(function(d){
+    if(d.status==='ok'){ showToast('Akses '+curUser.nama+' disimpan — berlaku saat ia membuka halaman berikutnya'); closeModal('modal-user'); reloadAll(); }
+    else showToast(d.message||'Gagal — pastikan backend sudah versi terbaru');
+  });
+}
+
+// Password & status
+function genPw(){ var c='abcdefghjkmnpqrstuvwxyz23456789', s=''; for(var i=0;i<8;i++) s+=c[Math.floor(Math.random()*c.length)]; document.getElementById('mu-newpw').value=s; }
+function saveResetPw(){
+  if(!guard()) return;
+  var pw=document.getElementById('mu-newpw').value.trim();
+  if(!pw){ showToast('Isi password baru dulu'); return; }
+  post('resetPassword',{id:curUser.id,password:pw}).then(function(d){
+    if(d.status==='ok'){ showToast('Password '+curUser.nama+' diganti'); } else showToast(d.message||'Gagal');
+  });
+}
+function renderStatusBlock(){
+  var u=curUser, el=document.getElementById('mu-status-block');
+  if(u.aktif){
+    el.innerHTML='<div class="sec-t">Nonaktifkan akun</div><div class="sec-d">Untuk karyawan yang resign/cuti panjang. Orangnya tidak bisa login dan langsung keluar dari sistem. Semua data lamanya tetap aman.</div><button class="btn btn-danger" onclick="toggleActive(false)">Nonaktifkan '+esc(u.nama)+'</button>';
+  } else {
+    el.innerHTML='<div class="sec-t">Aktifkan kembali</div><div class="sec-d">Akun ini sedang nonaktif. Aktifkan supaya bisa login lagi.</div><button class="btn btn-primary" onclick="toggleActive(true)">Aktifkan '+esc(u.nama)+'</button>';
+  }
+}
+function toggleActive(on){
+  if(!guard()) return;
+  if(!on && String(curUser.id)===String(S.id)){ showToast('Tidak bisa menonaktifkan akun sendiri'); return; }
+  if(!on && !confirm('Nonaktifkan '+curUser.nama+'?')) return;
+  post('setUserActive',{id:curUser.id,aktif:on}).then(function(d){
+    if(d.status==='ok'){ showToast(on?'Akun diaktifkan':'Akun dinonaktifkan'); closeModal('modal-user'); reloadAll(); } else showToast(d.message||'Gagal');
+  });
+}
+
+// ── TAB ROLE ──
+function renderRoleList(){
+  var h='';
+  roles.forEach(function(r){
+    var n=usersInRole(r.role).filter(function(u){return u.aktif;}).length;
+    h+='<div class="role-item'+(selRole===r.role?' active':'')+'" onclick="selectRole(\''+esc(r.role)+'\')"><div><div class="ri-name">'+esc(r.role)+'</div><div class="ri-sub">'+n+' orang aktif · '+(r.modules||[]).length+' modul</div></div><span style="color:var(--text3)">›</span></div>';
+  });
+  if(!roles.length) h='<div class="empty">Belum ada role.</div>';
+  h+='<div class="role-add"><button class="btn btn-sm" style="width:100%" onclick="openNewRole()">+ Role baru</button></div>';
+  document.getElementById('role-list').innerHTML=h;
+}
+function selectRole(name, keep){
+  var r=findRole(name); if(!r) return;
+  selRole=name;
+  if(!keep || !editRole || editRole.role!==name) editRole={ role:name, levels:roleLevels(name), def:r.defaultModule||'moona-v2-dashboard.html' };
+  renderRoleList(); renderRoleEditor();
+}
+function renderRoleEditor(){
+  var e=editRole, members=usersInRole(e.role);
+  var h='<div class="ed-head"><div><div class="ed-title">Role: '+esc(e.role)+'</div><div class="ed-sub">'+(members.length?'Dipakai oleh: '+esc(members.map(function(u){return u.nama;}).join(', ')):'Belum ada orang di role ini')+'</div></div></div>';
+  h+='<div class="ed-body">';
+  h+='<div class="note" style="margin-top:10px">Nyalakan modul yang boleh dibuka role ini. <strong>Kelola</strong> = bisa tambah/edit/hapus, <strong>Lihat saja</strong> = hanya membaca (tersedia di CRM &amp; Aset).</div>';
+  GROUPS.forEach(function(g){
+    var mods=MOONA_MODULES.filter(function(m){return m.grup===g;}); if(!mods.length) return;
+    h+='<div class="grp-title">'+g+'</div>';
+    mods.forEach(function(m){
+      var lv=e.levels[m.key], on=!!lv;
+      h+='<div class="mod-row"><label class="sw"><input type="checkbox" '+(on?'checked ':'')+(CAN_EDIT?'':'disabled ')+'onchange="toggleMod(\''+m.key+'\',this.checked)"><span></span></label>';
+      h+='<div class="mod-name'+(on?'':' off')+'">'+esc(m.nama)+'</div>';
+      if(m.levels){
+        h+='<div class="seg"><button '+(on&&CAN_EDIT?'':'disabled ')+'class="'+(lv==='view'?'on':'')+'" onclick="setLvl(\''+m.key+'\',\'view\')">Lihat saja</button><button '+(on&&CAN_EDIT?'':'disabled ')+'class="'+(lv==='manage'?'on':'')+'" onclick="setLvl(\''+m.key+'\',\'manage\')">Kelola</button></div>';
+      } else if(on){ h+='<span style="font-size:11px;color:var(--text3)">Kelola</span>'; }
+      h+='</div>';
+    });
+  });
+  var openMods=MOONA_MODULES.filter(function(m){return e.levels[m.key];});
+  h+='<div class="grp-title">Halaman pertama setelah login</div><select class="sel" '+(CAN_EDIT?'':'disabled ')+'onchange="editRole.def=this.value" style="min-width:220px">';
+  openMods.forEach(function(m){ h+='<option value="'+m.file+'"'+(m.file===e.def?' selected':'')+'>'+esc(m.nama)+'</option>'; });
+  h+='</select></div>';
+  h+='<div class="ed-foot">';
+  h+='<button class="btn btn-primary" '+(CAN_EDIT?'':'disabled ')+'onclick="saveRole()">Simpan role '+esc(e.role)+'</button>';
+  h+='<button class="btn" onclick="selectRole(\''+esc(e.role)+'\')">Batalkan perubahan</button>';
+  h+='<span style="flex:1"></span>';
+  h+='<button class="btn btn-danger" '+(members.length||e.role==='Owner'||!CAN_EDIT?'disabled title="Pindahkan dulu semua orang di role ini" ':'')+'onclick="deleteRole()">Hapus role</button>';
+  h+='</div>';
+  document.getElementById('role-editor').innerHTML=h;
+}
+function toggleMod(key,on){ if(on) editRole.levels[key]='manage'; else delete editRole.levels[key]; fixDefault(); renderRoleEditor(); }
+function setLvl(key,lvl){ if(!editRole.levels[key]) return; editRole.levels[key]=lvl; renderRoleEditor(); }
+function fixDefault(){
+  var k=moonaKeyOf(editRole.def);
+  if(!editRole.levels[k]){ var first=MOONA_MODULES.filter(function(m){return editRole.levels[m.key];})[0]; editRole.def=first?first.file:'moona-v2-dashboard.html'; }
+}
+function saveRole(){
+  if(!guard()) return;
+  var e=editRole;
+  if(!Object.keys(e.levels).length && !confirm('Role ini tidak punya modul sama sekali — orangnya tidak bisa membuka apa pun. Lanjutkan?')) return;
+  if(e.role===S.role && !e.levels.usermgmt && !confirm('Kamu menutup User Management dari role-mu sendiri. Kamu bisa terkunci dari halaman ini. Lanjutkan?')) return;
+  var mods=MOONA_MODULES.filter(function(m){return e.levels[m.key];}).map(function(m){return m.key+':'+e.levels[m.key];});
+  // pertahankan token modul lain yang mungkin tidak dikenal halaman ini
+  var r=findRole(e.role);
+  (r.modules||[]).forEach(function(k){ if(!moonaFileOf(k) || !MOONA_MODULES.some(function(m){return m.key===k;})) mods.push(k+':'+((r.levels&&r.levels[k])||'manage')); });
+  post('saveRoleAccess',{role:e.role,modules:mods,defaultModule:e.def}).then(function(d){
+    if(d.status==='ok'){ showToast('Role '+e.role+' disimpan — berlaku untuk '+usersInRole(e.role).length+' orang'); editRole=null; reloadAll(); }
+    else showToast(d.message||'Gagal');
+  });
+}
+function deleteRole(){
+  if(!guard()) return;
+  if(!confirm('Hapus role '+editRole.role+'?')) return;
+  post('deleteRole',{role:editRole.role}).then(function(d){
+    if(d.status==='ok'){ showToast('Role dihapus'); selRole=null; editRole=null; document.getElementById('role-editor').innerHTML='<div class="empty">Pilih role di kiri.</div>'; reloadAll(); }
+    else showToast(d.message||'Gagal — pastikan backend sudah versi terbaru');
+  });
+}
+function openNewRole(){
+  if(!guard()) return;
+  document.getElementById('nr-nama').value='';
+  document.getElementById('nr-copy').innerHTML='<option value="">— Mulai kosong —</option>'+roleOptions('');
+  openModal('modal-role');
+}
+function createRole(){
+  var name=document.getElementById('nr-nama').value.replace(/\s+/g,'').trim();
+  if(!name){ showToast('Isi nama role'); return; }
+  if(findRole(name)){ showToast('Role '+name+' sudah ada'); return; }
+  var from=document.getElementById('nr-copy').value, src=from?findRole(from):null;
+  var mods=src?(src.modules||[]).map(function(k){return k+':'+((src.levels&&src.levels[k])||'manage');}):['dashboard:manage'];
+  post('saveRoleAccess',{role:name,modules:mods,defaultModule:src?(src.defaultModule||'moona-v2-dashboard.html'):'moona-v2-dashboard.html'}).then(function(d){
+    if(d.status==='ok'){ closeModal('modal-role'); showToast('Role '+name+' dibuat'); selRole=name; editRole=null; reloadAll(); }
+    else showToast(d.message||'Gagal');
   });
 }
 
 function switchTab(tab){
-  var user=tab==='user';
-  document.getElementById('tab-btn-user').classList.toggle('active',user);
-  document.getElementById('tab-btn-akses').classList.toggle('active',!user);
-  document.getElementById('tab-user').style.display=user?'':'none';
-  document.getElementById('tab-akses').style.display=user?'none':'';
+  ['tim','role'].forEach(function(t){
+    document.getElementById('tab-btn-'+t).classList.toggle('active',t===tab);
+    document.getElementById('tab-'+t).style.display=t===tab?'':'none';
+  });
+  if(tab==='role' && !selRole && roles.length) selectRole(roles[0].role);
 }
 </script>
 </body>

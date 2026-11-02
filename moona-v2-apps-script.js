@@ -23,6 +23,8 @@ function dispatchPost(action, data) {
     if (action === 'setUserActive') return setUserActive(data);
     if (action === 'resetPassword') return resetPassword(data);
     if (action === 'saveRoleAccess') return saveRoleAccess(data);
+    if (action === 'deleteRole') return deleteRole(data);
+    if (action === 'saveUserAccess') return saveUserAccess(data);
     // CRM
     if (action === 'addLead') return addLead(data);
     if (action === 'updateLead') return updateLead(data);
@@ -121,6 +123,7 @@ function doGet(e) {
   if (action === 'getActivityRecap') return getActivityRecap(e.parameter);
   if (action === 'getAccessMap') return getAccessMap();
   if (action === 'getAllUsers') return getAllUsers();
+  if (action === 'getMyAccess') return getMyAccess(e.parameter);
   // ── PLAYBOOK MODULE ──
   if (action === 'getPlaybooks')      return getPlaybooks();
   if (action === 'getPlaybookDetail') return getPlaybookDetail(e.parameter);
@@ -203,7 +206,7 @@ function login(params) {
       String(aktif).trim().toUpperCase() === 'TRUE'
     ) {
       logActivity(id, role, 'login', '', 'ok', '');
-      return response({ status: 'ok', id, nama, username, role, jobTitle: String(jobTitle || ''), access: getAccessForRole(role) });
+      return response({ status: 'ok', id, nama, username, role, jobTitle: String(jobTitle || ''), access: getAccessForUser(rows[i], rows[0]) });
     }
   }
   return response({ status: 'error', message: 'Login gagal' });
@@ -1456,16 +1459,115 @@ function resetPassword(data) {
 // Semua user (termasuk nonaktif) + field lengkap untuk modul User Management. Password tidak diekspos.
 function getAllUsers() {
   var rows = sheet('Users').getDataRange().getValues();
+  var col = aksesKhususCol_(rows[0]);
   var out = [];
   for (var i = 1; i < rows.length; i++) {
     if (!rows[i][0]) continue;
     out.push({
       id: String(rows[i][0]), nama: String(rows[i][1]), username: String(rows[i][2]),
       role: String(rows[i][4]), aktif: String(rows[i][5]).trim().toUpperCase() === 'TRUE',
-      jobTitle: String(rows[i][6] || '')
+      jobTitle: String(rows[i][6] || ''),
+      aksesKhusus: col >= 0 ? String(rows[i][col] || '') : ''
     });
   }
   return response({ status: 'ok', data: out });
+}
+
+// ── AKSES KHUSUS PER USER ──
+// Kolom "AksesKhusus" di sheet Users (dibuat otomatis saat pertama disimpan).
+// Format: "crm:manage,finance:none" — menimpa akses role untuk user itu saja.
+// Level: manage = kelola, view = lihat saja, none = ditutup.
+function aksesKhususCol_(headers) {
+  for (var c = 0; c < headers.length; c++) {
+    if (String(headers[c]).trim() === 'AksesKhusus') return c;
+  }
+  return -1;
+}
+function parseAksesTokens_(str) {
+  var levels = {};
+  String(str || '').split(',').forEach(function (t) {
+    t = t.trim(); if (!t) return;
+    var p = t.split(':'); var k = p[0].trim(); if (!k) return;
+    levels[k] = (p[1] || 'manage').trim();
+  });
+  return levels;
+}
+// Akses efektif 1 user = akses role + akses khusus user.
+function getAccessForUser(userRow, headers) {
+  var role = String(userRow[4] || '');
+  var base = getAccessForRole(role) || { modules: [], levels: {}, default: 'moona-v2-dashboard.html' };
+  var col = aksesKhususCol_(headers || sheet('Users').getRange(1, 1, 1, sheet('Users').getLastColumn()).getValues()[0]);
+  var levels = {};
+  base.modules.forEach(function (m) { levels[m] = base.levels[m] || 'manage'; });
+  var over = col >= 0 ? parseAksesTokens_(userRow[col]) : {};
+  Object.keys(over).forEach(function (k) {
+    if (over[k] === 'none') delete levels[k]; else levels[k] = over[k];
+  });
+  var mods = Object.keys(levels);
+  var def = base.default;
+  var defKey = moduleKeyFromFile_(def);
+  if (defKey && mods.indexOf(defKey) < 0) def = mods.length ? fileFromModuleKey_(mods[0]) : 'moona-v2-dashboard.html';
+  return { modules: mods, levels: levels, default: def, overrides: over };
+}
+var MODULE_FILES_ = {
+  'dashboard': 'moona-v2-dashboard.html', 'crm': 'moona-v2-crm.html', 'client-portal': 'moona-v2-client-portal.html',
+  'projects': 'moona-v2-projects.html', 'laporan-design': 'moona-v2-laporan-design-v4.html',
+  'laporan-build': 'moona-v2-laporan-build-v4.html', 'aset': 'moona-v2-assets.html', 'meetings': 'moona-v2-meetings.html',
+  'finance': 'moona-v2-finance.html', 'content': 'moona-v2-content.html', 'playbook': 'moona-v2-playbook.html',
+  'sop': 'moona-v2-sop.html', 'activity': 'moona-v2-activity.html', 'usermgmt': 'moona-v2-usermgmt.html'
+};
+function fileFromModuleKey_(k) { return MODULE_FILES_[k] || 'moona-v2-dashboard.html'; }
+function moduleKeyFromFile_(f) {
+  for (var k in MODULE_FILES_) { if (MODULE_FILES_[k] === f) return k; }
+  return '';
+}
+
+// Dipanggil tiap halaman dibuka → perubahan akses langsung berlaku tanpa login ulang.
+function getMyAccess(params) {
+  var rows = sheet('Users').getDataRange().getValues();
+  for (var i = 1; i < rows.length; i++) {
+    if (String(rows[i][0]) === String(params.id)) {
+      return response({
+        status: 'ok',
+        aktif: String(rows[i][5]).trim().toUpperCase() === 'TRUE',
+        nama: String(rows[i][1]), role: String(rows[i][4]), jobTitle: String(rows[i][6] || ''),
+        access: getAccessForUser(rows[i], rows[0])
+      });
+    }
+  }
+  return response({ status: 'error', message: 'User tidak ditemukan' });
+}
+
+function saveUserAccess(data) {
+  var sh = sheet('Users');
+  var headers = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0];
+  var col = aksesKhususCol_(headers);
+  if (col < 0) {
+    col = Math.max(headers.length, 7);
+    sh.getRange(1, col + 1).setValue('AksesKhusus');
+  }
+  var r = findUserRow_(data.id);
+  if (!r) return response({ status: 'error', message: 'User tidak ditemukan' });
+  var val = Array.isArray(data.akses) ? data.akses.join(',') : String(data.akses || '');
+  sh.getRange(r.row, col + 1).setValue(val);
+  return response({ status: 'ok' });
+}
+
+// Hapus role — hanya kalau tidak ada user yang masih memakainya.
+function deleteRole(data) {
+  var role = String(data.role || '').trim();
+  if (!role) return response({ status: 'error', message: 'Nama role kosong' });
+  if (role === 'Owner') return response({ status: 'error', message: 'Role Owner tidak boleh dihapus' });
+  var users = sheet('Users').getDataRange().getValues();
+  for (var i = 1; i < users.length; i++) {
+    if (String(users[i][4]).trim() === role) return response({ status: 'error', message: 'Masih ada user dengan role ini. Pindahkan dulu user-nya.' });
+  }
+  var sh = ss().getSheetByName('RoleAccess');
+  var vals = sh.getDataRange().getValues();
+  for (var j = vals.length - 1; j >= 1; j--) {
+    if (String(vals[j][0]).trim() === role) sh.deleteRow(j + 1);
+  }
+  return response({ status: 'ok' });
 }
 
 // Jalankan SEKALI dari editor untuk menulis ulang RoleAccess dengan level (key:level).
