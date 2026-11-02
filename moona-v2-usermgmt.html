@@ -246,7 +246,7 @@ tbody tr:hover td{background:#fcfbf9}
       <div class="form-row"><label>Nama lengkap</label><input class="form-input" id="add-nama"></div>
       <div class="two">
         <div class="form-row"><label>Username (untuk login)</label><input class="form-input" id="add-username" autocomplete="off"></div>
-        <div class="form-row"><label>Password awal</label><input class="form-input" id="add-password" autocomplete="off"></div>
+        <div class="form-row"><label>Password awal</label><div style="display:flex;gap:8px"><input class="form-input" id="add-password" autocomplete="off" placeholder="Minimal 6 karakter"><button class="btn" type="button" onclick="genPw('add-password')">Acak</button></div></div>
       </div>
       <div class="two">
         <div class="form-row"><label>Role</label><select class="form-input" id="add-role" onchange="previewRole('add-role','add-role-hint')"></select></div>
@@ -410,6 +410,7 @@ function effective(u){
 function usersInRole(name){ return users.filter(function(u){ return u.role===name; }); }
 function roleOptions(sel){ return roles.map(function(r){ return '<option value="'+esc(r.role)+'"'+(r.role===sel?' selected':'')+'>'+esc(r.role)+'</option>'; }).join(''); }
 function previewRole(selId,hintId){
+  if(!document.getElementById(selId).value){ document.getElementById(hintId).innerHTML='Pilih role dulu — daftar modul yang terbuka akan muncul di sini.'; return; }
   var lv=roleLevels(document.getElementById(selId).value);
   var names=MOONA_MODULES.filter(function(m){return lv[m.key];}).map(function(m){return m.nama+(lv[m.key]==='view'?' (lihat)':'');});
   document.getElementById(hintId).innerHTML = names.length ? '<strong>Bisa membuka:</strong> '+esc(names.join(', ')) : 'Role ini belum punya akses modul apa pun.';
@@ -445,20 +446,24 @@ function renderUsers(){
 function openAddUser(){
   if(!guard()) return;
   ['add-nama','add-username','add-password','add-jobtitle'].forEach(function(id){document.getElementById(id).value='';});
-  document.getElementById('add-role').innerHTML=roleOptions(roles.length?roles[0].role:'');
+  // Sengaja tanpa pilihan bawaan, supaya akun baru tidak tak sengaja jadi Owner
+  document.getElementById('add-role').innerHTML='<option value="">— Pilih role —</option>'+roleOptions('');
   previewRole('add-role','add-role-hint');
   openModal('modal-add');
 }
 function usernameTaken(un, exceptId){ un=String(un).trim().toLowerCase(); return users.some(function(u){ return String(u.username).trim().toLowerCase()===un && String(u.id)!==String(exceptId||''); }); }
 function saveNewUser(){
-  var nama=document.getElementById('add-nama').value.trim(), un=document.getElementById('add-username').value.trim();
+  var nama=document.getElementById('add-nama').value.trim(), un=document.getElementById('add-username').value.replace(/\s+/g,'').toLowerCase();
   var pw=document.getElementById('add-password').value.trim(), role=document.getElementById('add-role').value, jt=document.getElementById('add-jobtitle').value.trim();
+  document.getElementById('add-username').value=un;
   if(!nama||!un||!pw){ showToast('Nama, username, dan password wajib diisi'); return; }
-  if(usernameTaken(un)){ showToast('Username sudah dipakai'); return; }
+  if(!role){ showToast('Pilih role dulu'); document.getElementById('add-role').focus(); return; }
+  if(pw.length<6){ showToast('Password minimal 6 karakter'); return; }
+  if(usernameTaken(un)){ showToast('Username "'+un+'" sudah dipakai'); return; }
   var b=document.getElementById('add-save'); b.disabled=true;
   post('addUser',{nama:nama,username:un,password:pw,role:role,jobTitle:jt}).then(function(d){
     b.disabled=false;
-    if(d.status==='ok'){ showToast(nama+' ditambahkan'); closeModal('modal-add'); reloadAll(); } else showToast(d.message||'Gagal');
+    if(d.status==='ok'){ showToast(nama+' ditambahkan — username: '+un); closeModal('modal-add'); reloadAll(); } else showToast(d.message||'Gagal');
   }).catch(function(){ b.disabled=false; showToast('Gagal terhubung'); });
 }
 
@@ -534,11 +539,12 @@ function saveOverrides(){
 }
 
 // Password & status
-function genPw(){ var c='abcdefghjkmnpqrstuvwxyz23456789', s=''; for(var i=0;i<8;i++) s+=c[Math.floor(Math.random()*c.length)]; document.getElementById('mu-newpw').value=s; }
+function genPw(target){ var c='abcdefghjkmnpqrstuvwxyz23456789', s=''; for(var i=0;i<8;i++) s+=c[Math.floor(Math.random()*c.length)]; document.getElementById(target||'mu-newpw').value=s; }
 function saveResetPw(){
   if(!guard()) return;
   var pw=document.getElementById('mu-newpw').value.trim();
   if(!pw){ showToast('Isi password baru dulu'); return; }
+  if(pw.length<6){ showToast('Password minimal 6 karakter'); return; }
   post('resetPassword',{id:curUser.id,password:pw}).then(function(d){
     if(d.status==='ok'){ showToast('Password '+curUser.nama+' diganti'); } else showToast(d.message||'Gagal');
   });
