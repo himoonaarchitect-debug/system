@@ -86,6 +86,11 @@ body{background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI
 .board{display:grid;gap:8px;margin-bottom:14px}
 .board-cols{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px}
 .pipeline-col{min-width:160px;width:160px;background:var(--bg);border-radius:var(--radius-sm);padding:8px;flex-shrink:0}
+.pipeline-col.closed{background:#fff;border:0.5px dashed var(--border2)}
+.pipe-sep{flex:0 0 1px;align-self:stretch;background:var(--border2);margin:0 4px}
+.lc-amt{font-size:11px;font-weight:600;color:var(--green);margin-top:3px;font-variant-numeric:tabular-nums}
+.lc-why{font-size:10px;color:var(--red);margin-top:3px;line-height:1.35}
+.col-more{font-size:10px;color:var(--text3);text-align:center;padding:6px 2px;line-height:1.4}
 .col-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:7px}
 .col-title{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.04em}
 .col-count{font-size:10px;font-weight:600;padding:1px 6px;border-radius:8px}
@@ -570,7 +575,8 @@ const CAN_ADD_LEAD=__lvlCrm?(__lvlCrm==='manage'):true;
 // HELPERS
 function p(o,...ks){for(const k of ks){if(o[k]!==undefined&&o[k]!==null&&String(o[k]).trim()!='')return String(o[k]);}return '';}
 function showToast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2800);}
-function fmtDate(s){if(!s)return'–';try{return new Date(s).toLocaleDateString('id-ID',{day:'numeric',month:'short',year:'numeric'});}catch(e){return s;}}
+// Tanggal lead bisa "8/9/2026, 11.58.12" (= 8 Sep) — jangan pakai new Date() langsung (dibaca 9 Agustus)
+function fmtDate(s){if(!s)return'–';return moonaFmtDate(s)||String(s);}
 function rp(n){if(!n||isNaN(n))return'–';const v=parseFloat(n);if(v>=1e9)return'Rp '+(v/1e9).toFixed(1)+' M';if(v>=1e6)return'Rp '+Math.round(v/1e6)+' jt';return'Rp '+v.toLocaleString('id-ID');}
 function cycledays(lead){
   const masuk=p(lead,'TanggalMasuk');const closing=p(lead,'TanggalClosing');
@@ -707,16 +713,41 @@ function renderPipeline(){
       }).join('')}
     </div>`;
   }).join('');
-  // Lost & Deal summary
-  const dealCount=filtered().filter(l=>p(l,'StatusAkhir')==='Deal').length;
-  const lostCount=filtered().filter(l=>p(l,'StatusAkhir')==='Lost').length;
-  if(dealCount>0||lostCount>0){
-    board.innerHTML+=`<div style="display:flex;gap:8px;margin-top:6px;min-width:100%;padding-bottom:4px">
-      ${dealCount>0?`<div style="padding:6px 12px;border-radius:var(--radius-sm);background:var(--green-bg);color:var(--green);font-size:11px;font-weight:500;white-space:nowrap">${dealCount} Deal</div>`:''}
-      ${lostCount>0?`<div style="padding:6px 12px;border-radius:var(--radius-sm);background:var(--red-bg);color:var(--red);font-size:11px;font-weight:500;white-space:nowrap">${lostCount} Lost</div>`:''}
+  // Kolom lead yang sudah selesai: On Hold, Deal, Lost (terbaru di atas)
+  board.innerHTML+='<div class="pipe-sep"></div>'+CLOSED_COLS.map(c=>{
+    const all=filtered().filter(l=>p(l,'StatusAkhir')===c.key).sort((a,b)=>closedTime(b)-closedTime(a));
+    const shown=all.slice(0,c.limit);
+    const total=c.key==='Deal'?all.reduce((s,l)=>s+parseFloat(p(l,'NilaiKontrak')||0),0):0;
+    return `<div class="pipeline-col closed">
+      <div class="col-header">
+        <div class="col-title" style="color:${c.clr}">${c.label}</div>
+        <span class="col-count" style="background:${c.bg};color:${c.clr}">${all.length}</span>
+      </div>
+      ${total?`<div style="font-size:10px;color:var(--text2);margin:-3px 0 7px">Total ${rpFullCrm(total)}</div>`:''}
+      ${all.length===0?'<div style="font-size:10px;color:var(--text3);text-align:center;padding:10px 0">–</div>':''}
+      ${shown.map(l=>{
+        const tgl=closedDate(l);
+        return `<div class="lead-card ${selectedId===p(l,'ID')?'selected':''}" onclick="selectLead('${p(l,'ID')}')">
+          <div class="lc-name">${p(l,'Nama')}</div>
+          <div class="lc-meta">${p(l,'TipeLayanan')||'–'} · ${p(l,'TipeProyek')||'–'}${p(l,'TahapPipeline')?'<br>Terakhir: '+p(l,'TahapPipeline'):''}</div>
+          ${c.key==='Deal'&&parseFloat(p(l,'NilaiKontrak')||0)>0?`<div class="lc-amt">${rpFullCrm(p(l,'NilaiKontrak'))}</div>`:''}
+          ${c.key==='Lost'&&p(l,'AlasanLost')?`<div class="lc-why">${p(l,'AlasanLost')}</div>`:''}
+          ${tgl?`<div style="font-size:10px;color:var(--text3);margin-top:2px">${c.key==='Deal'?'Closing ':''}${fmtDate(tgl)}</div>`:''}
+        </div>`;
+      }).join('')}
+      ${all.length>shown.length?`<div class="col-more">+${all.length-shown.length} lainnya<br>persempit dengan filter tanggal atau lihat tab Daftar</div>`:''}
     </div>`;
-  }
+  }).join('');
 }
+// Kolom status akhir di board
+const CLOSED_COLS=[
+  {key:'On Hold',label:'On Hold',bg:'#F1EFE8',clr:'#5F5E5A',limit:30},
+  {key:'Deal',label:'Deal',bg:'#EAF3DE',clr:'#3B6D11',limit:30},
+  {key:'Lost',label:'Lost',bg:'#FCEBEB',clr:'#A32D2D',limit:20}
+];
+function closedDate(l){return p(l,'TanggalClosing')||p(l,'TanggalMasukTahap')||p(l,'TanggalMasuk');}
+function closedTime(l){const d=parseAnyDate(closedDate(l));return d?d.getTime():0;}
+function rpFullCrm(n){return 'Rp '+Math.round(parseFloat(n)||0).toLocaleString('id-ID');}
 
 // LIST
 function renderList(){
