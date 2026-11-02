@@ -3,15 +3,27 @@
 // ============================================================
 
 function doPost(e) {
-  var data = {}, action = '';
+  var data = {}, action = '', u = null;
   try {
     data = JSON.parse(e.postData.contents);
     action = data.action;
+    // Aksi publik: login, dan chat dari klien (pakai token portal klien, bukan sesi tim)
+    if (action === 'login') return login(data);
+    if (action === 'addClientChat') return addClientChat(data);
+    // Selain itu WAJIB sesi tim yang sah + izin modul
+    u = mxAuth_(data.sid);
+    if (!u) return mxDenied_('AUTH');
+    if (!mxCan_(u, action, true)) {
+      logActivity(u.id, u.role, action, data.id || '', 'error', 'Ditolak: tidak punya akses');
+      return mxDenied_('FORBIDDEN');
+    }
+    data.actor = u;          // identitas pelaku dari sesi (tidak bisa dipalsukan dari browser)
+    delete data.sid;
     var res = dispatchPost(action, data);
-    logActivity(data.actorId, data.actorRole, action, data.id || '', 'ok', '');
+    logActivity(u.id, u.role, action, data.id || '', 'ok', '');
     return res;
   } catch (err) {
-    logActivity((data && data.actorId) || '', (data && data.actorRole) || '', action, (data && data.id) || '', 'error', err.toString());
+    logActivity(u ? u.id : '', u ? u.role : '', action, (data && data.id) || '', 'error', err.toString());
     return response({ status: 'error', message: err.toString() });
   }
 }
@@ -95,8 +107,26 @@ function dispatchPost(action, data) {
 }
 
 function doGet(e) {
+  var action = (e && e.parameter && e.parameter.action) || '';
+  try {
+    if (!action) return response({ status: 'ok', message: 'Moona API v2 aktif' });
+    // Login lewat URL (GET) dimatikan: password tidak boleh muncul di alamat.
+    if (action === 'login') return response({ status: 'error', code: 'LOGIN_POST', message: 'Muat ulang halaman login lalu coba lagi.' });
+    // Aksi publik untuk portal klien (pakai token portal klien)
+    if (action === 'validateClientToken') return validateClientToken(e.parameter);
+    if (action === 'getClientData') return getClientData(e.parameter);
+    var u = mxAuth_(e.parameter.sid);
+    if (action === 'getClientChat' && !u) return getClientChatPublic_(e.parameter);
+    if (!u) return mxDenied_('AUTH');
+    if (!mxCan_(u, action, false)) return mxDenied_('FORBIDDEN');
+    return routeGet_(e, u);
+  } catch (err) {
+    return response({ status: 'error', message: err.toString() });
+  }
+}
+
+function routeGet_(e, u) {
   const action = e.parameter.action;
-  if (action === 'login') return login(e.parameter);
   if (action === 'getUsers') return getUsers();
   if (action === 'getLeads') return getLeads();
   if (action === 'getFollowUpLogs') return getFollowUpLogs();
@@ -108,9 +138,7 @@ function doGet(e) {
   if (action === 'getActionItems') return getActionItems(e.parameter);
   if (action === 'getInvoices') return getInvoices();
   if (action === 'getCashflows') return getCashflows();
-  if (action === 'getContentPlan') return getContentPlan();
-  if (action === 'validateClientToken') return validateClientToken(e.parameter);
-  if (action === 'getClientData') return getClientData(e.parameter);
+  if (action === 'getContentPlan') return getContentPlan(u);
   if (action === 'getClientChat') return getClientChat(e.parameter);
   if (action === 'getClientAccess') return getClientAccess();
   if (action === 'getSosmedMetrics') return getSosmedMetrics();
@@ -123,7 +151,7 @@ function doGet(e) {
   if (action === 'getActivityRecap') return getActivityRecap(e.parameter);
   if (action === 'getAccessMap') return getAccessMap();
   if (action === 'getAllUsers') return getAllUsers();
-  if (action === 'getMyAccess') return getMyAccess(e.parameter);
+  if (action === 'getMyAccess') return getMyAccess({ id: u.id });
   // ── PLAYBOOK MODULE ──
   if (action === 'getPlaybooks')      return getPlaybooks();
   if (action === 'getPlaybookDetail') return getPlaybookDetail(e.parameter);
@@ -195,20 +223,203 @@ function response(data) {
     .setMimeType(ContentService.MimeType.JSON);
 }
 
-// ── AUTH ──
-function login(params) {
-  const rows = sheet('Users').getDataRange().getValues();
-  for (let i = 1; i < rows.length; i++) {
-    const [id, nama, username, password, role, aktif, jobTitle] = rows[i];
-    if (
-      String(username).trim().toLowerCase() === String(params.username).trim().toLowerCase() &&
-      String(password).trim() === String(params.password).trim() &&
-      String(aktif).trim().toUpperCase() === 'TRUE'
-    ) {
-      logActivity(id, role, 'login', '', 'ok', '');
-      return response({ status: 'ok', id, nama, username, role, jobTitle: String(jobTitle || ''), access: getAccessForUser(rows[i], rows[0]) });
-    }
+// ════════════════════════════════════════════════════
+// KEAMANAN — sesi bertanda tangan + izin per aksi + hash password
+// ════════════════════════════════════════════════════
+// Alur: login (POST) → server memberi "sid" bertanda tangan HMAC (berlaku 30 hari).
+// Setiap permintaan lain wajib membawa sid; server mengecek tanda tangan, status akun,
+// lalu izin modul untuk aksi itu. Ganti password = semua sid lama orang itu gugur.
+// Kunci rahasia dibuat otomatis sekali di Script Properties (MOONA_SESSION_SECRET).
+var MX_SESSION_DAYS = 30;
+
+// Aksi → modul yang boleh memakainya. Baca = punya akses modul (Lihat/Kelola).
+// Tulis = level Kelola. '*' = semua akun yang login. Owner selalu boleh.
+var MX_PERM = {
+  // baca
+  getUsers: '*', getMyAccess: '*',
+  getLeads: 'crm', getFollowUpLogs: 'crm',
+  getProjects: 'projects,aset,client-portal,dashboard,finance,laporan-build,laporan-design,meetings',
+  getRAB: 'projects,finance,laporan-build',
+  getLaporanDesign: 'laporan-design,projects', getLaporanBuild: 'laporan-build,projects',
+  getMeetings: 'meetings,crm,dashboard', getActionItems: 'meetings,dashboard',
+  getInvoices: 'finance', getCashflows: 'finance',
+  getContentPlan: 'content,dashboard', getSosmedMetrics: 'content',
+  getClientAccess: 'client-portal', getClientFiles: 'client-portal', getClientChat: 'client-portal',
+  getSOP: 'sop', getTaskAssign: 'projects,dashboard',
+  getAssets: 'aset', getAssetAgenda: 'aset',
+  getActivityLog: 'activity', getActivityRecap: 'activity',
+  getAccessMap: 'usermgmt', getAllUsers: 'usermgmt',
+  getPlaybooks: 'playbook', getPlaybookDetail: 'playbook',
+  // tulis
+  addUser: 'usermgmt', updateUser: 'usermgmt', setUserActive: 'usermgmt', resetPassword: 'usermgmt',
+  saveRoleAccess: 'usermgmt', deleteRole: 'usermgmt', saveUserAccess: 'usermgmt',
+  addLead: 'crm', updateLead: 'crm', addFollowUpLog: 'crm',
+  addProject: 'projects', updateProject: 'projects', deleteProject: 'projects',
+  addRABItem: 'projects', addRABItemsBatch: 'projects', updateRABRealisasi: 'projects,laporan-build',
+  updateRABItem: 'projects', deleteRABItem: 'projects', renameRABKelompok: 'projects', deleteRABKelompok: 'projects',
+  addLaporanDesign: 'laporan-design', approvalLaporanDesign: 'laporan-design',
+  addLaporanBuild: 'laporan-build', addLaporanBuildBatch: 'laporan-build', approvalLaporanBuild: 'laporan-build',
+  uploadFoto: 'laporan-design,laporan-build',
+  addMeeting: 'meetings,crm', deleteMeeting: 'meetings', updateMeeting: 'meetings',
+  addActionItem: 'meetings', updateActionStatus: 'meetings',
+  addInvoice: 'finance', updateInvoiceLunas: 'finance', addCashflow: 'finance', deleteCashflow: 'finance', deleteInvoice: 'finance',
+  addContentPlan: 'content', updateContentStatus: 'content', deleteContent: 'content',
+  addSosmedMetrics: 'content', updateSosmedMetric: 'content', deleteSosmedMetric: 'content',
+  addClientFile: 'client-portal', generateClientToken: 'client-portal', revokeClientAccess: 'client-portal',
+  activateClientAccess: 'client-portal', deleteClientAccess: 'client-portal', markChatRead: 'client-portal',
+  addSOP: 'sop', updateSOP: 'sop', approvalSOP: 'sop', deleteSOP: 'sop',
+  addTaskAssign: 'projects', updateTaskAssign: 'projects', updateTaskStatus: 'projects,dashboard',
+  pauseTaskAssign: 'projects', deleteTaskAssign: 'projects',
+  addAsset: 'aset', updateAsset: 'aset', deleteAsset: 'aset', addAgenda: 'aset', updateAgenda: 'aset', deleteAgenda: 'aset'
+};
+// Aksi persetujuan: hanya role tertentu (Owner selalu boleh). [] = hanya Owner.
+var MX_ROLE_ONLY = {
+  approvalLaporanDesign: ['StudioHead'],
+  approvalLaporanBuild: ['OperasionalManager'],
+  approvalSOP: [],
+  deleteSOP: []
+};
+
+function mxDenied_(code) {
+  return response(code === 'AUTH'
+    ? { status: 'error', code: 'AUTH', message: 'Sesi berakhir. Silakan masuk lagi.' }
+    : { status: 'error', code: 'FORBIDDEN', message: 'Akunmu tidak punya akses untuk aksi ini.' });
+}
+var MX_SECRET_MEMO_ = null;
+function mxSecret_() {
+  if (MX_SECRET_MEMO_) return MX_SECRET_MEMO_;
+  var props = PropertiesService.getScriptProperties();
+  var sec = props.getProperty('MOONA_SESSION_SECRET');
+  if (!sec) {
+    // dibuat sekali saja; kunci supaya dua permintaan pertama tidak membuat kunci berbeda
+    var lock = LockService.getScriptLock();
+    lock.waitLock(10000);
+    try {
+      sec = props.getProperty('MOONA_SESSION_SECRET');
+      if (!sec) { sec = Utilities.getUuid() + Utilities.getUuid(); props.setProperty('MOONA_SESSION_SECRET', sec); }
+    } finally { lock.releaseLock(); }
   }
+  MX_SECRET_MEMO_ = sec;
+  return sec;
+}
+function mxB64_(bytes) { return Utilities.base64EncodeWebSafe(bytes).replace(/=+$/, ''); }
+function mxSign_(text) { return mxB64_(Utilities.computeHmacSha256Signature(String(text), mxSecret_())); }
+function mxHex_(bytes) { return bytes.map(function (b) { return ('0' + ((b + 256) % 256).toString(16)).slice(-2); }).join(''); }
+
+// Password disimpan sebagai sha256$<salt>$<hash> (200 putaran). Teks biasa lama tetap bisa
+// dipakai login sekali, lalu otomatis diganti hash.
+function mxHashPw_(pw, salt) {
+  salt = salt || Utilities.getUuid().replace(/-/g, '').slice(0, 16);
+  var h = salt + '|' + String(pw).trim();
+  for (var k = 0; k < 200; k++) h = mxHex_(Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, h, Utilities.Charset.UTF_8));
+  return 'sha256$' + salt + '$' + h;
+}
+function mxCheckPw_(stored, pw) {
+  stored = String(stored == null ? '' : stored);
+  if (stored.indexOf('sha256$') === 0) return mxHashPw_(pw, stored.split('$')[1]) === stored;
+  return stored.trim() !== '' && stored.trim() === String(pw).trim();
+}
+
+// sid = v1.<userId>.<kedaluwarsa>.<tanda tangan>; tanda tangan ikut password tersimpan.
+function mxMakeSid_(userId, pwStored) {
+  var base = String(userId) + '.' + (Date.now() + MX_SESSION_DAYS * 86400000);
+  return 'v1.' + base + '.' + mxSign_(base + '|' + String(pwStored));
+}
+function mxUserById_(id) {
+  var cache = CacheService.getScriptCache(), key = 'mxu_' + id, hit = cache.get(key);
+  if (hit) { try { return JSON.parse(hit); } catch (e) {} }
+  var rows = sheet('Users').getDataRange().getValues();
+  for (var i = 1; i < rows.length; i++) {
+    if (String(rows[i][0]) !== String(id)) continue;
+    var u = {
+      id: String(rows[i][0]), nama: String(rows[i][1]), username: String(rows[i][2]), pw: String(rows[i][3]),
+      role: String(rows[i][4]), aktif: String(rows[i][5]).trim().toUpperCase() === 'TRUE', jobTitle: String(rows[i][6] || ''),
+      access: getAccessForUser(rows[i], rows[0])
+    };
+    cache.put(key, JSON.stringify(u), 60);   // perubahan role/akses berlaku ≤ 1 menit
+    return u;
+  }
+  return null;
+}
+function mxForgetUser_(id) { try { CacheService.getScriptCache().remove('mxu_' + id); } catch (e) {} }
+function mxAuth_(sid) {
+  if (!sid) return null;
+  var p = String(sid).split('.');
+  if (p.length !== 4 || p[0] !== 'v1') return null;
+  var exp = Number(p[2]);
+  if (!exp || exp < Date.now()) return null;
+  var u = mxUserById_(p[1]);
+  if (!u || !u.aktif) return null;
+  if (mxSign_(p[1] + '.' + p[2] + '|' + u.pw) !== p[3]) return null;
+  return u;
+}
+function mxCan_(u, action, isWrite) {
+  if (u.role === 'Owner') return true;
+  var only = MX_ROLE_ONLY[action];
+  if (only && only.indexOf(u.role) < 0) return false;
+  var spec = MX_PERM[action];
+  if (!spec) return false;               // aksi tak dikenal: hanya Owner
+  if (spec === '*') return true;
+  var lv = (u.access && u.access.levels) || {};
+  return spec.split(',').some(function (m) { var l = lv[m.trim()]; return l && (!isWrite || l === 'manage'); });
+}
+// ── Utilitas (jalankan manual dari editor Apps Script, SETELAH versi ini di-deploy) ──
+// Ubah semua password yang masih teks biasa menjadi hash sekaligus.
+// (Tanpa ini pun, password otomatis di-hash saat orangnya login.)
+function mxHashAllPasswords() {
+  var sh = sheet('Users'), rows = sh.getDataRange().getValues(), n = 0;
+  for (var i = 1; i < rows.length; i++) {
+    var pw = String(rows[i][3] == null ? '' : rows[i][3]);
+    if (!rows[i][0] || !pw.trim() || pw.indexOf('sha256$') === 0) continue;
+    sh.getRange(i + 1, 4).setValue(mxHashPw_(pw)); mxForgetUser_(rows[i][0]); n++;
+  }
+  Logger.log(n + ' password diubah ke hash');
+  return n;
+}
+// Paksa SEMUA orang login ulang (misal ada HP/laptop tim yang hilang).
+function mxResetSemuaSesi() {
+  PropertiesService.getScriptProperties().deleteProperty('MOONA_SESSION_SECRET');
+  MX_SECRET_MEMO_ = null;
+  Logger.log('Semua sesi diputus. Semua orang perlu login lagi.');
+}
+
+function mxIsOwner_(data) { return !!(data && data.actor && data.actor.role === 'Owner'); }
+function mxUserRole_(id) {
+  var rows = sheet('Users').getDataRange().getValues();
+  for (var i = 1; i < rows.length; i++) if (String(rows[i][0]) === String(id)) return String(rows[i][4]);
+  return '';
+}
+// Akun Owner hanya boleh diubah oleh Owner (mencegah admin lain menaikkan dirinya jadi Owner).
+function mxGuardOwnerTarget_(data, targetId, newRole) {
+  if (mxIsOwner_(data)) return null;
+  if (newRole === 'Owner' || (targetId && mxUserRole_(targetId) === 'Owner'))
+    return response({ status: 'error', code: 'FORBIDDEN', message: 'Hanya Owner yang boleh mengubah akun atau role Owner.' });
+  return null;
+}
+
+// ── AUTH ──
+function login(data) {
+  var uname = String(data.username || '').trim().toLowerCase(), pw = String(data.password || '');
+  if (!uname || !pw.trim()) return response({ status: 'error', message: 'Login gagal' });
+  var cache = CacheService.getScriptCache(), fk = 'mxlf_' + uname, fails = Number(cache.get(fk) || 0);
+  if (fails >= 8) return response({ status: 'error', code: 'LOCKED', message: 'Terlalu banyak percobaan gagal. Coba lagi 15 menit lagi.' });
+  var sh = sheet('Users'), rows = sh.getDataRange().getValues(), known = null;
+  for (var i = 1; i < rows.length; i++) {
+    var r = rows[i];
+    if (String(r[2]).trim().toLowerCase() !== uname) continue;
+    known = known || r;
+    if (String(r[5]).trim().toUpperCase() !== 'TRUE' || !mxCheckPw_(r[3], pw)) continue;
+    var stored = String(r[3]);
+    if (stored.indexOf('sha256$') !== 0) { stored = mxHashPw_(pw); sh.getRange(i + 1, 4).setValue(stored); }  // upgrade ke hash
+    cache.remove(fk); mxForgetUser_(r[0]);
+    logActivity(r[0], r[4], 'login', '', 'ok', '');
+    return response({
+      status: 'ok', id: r[0], nama: r[1], username: r[2], role: r[4], jobTitle: String(r[6] || ''),
+      access: getAccessForUser(r, rows[0]), sid: mxMakeSid_(String(r[0]), stored)
+    });
+  }
+  cache.put(fk, String(fails + 1), 900);
+  if (known) logActivity(known[0], known[4], 'login', '', 'error', fails + 1 >= 8 ? 'Login gagal 8x berturut-turut — dikunci 15 menit' : 'Password salah / akun nonaktif');
   return response({ status: 'error', message: 'Login gagal' });
 }
 
@@ -222,9 +433,11 @@ function getUsers() {
 }
 
 function addUser(data) {
+  var g = mxGuardOwnerTarget_(data, null, data.role); if (g) return g;
+  if (!String(data.password || '').trim()) return response({ status: 'error', message: 'Password awal wajib diisi' });
   const s = sheet('Users');
   const id = 'USR-' + nowId();
-  s.appendRow([id, data.nama, data.username, data.password, data.role, 'TRUE', data.jobTitle || '']);
+  s.appendRow([id, data.nama, data.username, mxHashPw_(data.password), data.role, 'TRUE', data.jobTitle || '']);
   return response({ status: 'ok', id });
 }
 
@@ -687,8 +900,14 @@ function addContentPlan(data) {
   return response({ status: 'ok', id });
 }
 
-function getContentPlan() {
-  return response({ status: 'ok', data: norm(sheet('ContentPlan').getDataRange().getValues()) });
+function getContentPlan(u) {
+  var rows = norm(sheet('ContentPlan').getDataRange().getValues());
+  // Tanpa akses Content Planner (mis. dari Dashboard): hanya konten yang di-PIC ke orang itu
+  if (u && u.role !== 'Owner' && !(u.access && u.access.levels && u.access.levels.content)) {
+    var me = String(u.nama || '').trim().toLowerCase();
+    rows = rows.filter(function (r) { return me && String(r['PIC'] || '').trim().toLowerCase() === me; });
+  }
+  return response({ status: 'ok', data: rows });
 }
 
 function updateContentStatus(data) {
@@ -798,6 +1017,9 @@ function getSOP() {
 }
 
 function updateSOP(data) {
+  var cur = getById('SOP', data.id);
+  if (cur && String(cur.data[cur.headers.indexOf('StatusApproval')]) === 'Published' && !mxIsOwner_(data))
+    return response({ status: 'error', code: 'FORBIDDEN', message: 'Dokumen sudah disahkan — hanya Owner yang bisa mengubahnya.' });
   updateCols('SOP', data.id, {
     Judul: data.judul, Kategori: data.kategori, Divisi: data.divisi || '',
     Deskripsi: data.deskripsi || '', LinkDokumen: data.linkDokumen,
@@ -931,14 +1153,32 @@ function getClientChat(params) {
   return response({ status: 'ok', data: filtered });
 }
 
+// Akses portal klien yang masih aktif untuk token ini (null kalau tidak ada / dinonaktifkan)
+function clientAccessByToken_(token) {
+  if (!token) return null;
+  var rows = norm(sheet('ClientAccess').getDataRange().getValues());
+  var acc = rows.find(function (r) { return r['Token'] === token; });
+  if (!acc || acc['Status'] === 'Revoked') return null;
+  return acc;
+}
+// Dipanggil dari portal klien (tanpa sesi tim). Nama klien & peran diambil dari server, bukan dari browser.
 function addClientChat(data) {
+  var acc = clientAccessByToken_(data.token);
+  if (!acc) return response({ status: 'error', message: 'Akses portal tidak valid' });
+  var pesan = String(data.pesan || '').replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, '').trim().slice(0, 2000);
+  var pengirim = String(data.pengirim || '').trim().slice(0, 80) || acc['NamaKlien'];
+  if (!pesan) return response({ status: 'error', message: 'Pesan kosong' });
   const id = 'CHT-' + nowId();
   sheet('ClientChat').appendRow([
-    id, data.token, data.namaKlien || '', data.projectId || '',
-    data.pengirim, data.role, data.pesan, nowStr(),
-    data.role === 'Klien' ? 'No' : 'Yes'
+    id, data.token, acc['NamaKlien'] || '', String(data.projectId || '').slice(0, 40),
+    pengirim, 'Klien', pesan, nowStr(), 'No'
   ]);
   return response({ status: 'ok', id: id });
+}
+// Klien membaca chat miliknya sendiri (token harus aktif)
+function getClientChatPublic_(params) {
+  if (!clientAccessByToken_(params.token)) return response({ status: 'error', message: 'Akses portal tidak valid' });
+  return getClientChat(params);
 }
 
 function markChatRead(data) {
@@ -1408,6 +1648,7 @@ function getAccessMap() {
 
 // Simpan akses 1 role (update / insert).
 function saveRoleAccess(data) {
+  if (String(data.role).trim() === 'Owner' && !mxIsOwner_(data)) return response({ status: 'error', code: 'FORBIDDEN', message: 'Hanya Owner yang boleh mengubah akses role Owner.' });
   var sh = ss().getSheetByName('RoleAccess');
   if (!sh) return response({ status: 'error', message: 'Sheet RoleAccess belum ada' });
   var mods = Array.isArray(data.modules) ? data.modules.join(',') : String(data.modules || '');
@@ -1434,8 +1675,10 @@ function findUserRow_(id) {
   return null;
 }
 function updateUser(data) {
+  var g = mxGuardOwnerTarget_(data, data.id, data.role); if (g) return g;
   var r = findUserRow_(data.id);
   if (!r) return response({ status: 'error', message: 'User tidak ditemukan' });
+  mxForgetUser_(data.id);
   if (data.nama !== undefined) r.sh.getRange(r.row, 2).setValue(data.nama);
   if (data.username !== undefined) r.sh.getRange(r.row, 3).setValue(data.username);
   if (data.role !== undefined) r.sh.getRange(r.row, 5).setValue(data.role);
@@ -1443,16 +1686,21 @@ function updateUser(data) {
   return response({ status: 'ok' });
 }
 function setUserActive(data) {
+  var g = mxGuardOwnerTarget_(data, data.id, null); if (g) return g;
   var r = findUserRow_(data.id);
   if (!r) return response({ status: 'error', message: 'User tidak ditemukan' });
+  mxForgetUser_(data.id);
   var v = (data.aktif === true || String(data.aktif).toUpperCase() === 'TRUE') ? 'TRUE' : 'FALSE';
   r.sh.getRange(r.row, 6).setValue(v);
   return response({ status: 'ok' });
 }
 function resetPassword(data) {
+  var g = mxGuardOwnerTarget_(data, data.id, null); if (g) return g;
+  if (!String(data.password || '').trim()) return response({ status: 'error', message: 'Password baru wajib diisi' });
   var r = findUserRow_(data.id);
   if (!r) return response({ status: 'error', message: 'User tidak ditemukan' });
-  r.sh.getRange(r.row, 4).setValue(data.password || '');
+  r.sh.getRange(r.row, 4).setValue(mxHashPw_(data.password));   // sesi lama orang ini otomatis gugur
+  mxForgetUser_(data.id);
   return response({ status: 'ok' });
 }
 
@@ -1539,6 +1787,8 @@ function getMyAccess(params) {
 }
 
 function saveUserAccess(data) {
+  var g = mxGuardOwnerTarget_(data, data.id, null); if (g) return g;
+  mxForgetUser_(data.id);
   var sh = sheet('Users');
   var headers = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0];
   var col = aksesKhususCol_(headers);

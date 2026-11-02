@@ -200,6 +200,10 @@ textarea.form-input{resize:vertical;min-height:64px;line-height:1.5}
 .crm-cal-event{display:block;font-size:9px;padding:2px 4px;margin-bottom:2px;border-radius:3px;background:var(--purple-bg);color:var(--purple);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer}
 .crm-cal-event:hover{opacity:.85}
 </style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="moona-ui.css?v=4">
 </head>
 <body>
 <div class="app">
@@ -515,7 +519,7 @@ textarea.form-input{resize:vertical;min-height:64px;line-height:1.5}
 
 <div class="toast" id="toast"></div>
 
-<script src="moona-core.js"></script>
+<script src="moona-core.js?v=4"></script>
 <script>
 const API=MOONA_API;
 
@@ -560,7 +564,7 @@ let customFrom='',customTo='';
 
 // AUTH
 function getSession(){try{return JSON.parse(localStorage.getItem('moona_v2_session'));}catch(e){return null;}}
-function logout(){localStorage.removeItem('moona_v2_session');location.href='moona-v2-login.html';}
+function logout() { moonaLogout(); }
 if (!moonaRequireAccess('crm')) throw new Error('Akses ditolak');
 
 function go(url){location.href=url;}
@@ -680,7 +684,7 @@ function updateStats(){
   if(totalDeal>0)document.getElementById('s-deal-note').textContent=rp(totalDeal);
   document.getElementById('s-lost').textContent=lost.length;
   document.getElementById('s-cycle').textContent=avgCycle!==null?avgCycle+'h':'–';
-  document.getElementById('nav-badge').textContent=fu.length||'–';
+  var nb=document.getElementById('nav-badge'); if(nb) nb.textContent=fu.length||'';
 }
 
 // PIPELINE BOARD

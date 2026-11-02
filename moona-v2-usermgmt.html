@@ -98,7 +98,7 @@ tbody tr:hover td{background:#fcfbf9}
 .ed-body{padding:6px 16px 14px}
 .ed-foot{padding:11px 16px;border-top:0.5px solid var(--border);display:flex;gap:8px;align-items:center;flex-wrap:wrap;background:var(--bg);border-radius:0 0 var(--radius) var(--radius)}
 
-.grp-title{font-size:9.5px;font-weight:700;color:var(--text3);letter-spacing:.07em;text-transform:uppercase;margin:14px 0 4px}
+.grp-title{font-size:12px;font-weight:650;color:var(--text3);margin:16px 0 4px}
 .mod-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:0.5px solid var(--border)}
 .mod-row:last-child{border-bottom:none}
 .mod-name{flex:1;font-size:12.5px}
@@ -123,9 +123,9 @@ tbody tr:hover td{background:#fcfbf9}
 .sel.changed{border-color:var(--amber);background:var(--amber-bg)}
 
 /* modal */
-.modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:100;align-items:flex-start;justify-content:center;padding:28px 14px;overflow-y:auto}
-.modal.show{display:flex}
-.modal-box{background:#fff;border-radius:12px;width:100%;max-width:440px}
+.um-modal{display:none;position:fixed;inset:0;background:rgba(10,29,58,.44);-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);z-index:100;align-items:flex-start;justify-content:center;padding:28px 14px;overflow-y:auto}
+.um-modal.show{display:flex}
+.modal-box{background:#fff;border-radius:16px;box-shadow:0 22px 56px -16px rgba(10,29,58,.32);width:100%;max-width:440px}
 .modal-box.wide{max-width:620px}
 .mb-head{padding:14px 18px;border-bottom:0.5px solid var(--border);display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
 .mb-title{font-size:15px;font-weight:600}
@@ -156,6 +156,10 @@ tbody tr:hover td{background:#fcfbf9}
 @media(max-width:900px){.role-layout{grid-template-columns:1fr}.guide{grid-template-columns:1fr}}
 @media(max-width:768px){.sidebar{display:none}.main{margin-left:0;padding:12px}.two{grid-template-columns:1fr}}
 </style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="moona-ui.css?v=4">
 </head>
 <body>
 <div class="app">
@@ -235,7 +239,7 @@ tbody tr:hover td{background:#fcfbf9}
 </div>
 
 <!-- MODAL: TAMBAH ANGGOTA -->
-<div class="modal" id="modal-add">
+<div class="um-modal" id="modal-add">
   <div class="modal-box">
     <div class="mb-head"><div><div class="mb-title">Tambah anggota</div><div class="mb-sub">Akses awal mengikuti role yang dipilih.</div></div><button class="mb-close" onclick="closeModal('modal-add')">✕</button></div>
     <div class="mb-body">
@@ -258,7 +262,7 @@ tbody tr:hover td{background:#fcfbf9}
 </div>
 
 <!-- MODAL: KELOLA USER -->
-<div class="modal" id="modal-user">
+<div class="um-modal" id="modal-user">
   <div class="modal-box wide">
     <div class="mb-head">
       <div><div class="mb-title" id="mu-title">–</div><div class="mb-sub" id="mu-sub">–</div></div>
@@ -310,7 +314,7 @@ tbody tr:hover td{background:#fcfbf9}
 </div>
 
 <!-- MODAL: ROLE BARU -->
-<div class="modal" id="modal-role">
+<div class="um-modal" id="modal-role">
   <div class="modal-box">
     <div class="mb-head"><div><div class="mb-title">Role baru</div><div class="mb-sub">Misalnya HRD, Admin Project, Content Creator.</div></div><button class="mb-close" onclick="closeModal('modal-role')">✕</button></div>
     <div class="mb-body">
@@ -322,7 +326,7 @@ tbody tr:hover td{background:#fcfbf9}
 </div>
 
 <div class="toast" id="toast"></div>
-<script src="moona-core.js"></script>
+<script src="moona-core.js?v=4"></script>
 <script>
 var API = MOONA_API;
 
@@ -349,7 +353,7 @@ var API = MOONA_API;
 })();
 
 function getSession(){ return moonaSession(); }
-function logout(){ localStorage.removeItem('moona_v2_session'); localStorage.removeItem('moona_v2_access'); location.href='moona-v2-login.html'; }
+function logout() { moonaLogout(); }
 if(!moonaRequireAccess('usermgmt')) throw new Error('Akses ditolak');
 
 function go(u){ location.href=u; }
@@ -358,7 +362,8 @@ document.getElementById('sf-name').textContent=S.nama+' - '+(S.jobTitle||S.role)
 
 var CAN_EDIT = moonaCanManage('usermgmt');
 var LEVEL_TXT = { manage:'Kelola', view:'Lihat saja', none:'Tertutup' };
-var GROUPS = ['Utama','Sales','Operasional','Lainnya','Admin'];
+var GROUPS = MOONA_GROUPS.map(function(g){ return g.key; });
+var GROUP_LABEL = {}; MOONA_GROUPS.forEach(function(g){ GROUP_LABEL[g.key] = g.label || 'Utama'; });
 
 function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
 function showToast(m){ var t=document.getElementById('toast'); t.textContent=m; t.classList.add('show'); setTimeout(function(){t.classList.remove('show');},2600); }
@@ -494,7 +499,7 @@ function renderUserAkses(){
   var u=curUser, base=roleLevels(u.role), h='';
   GROUPS.forEach(function(g){
     var mods=MOONA_MODULES.filter(function(m){return m.grup===g;}); if(!mods.length) return;
-    h+='<div class="grp-title">'+g+'</div>';
+    h+='<div class="grp-title">'+GROUP_LABEL[g]+'</div>';
     mods.forEach(function(m){
       var b=base[m.key]||'none', ov=curOver[m.key];
       var sel = ov ? ov : '';
@@ -579,7 +584,7 @@ function renderRoleEditor(){
   h+='<div class="note" style="margin-top:10px">Nyalakan modul yang boleh dibuka role ini. <strong>Kelola</strong> = bisa tambah/edit/hapus, <strong>Lihat saja</strong> = hanya membaca (tersedia di CRM &amp; Aset).</div>';
   GROUPS.forEach(function(g){
     var mods=MOONA_MODULES.filter(function(m){return m.grup===g;}); if(!mods.length) return;
-    h+='<div class="grp-title">'+g+'</div>';
+    h+='<div class="grp-title">'+GROUP_LABEL[g]+'</div>';
     mods.forEach(function(m){
       var lv=e.levels[m.key], on=!!lv;
       h+='<div class="mod-row"><label class="sw"><input type="checkbox" '+(on?'checked ':'')+(CAN_EDIT?'':'disabled ')+'onchange="toggleMod(\''+m.key+'\',this.checked)"><span></span></label>';

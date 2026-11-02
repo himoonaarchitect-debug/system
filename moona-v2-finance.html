@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Moona v2 — Finance</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -139,6 +140,10 @@ textarea.form-input{resize:vertical;min-height:50px;line-height:1.5}
   table{font-size:10px}th,td{padding:6px 8px}
 }
 </style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="moona-ui.css?v=4">
 </head>
 <body>
 <div class="app">
@@ -322,7 +327,7 @@ textarea.form-input{resize:vertical;min-height:50px;line-height:1.5}
 </div>
 
 <div class="toast" id="toast"></div>
-<script src="moona-core.js"></script>
+<script src="moona-core.js?v=4"></script>
 <script>
 var API = MOONA_API;
 
@@ -382,7 +387,7 @@ function syncRangeUI(k, p) {
 function rangeLabel(k) { var r = RANGE[k]; if (!r.from && !r.to) return ''; return ' · ' + (r.from ? fmtDate(r.from) : '…') + ' – ' + (r.to ? fmtDate(r.to) : '…'); }
 
 function getSession() { try { return JSON.parse(localStorage.getItem('moona_v2_session')); } catch(e) { return null; } }
-function logout() { localStorage.removeItem('moona_v2_session'); location.href = 'moona-v2-login.html'; }
+function logout() { moonaLogout(); }
 if (!moonaRequireAccess('finance')) throw new Error('Akses ditolak');
 
 function go(u) { location.href = u; }
@@ -426,7 +431,8 @@ window.onload = function() {
   if (!S) return;
   document.getElementById('if-kirim').value = moonaToday();
   document.getElementById('cf-tgl').value = moonaToday();
-  Promise.all([loadInvoices(), loadCashflows(), loadProjects(), loadRAB()]);
+  // Render ulang setelah semua data siap — supaya nama proyek tidak tampil "-" kalau data proyek termuat belakangan
+  Promise.all([loadInvoices(), loadCashflows(), loadProjects(), loadRAB()]).then(function(){ renderInvoices(); renderCashflows(); });
 };
 
 function loadInvoices() {

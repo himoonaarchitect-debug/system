@@ -223,6 +223,10 @@ textarea.form-input{resize:vertical;min-height:60px;line-height:1.5}
   .form-row3{grid-template-columns:1fr 1fr}.rab-form-row{grid-template-columns:1fr 1fr}
 }
 </style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="moona-ui.css?v=4">
 </head>
 <body>
 <div class="app">
@@ -510,7 +514,7 @@ textarea.form-input{resize:vertical;min-height:60px;line-height:1.5}
 </div>
 
 <div class="toast" id="toast"></div>
-<script src="moona-core.js"></script>
+<script src="moona-core.js?v=4"></script>
 <script>
 const API=MOONA_API;
 
@@ -539,7 +543,7 @@ let projects=[],rabData=[],lapDesign=[],lapBuild=[],users=[];
 let selectedId=null,filterStatus='',filterTipe='',filterLayanan='',rabRowCount=0;
 
 function getSession(){try{return JSON.parse(localStorage.getItem('moona_v2_session'));}catch(e){return null;}}
-function logout(){localStorage.removeItem('moona_v2_session');location.href='moona-v2-login.html';}
+function logout() { moonaLogout(); }
 if (!moonaRequireAccess('projects')) throw new Error('Akses ditolak');
 
 function go(u){location.href=u;}
@@ -551,7 +555,7 @@ else {
 
 function p(o,...ks){for(const k of ks){if(o[k]!==undefined&&o[k]!==null&&String(o[k]).trim()!='')return String(o[k]);}return '';}
 function showToast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2800);}
-function fmtDate(s){if(!s)return'–';try{return new Date(s).toLocaleDateString('id-ID',{day:'numeric',month:'short',year:'numeric'});}catch(e){return s;}}
+function fmtDate(s){if(!s)return'–';return moonaFmtDate(s)||String(s);}
 function rp(n){if(!n||isNaN(n))return'–';const v=parseFloat(n);if(v>=1e9)return'Rp '+(v/1e9).toFixed(1)+' M';if(v>=1e6)return'Rp '+Math.round(v/1e6)+' jt';if(v>=1e3)return'Rp '+Math.round(v/1e3)+'rb';return'Rp '+v.toLocaleString('id-ID');}
 function closeModal(id){document.getElementById(id).classList.remove('open');}
 var currentMainTab='board';

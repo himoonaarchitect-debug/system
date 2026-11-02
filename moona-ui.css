@@ -1,0 +1,513 @@
+/* ==========================================================================
+   MOONA UI — "Cyanotype"
+   Tampilan bersama untuk semua modul Moona Hub. Dimuat SETELAH <style> tiap
+   halaman, jadi aturan di sini menimpa gaya lama tanpa mengubah logika halaman.
+   Brand: biru Moona #406EB6 + putih. Panel navigasi = kertas cetak biru.
+   ========================================================================== */
+
+:root{
+  --mx-font:"Plus Jakarta Sans","Inter",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+
+  /* Cyanotype (panel navigasi & login) */
+  --mx-cyan-950:#0A1D3A;
+  --mx-cyan-900:#0F2A4F;
+  --mx-cyan-800:#173A68;
+  --mx-cyan-700:#21497F;
+
+  /* Biru Moona (aksi & sorotan) */
+  --mx-blue-700:#2B5392;
+  --mx-blue-600:#3560A3;
+  --mx-blue:#406EB6;
+  --mx-blue-400:#7096CF;
+  --mx-blue-200:#C4D5EE;
+  --mx-blue-100:#DEE8F6;
+  --mx-blue-50:#EEF3FB;
+
+  /* Kertas & tinta */
+  --mx-paper:#F3F6FA;
+  --mx-white:#FFFFFF;
+  --mx-ink:#13223A;
+  --mx-ink-2:#4D5C74;
+  --mx-ink-3:#7F8DA3;
+  --mx-line:#E2E8F1;
+  --mx-line-2:#CCD5E3;
+  --mx-head:#F7F9FC;
+
+  --mx-ring:0 0 0 3px rgba(64,110,182,.24);
+  --mx-pop:0 22px 56px -16px rgba(10,29,58,.32),0 3px 8px rgba(10,29,58,.08);
+  --mx-side:252px;
+
+  /* Variabel lama halaman → ikut palet baru */
+  --bg:var(--mx-paper);
+  --card:#FFFFFF;
+  --border:var(--mx-line);
+  --border2:var(--mx-line-2);
+  --text:var(--mx-ink);
+  --text2:var(--mx-ink-2);
+  --text3:var(--mx-ink-3);
+  --brand:#406EB6; --brand-bg:#EBF1FA; --brand-mid:#406EB6;
+  --blue:#2F62AE;   --blue-bg:#EAF1FB;
+  --teal:#11795D;   --teal-bg:#E2F3EC;
+  --green:#2C7A3F;  --green-bg:#E5F3E8;
+  --amber:#93600E;  --amber-bg:#FCF0DA;
+  --red:#B3262D;    --red-bg:#FCEBEC;
+  --purple:#5446B5; --purple-bg:#EEECFC;
+  --coral:#A5441D;  --coral-mid:#CF6036; --coral-bg:#FBEEE7;
+  --gray:#566275;   --gray-bg:#EDF0F5;
+  --radius:12px; --radius-sm:8px;
+}
+
+/* ---------- Dasar ---------- */
+html{-webkit-text-size-adjust:100%}
+body{
+  font-family:var(--mx-font);
+  font-size:14px;line-height:1.5;
+  color:var(--mx-ink);
+  background:var(--mx-paper);
+  -webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;
+}
+button,input,select,textarea{font-family:inherit}
+::selection{background:var(--mx-blue-100);color:var(--mx-ink)}
+:focus-visible{outline:2px solid var(--mx-blue);outline-offset:2px}
+input[type=checkbox],input[type=radio]{accent-color:var(--mx-blue)}
+a{color:var(--mx-blue)}
+*{scrollbar-width:thin;scrollbar-color:#C3CCDA transparent}
+*::-webkit-scrollbar{width:10px;height:10px}
+*::-webkit-scrollbar-thumb{background:#C9D2DF;border-radius:10px;border:3px solid transparent;background-clip:padding-box}
+*::-webkit-scrollbar-thumb:hover{background:#AEB9CA;background-clip:padding-box;border:3px solid transparent}
+
+/* Angka rata kolom di tempat yang memuat angka */
+.stat-val,td,.td-amount,.pb-values,.inv-amount,.mval,.wl-num,.col-count,.cnt,.lap-progress,.prog-val{font-variant-numeric:tabular-nums}
+
+/* ==========================================================================
+   PANEL NAVIGASI (dibangun ulang oleh moona-core.js)
+   ========================================================================== */
+body .sidebar{
+  width:var(--mx-side);min-width:var(--mx-side);
+  background-color:var(--mx-cyan-900);
+  /* grid gambar kerja: garis kecil tiap 24px, garis besar tiap 96px */
+  background-image:
+    linear-gradient(rgba(255,255,255,.04) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(255,255,255,.04) 1px,transparent 1px),
+    linear-gradient(rgba(255,255,255,.018) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(255,255,255,.018) 1px,transparent 1px);
+  background-size:96px 96px,96px 96px,24px 24px,24px 24px;
+  background-position:-1px -1px;
+  border-right:0;
+  color:#fff;
+  display:flex;flex-direction:column;
+  z-index:50;overflow:hidden;
+}
+.sidebar:not(.mx-ready)>*{visibility:hidden}
+
+.mx-brand{padding:20px 20px 18px;flex-shrink:0}
+.mx-brand-link{display:flex;align-items:flex-end;gap:10px;text-decoration:none;color:#fff;width:max-content;border-radius:6px}
+.mx-logo{height:26px;width:auto;display:block;filter:brightness(0) invert(1)}
+.mx-brand-name{font-size:15px;font-weight:600;letter-spacing:-.01em;color:rgba(255,255,255,.72);line-height:1;padding-bottom:1px}
+
+.mx-nav{flex:1;overflow-y:auto;padding:4px 12px 16px;scrollbar-color:rgba(255,255,255,.18) transparent}
+.mx-nav::-webkit-scrollbar-thumb{background:rgba(255,255,255,.16);background-clip:padding-box}
+.mx-group{margin-top:14px}
+.mx-group:first-child{margin-top:0}
+.mx-group-label{font-size:11.5px;font-weight:600;color:rgba(255,255,255,.46);padding:0 10px 6px;letter-spacing:.01em}
+.mx-item{
+  display:flex;align-items:center;gap:11px;
+  height:38px;padding:0 10px;margin:1px 0;border-radius:8px;
+  color:rgba(255,255,255,.80);text-decoration:none;
+  font-size:13.5px;font-weight:500;
+  transition:background .12s,color .12s;
+}
+.mx-item svg{width:18px;height:18px;flex-shrink:0;stroke:currentColor;opacity:.72}
+.mx-item:hover{background:rgba(255,255,255,.08);color:#fff}
+.mx-item:hover svg{opacity:1}
+.mx-item.active{background:#fff;color:var(--mx-cyan-900);font-weight:650;box-shadow:0 1px 0 rgba(0,0,0,.12)}
+.mx-item.active svg{opacity:1;color:var(--mx-blue)}
+.mx-item:focus-visible{outline:2px solid #fff;outline-offset:1px}
+.mx-badge{margin-left:auto;min-width:20px;height:20px;padding:0 6px;border-radius:10px;background:#E8A23B;color:#2A1A00;font-size:11px;font-weight:700;display:inline-flex;align-items:center;justify-content:center}
+.mx-badge:empty{display:none}
+
+.mx-user{flex-shrink:0;display:flex;align-items:center;gap:10px;margin:0 12px 12px;padding:10px;border-radius:10px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08)}
+.mx-avatar{width:34px;height:34px;border-radius:50%;flex-shrink:0;background:var(--mx-blue);color:#fff;font-size:12.5px;font-weight:700;display:flex;align-items:center;justify-content:center;letter-spacing:.02em;box-shadow:inset 0 0 0 1px rgba(255,255,255,.25)}
+.mx-user-meta{min-width:0;flex:1}
+.mx-user-name{font-size:13px;font-weight:650;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mx-user-role{font-size:11.5px;color:rgba(255,255,255,.58);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mx-logout{width:32px;height:32px;border-radius:8px;border:0;background:transparent;color:rgba(255,255,255,.7);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.mx-logout:hover{background:rgba(255,255,255,.1);color:#fff}
+.mx-logout svg{width:18px;height:18px}
+
+/* Bilah atas HP + laci navigasi */
+.mx-topbar,.mx-scrim{display:none}
+
+/* ==========================================================================
+   AREA KONTEN
+   ========================================================================== */
+body .main{margin-left:var(--mx-side);max-width:1560px;padding:30px 36px 72px;min-width:0}
+.topbar{align-items:flex-end;gap:14px;margin-bottom:22px;padding-bottom:18px;border-bottom:1px solid var(--mx-line)}
+.page-title{font-size:24px;font-weight:700;letter-spacing:-.022em;color:var(--mx-ink);line-height:1.2}
+.page-sub{font-size:13.5px;color:var(--mx-ink-2);margin-top:4px}
+.topbar .btn{flex-shrink:0}
+
+/* ---------- Tombol ---------- */
+.btn{
+  min-height:36px;padding:7px 14px;
+  display:inline-flex;align-items:center;justify-content:center;gap:6px;
+  border-radius:8px;border:1px solid var(--mx-line-2);
+  background:#fff;color:var(--mx-ink);
+  font-size:13px;font-weight:600;line-height:1.2;text-decoration:none;
+  cursor:pointer;transition:background .12s,border-color .12s,box-shadow .12s,color .12s;
+}
+.btn:hover{background:var(--mx-head);border-color:#B6C2D4}
+.btn:focus-visible{outline:none;box-shadow:var(--mx-ring)}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn-sm{min-height:30px;padding:5px 11px;font-size:12px;border-radius:7px}
+.btn-primary,.btn-teal,.btn-amber,.btn-coral{background:var(--mx-blue);border-color:var(--mx-blue);color:#fff}
+.btn-primary:hover,.btn-teal:hover,.btn-amber:hover,.btn-coral:hover{background:var(--mx-blue-600);border-color:var(--mx-blue-600);color:#fff;opacity:1}
+.btn-green{background:#1E7A4C;border-color:#1E7A4C;color:#fff}
+.btn-green:hover{background:#18663F;border-color:#18663F;color:#fff}
+.btn-red{background:#B3262D;border-color:#B3262D;color:#fff}
+.btn-red:hover{background:#992026;border-color:#992026;color:#fff}
+.btn-ghost{border-radius:6px;font-size:12px;color:var(--mx-ink-3)}
+.btn-ghost:hover{background:var(--mx-red-bg,#FCEBEC);color:var(--red)}
+
+/* ---------- Form ---------- */
+.form-group{margin-bottom:14px}
+.form-label{font-size:12.5px;font-weight:600;color:var(--mx-ink-2);margin-bottom:6px}
+.req{color:var(--red)}
+.form-input,.search-input,.search-box{
+  min-height:38px;padding:8px 12px;
+  border:1px solid var(--mx-line-2);border-radius:8px;
+  background:#fff;color:var(--mx-ink);
+  font-size:14px;line-height:1.4;
+  transition:border-color .12s,box-shadow .12s;
+}
+.form-input::placeholder,.search-input::placeholder,.search-box::placeholder{color:#9AA6B8}
+.form-input:hover,.search-input:hover,.search-box:hover{border-color:#B6C2D4}
+.form-input:focus,.search-input:focus,.search-box:focus{border-color:var(--mx-blue);box-shadow:var(--mx-ring);outline:none}
+textarea.form-input{min-height:76px;line-height:1.5}
+select.form-input{
+  appearance:none;-webkit-appearance:none;padding-right:34px;cursor:pointer;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%234D5C74' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 12px center;
+}
+.form-hint{font-size:12px;color:var(--mx-ink-3);margin-top:5px;line-height:1.45}
+.form-row{gap:12px}
+
+/* ---------- Filter (chip) ---------- */
+.filter-bar{gap:6px;margin-bottom:16px}
+.fpill,.filter-pill{
+  min-height:30px;display:inline-flex;align-items:center;
+  padding:4px 12px;border-radius:999px;
+  border:1px solid var(--mx-line-2);background:#fff;
+  color:var(--mx-ink-2);font-size:12.5px;font-weight:600;
+  transition:border-color .12s,color .12s,background .12s;
+}
+.fpill:hover,.filter-pill:hover{border-color:var(--mx-blue-400);color:var(--mx-ink)}
+.fpill.active,.filter-pill.active{background:var(--mx-cyan-900);border-color:var(--mx-cyan-900);color:#fff}
+.fsep,.filter-sep{background:var(--mx-line-2)}
+
+/* ---------- Tab ---------- */
+.tabs{border-bottom:1px solid var(--mx-line);gap:22px;margin-bottom:18px;overflow-x:auto;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab{padding:10px 0;margin-bottom:-1px;font-size:13.5px;font-weight:600;color:var(--mx-ink-3);border-bottom:2px solid transparent;white-space:nowrap}
+.tab:hover{color:var(--mx-ink)}
+.tab.active{color:var(--mx-ink);border-bottom-color:var(--mx-blue);font-weight:650}
+
+/* ---------- Kartu ---------- */
+.card{background:#fff;border:1px solid var(--mx-line);border-radius:12px;box-shadow:none}
+.card-header{padding:14px 18px;border-bottom:1px solid var(--mx-line);gap:10px}
+.card-title{font-size:14.5px;font-weight:700;color:var(--mx-ink)}
+
+/* ---------- Strip angka (gaya kolom title block) ---------- */
+.stats{gap:0!important;background:#fff;border:1px solid var(--mx-line);border-radius:12px;overflow:hidden;margin-bottom:22px}
+.stats .stat{background:transparent!important;border-radius:0!important;padding:16px 20px!important;box-shadow:-1px 0 0 var(--mx-line),0 -1px 0 var(--mx-line);min-width:0}
+.stat-label{font-size:12.5px;font-weight:600;color:var(--mx-ink-2);margin-bottom:6px;text-transform:none;letter-spacing:0}
+.stat-val{font-size:clamp(19px,1.9vw,26px);font-weight:700;letter-spacing:-.02em;line-height:1.15;overflow-wrap:anywhere}
+.stat-note{font-size:12px;margin-top:4px;color:var(--mx-ink-3)}
+
+/* ---------- Tabel ---------- */
+table{font-size:13px}
+th{padding:10px 14px;font-size:12px;font-weight:600;color:var(--mx-ink-3);background:var(--mx-head);text-transform:none;letter-spacing:0;border-bottom:1px solid var(--mx-line);white-space:nowrap}
+td{padding:12px 14px;border-bottom:1px solid var(--mx-line)}
+tr:hover td{background:#F7FAFE}
+tr:last-child td{border-bottom:none}
+
+/* ---------- Label status ---------- */
+.pill{border-radius:999px;font-size:11.5px;font-weight:600;padding:2px 9px;line-height:1.5}
+
+/* ---------- Dialog ---------- */
+.modal-overlay{background:rgba(10,29,58,.44);-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);padding:6vh 16px 32px}
+.modal-overlay .modal{border-radius:16px;box-shadow:var(--mx-pop);border:1px solid rgba(10,29,58,.06);overflow:hidden}
+.modal-overlay.open .modal{animation:mx-pop .2s cubic-bezier(.2,.8,.2,1)}
+.modal-header{padding:18px 22px;border-bottom:1px solid var(--mx-line)}
+.modal-title{font-size:16px;font-weight:700;letter-spacing:-.01em}
+.modal-close{width:32px;height:32px;border-radius:8px;border:1px solid var(--mx-line);color:var(--mx-ink-2);font-size:15px;display:flex;align-items:center;justify-content:center;transition:background .12s}
+.modal-close:hover{background:var(--mx-head);color:var(--mx-ink)}
+.modal-body{padding:20px 22px}
+.modal-footer{padding:14px 22px;border-top:1px solid var(--mx-line);background:var(--mx-head);gap:8px}
+@keyframes mx-pop{from{opacity:0;transform:translateY(10px) scale(.985)}to{opacity:1;transform:none}}
+
+/* ---------- Notifikasi ---------- */
+.toast{background:var(--mx-cyan-900);color:#fff;border-radius:10px;padding:11px 16px;font-size:13px;font-weight:500;box-shadow:var(--mx-pop);transform:translateY(8px);transition:opacity .2s,transform .2s}
+.toast.show{transform:none}
+
+/* ---------- Kosong & memuat ---------- */
+.empty{color:var(--mx-ink-3);font-size:13px;padding:32px 20px}
+.loading{color:var(--mx-ink-3);font-size:13px;padding:32px 20px;display:flex;align-items:center;justify-content:center;gap:10px}
+.loading::before{content:"";width:16px;height:16px;border-radius:50%;border:2px solid var(--mx-blue-100);border-top-color:var(--mx-blue);animation:mx-spin .8s linear infinite;flex-shrink:0}
+@keyframes mx-spin{to{transform:rotate(360deg)}}
+
+/* ==========================================================================
+   PENYESUAIAN PER MODUL
+   ========================================================================== */
+
+/* Dashboard */
+.module-grid{gap:12px;margin-bottom:22px}
+.mod-card{border:1px solid var(--mx-line);border-radius:12px;padding:16px 18px;transition:border-color .15s,box-shadow .15s}
+.mod-card:hover{border-color:var(--mx-blue-200);box-shadow:0 0 0 3px var(--mx-blue-50)}
+.mod-icon{width:38px!important;height:38px!important;border-radius:10px!important;background:var(--mx-blue-50)!important;color:var(--mx-blue)!important;margin-bottom:12px!important}
+.mod-icon svg{width:20px;height:20px}
+.mod-name{font-size:14.5px;font-weight:700;margin-bottom:2px}
+.mod-desc{font-size:12.5px;color:var(--mx-ink-3);line-height:1.45}
+.mod-badge{margin-top:10px;background:var(--mx-blue-50)!important;color:var(--mx-blue-700)!important;border-radius:999px;font-size:12px;font-weight:600;padding:3px 10px}
+.grid2{gap:14px;margin-bottom:14px}
+.item-row,.action-row{padding:12px 18px;font-size:13px;border-bottom-color:var(--mx-line)}
+.item-title{font-size:13.5px;font-weight:600}
+.item-sub{font-size:12px;color:var(--mx-ink-3)}
+.card-link{font-size:12.5px;font-weight:600;color:var(--mx-blue)}
+.chk{border-color:var(--mx-line-2);border-radius:4px}
+
+/* CRM */
+.board-cols{gap:10px;padding-bottom:10px}
+.pipeline-col{min-width:220px;width:220px;background:#E9EEF5;border-radius:12px;padding:10px}
+.pipeline-col.closed{background:#fff;border:1px dashed var(--mx-line-2)}
+.pipe-sep{background:var(--mx-line-2)}
+.col-header{margin-bottom:9px;padding:2px 2px 0}
+.col-title{font-size:12.5px;font-weight:700;text-transform:none;letter-spacing:0}
+.col-count{font-size:11.5px;font-weight:700;border-radius:999px;padding:1px 8px}
+.lead-card{border:1px solid var(--mx-line);border-radius:10px;padding:11px 12px;margin-bottom:7px;box-shadow:0 1px 0 rgba(10,29,58,.04)}
+.lead-card:hover{border-color:var(--mx-blue-200)}
+.lead-card.selected{border-color:var(--mx-blue);box-shadow:var(--mx-ring)}
+.lc-name{font-size:13.5px;font-weight:700}
+.lc-meta{font-size:12px;color:var(--mx-ink-3);line-height:1.45;margin-top:2px}
+.lc-fu{font-size:11.5px;font-weight:600;margin-top:5px}
+.date-range{border-radius:10px}
+.detail-panel{border-radius:12px;border-color:var(--mx-line)}
+.dp-name{font-size:17px;font-weight:700;letter-spacing:-.01em}
+.d-label{font-size:11.5px;font-weight:600;color:var(--mx-ink-3);text-transform:none;letter-spacing:0}
+.d-val{font-size:13.5px}
+
+/* Content planner */
+.board{gap:10px}
+.col{background:#E9EEF5;border-radius:12px}
+.cn-card{border-radius:10px;border-color:var(--mx-line)}
+.cn-card:hover{border-color:var(--mx-blue-200)}
+.cn-title{font-size:13px;font-weight:650}
+.cal-grid{border-radius:12px;background:var(--mx-line);border-color:var(--mx-line)}
+.cal-dayhead{background:var(--mx-head);font-size:11.5px;font-weight:600;text-transform:none;color:var(--mx-ink-3)}
+.cal-day{min-height:96px}
+.cal-day.today{box-shadow:inset 0 0 0 2px var(--mx-blue)}
+.cal-day-num{font-size:12px;font-weight:600}
+
+/* Project management */
+.proj-grid{gap:12px}
+.proj-card{border-radius:12px;border-color:var(--mx-line);transition:border-color .15s,box-shadow .15s}
+.proj-card:hover{border-color:var(--mx-blue-200);box-shadow:0 0 0 3px var(--mx-blue-50)}
+.proj-card.selected{border-color:var(--mx-blue);box-shadow:var(--mx-ring)}
+.pc-name{font-size:14px;font-weight:700}
+.dtabs{gap:18px;border-bottom:1px solid var(--mx-line)}
+.dtab{font-size:13px;font-weight:600;color:var(--mx-ink-3);padding:10px 0;margin-bottom:-1px}
+.dtab.active{color:var(--mx-ink);border-bottom-color:var(--mx-blue)}
+.prog-bar,.prog-rab,.pb-bar,.dbar,.bobot-bar{background:#E6EBF3}
+
+/* Laporan design & build */
+.lap-card{padding:16px 18px}
+.lap-title{font-size:14px;font-weight:700}
+.lap-sub{font-size:12px;color:var(--mx-ink-3)}
+.lap-body{font-size:13px;row-gap:6px}
+.lap-label{font-size:12px;color:var(--mx-ink-3)}
+.foto-link a{border-radius:8px;font-size:12.5px;font-weight:600}
+.item-row-build{border-radius:10px;background:var(--mx-head)}
+.add-item-btn{border-radius:10px;color:var(--mx-blue);border-color:var(--mx-blue-200)}
+.add-item-btn:hover{background:var(--mx-blue-50)}
+
+/* Meeting */
+.mtg-row{padding:14px 18px}
+.mtg-row.selected{background:var(--mx-blue-50);box-shadow:inset 3px 0 0 var(--mx-blue)}
+.mtg-title{font-size:13.5px;font-weight:650}
+.d-title{font-size:18px;font-weight:700;letter-spacing:-.01em}
+.add-action-btn{border-radius:10px;color:var(--mx-blue);border-color:var(--mx-blue-200)}
+.add-action-btn:hover{background:var(--mx-blue-50)}
+
+/* SOP */
+.doc-grid{gap:12px}
+.doc-card{border-radius:12px;border-color:var(--mx-line);padding:16px 18px}
+.doc-card:hover{border-color:var(--mx-blue-200)}
+.dc-title{font-size:14px;font-weight:700}
+.search-bar{margin-bottom:12px}
+
+/* Client portal (internal) & info box */
+.info-box{background:var(--mx-blue-50);border:1px solid var(--mx-blue-100);color:var(--mx-blue-700);border-radius:10px;font-size:12.5px}
+.access-row{padding:16px 18px}
+.ar-name{font-size:14px;font-weight:700}
+.ar-link{border-radius:8px;background:var(--mx-head)}
+
+/* Finance */
+.proj-budget{padding:16px 18px}
+.pb-name{font-size:14px;font-weight:700}
+.daterange{border-radius:10px;border-color:var(--mx-line)}
+.dr-chip.on{background:var(--mx-cyan-900);border-color:var(--mx-cyan-900)}
+
+/* Aset */
+.dbar{border-radius:4px}
+
+/* Log aktivitas */
+.bar-fill{background:var(--mx-blue)}
+.spark-bar{background:var(--mx-blue)}
+
+/* Playbook */
+.peta-card{border-radius:12px}
+.peta-card.active{border-color:var(--mx-blue);background:var(--mx-blue-50)}
+.toc{border-radius:12px}
+.toc a.active{background:var(--mx-blue-50);color:var(--mx-blue-700)}
+.content>section{border-radius:14px}
+
+/* ==========================================================================
+   LAYAR KECIL
+   ========================================================================== */
+@media (max-width:960px){
+  .mx-topbar{
+    display:flex;position:fixed;top:0;left:0;right:0;height:56px;z-index:45;
+    align-items:center;gap:10px;padding:0 8px 0 6px;
+    background:var(--mx-cyan-900);color:#fff;
+    box-shadow:0 1px 0 rgba(255,255,255,.06),0 6px 18px -10px rgba(10,29,58,.6);
+  }
+  .mx-burger{width:44px;height:44px;border:0;border-radius:10px;background:transparent;color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer}
+  .mx-burger:hover,.mx-burger:focus-visible{background:rgba(255,255,255,.1)}
+  .mx-burger svg{width:22px;height:22px}
+  .mx-topbar .mx-logo{height:20px}
+  .mx-topbar-title{font-size:14.5px;font-weight:650;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-left:10px;border-left:1px solid rgba(255,255,255,.2)}
+
+  body .sidebar{
+    display:flex!important;position:fixed;top:0;left:0;bottom:0;height:100%;
+    width:min(300px,86vw);min-width:0;
+    transform:translateX(-104%);transition:transform .24s cubic-bezier(.2,.8,.2,1);
+  }
+  body.mx-nav-open .sidebar{transform:none;box-shadow:var(--mx-pop)}
+  .mx-scrim{position:fixed;inset:0;z-index:48;background:rgba(10,29,58,.5)}
+  body.mx-nav-open .mx-scrim{display:block}
+  body.mx-nav-open{overflow:hidden}
+  .mx-item{height:44px;font-size:14.5px}
+
+  body .main{margin-left:0!important;padding:76px 16px 56px!important;max-width:none}
+  .topbar{margin-bottom:16px;padding-bottom:14px}
+  .page-title{font-size:21px}
+  .stats{grid-template-columns:1fr 1fr!important}
+  .module-grid{grid-template-columns:1fr 1fr!important}
+}
+@media (max-width:640px){
+  .form-input,.search-input,.search-box{font-size:16px}  /* cegah zoom otomatis di iPhone */
+  .module-grid{grid-template-columns:1fr!important}
+  .grid2{grid-template-columns:1fr!important}
+  .topbar>div:last-child:not(:first-child){width:100%}
+  .modal-overlay{padding:12px 10px 24px}
+  .modal-overlay .modal{border-radius:14px}
+  .modal-footer{flex-wrap:wrap}
+  .modal-footer .btn{flex:1}
+}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important}
+}
+@media print{
+  body .sidebar,.mx-topbar,.mx-scrim{display:none!important}
+  body .main{margin:0!important;padding:0!important}
+}
+
+/* ---------- Tambahan: tabel & aksi baris ---------- */
+.td-amount,.td-right{white-space:nowrap}
+.td-code{white-space:nowrap;font-weight:600;font-size:12.5px;color:var(--mx-ink-2)}
+td .btn-sm.btn-teal,td .btn-sm.btn-green{background:#fff;color:#1E7A4C;border-color:#BFE0CF}
+td .btn-sm.btn-teal:hover,td .btn-sm.btn-green:hover{background:#E8F5EE;border-color:#9CCDB4;color:#18663F}
+td .btn-sm.btn-red{background:#fff;color:#B3262D;border-color:#F0C4C6}
+td .btn-sm.btn-red:hover{background:#FCEBEC;color:#992026}
+
+/* ==========================================================================
+   PORTAL KLIEN (halaman yang dibuka klien)
+   ========================================================================== */
+body.mx-client{background:var(--mx-paper)}
+.mx-client .header{background:#fff;border-bottom:1px solid var(--mx-line);padding:14px 24px}
+.mx-client .brand{gap:12px}
+.mx-client .brand-logo{height:30px;width:auto;display:block}
+.mx-client .brand-name{font-size:15px;font-weight:700;letter-spacing:-.01em}
+.mx-client .brand-sub{font-size:12px;color:var(--mx-ink-3)}
+.mx-client .brand-badge{background:var(--mx-blue-50);color:var(--mx-blue-700);font-size:11px;font-weight:600;padding:2px 8px;border-radius:999px;margin-left:4px}
+.mx-client .user-avatar{background:var(--mx-blue);width:34px;height:34px;font-size:13px}
+.mx-client .container{max-width:960px;padding:28px 24px 80px}
+.mx-client .proj-tab{min-height:34px;padding:7px 16px;font-size:13px;font-weight:600;border-color:var(--mx-line-2)}
+.mx-client .proj-tab.active{background:var(--mx-cyan-900);border-color:var(--mx-cyan-900);color:#fff}
+.mx-client .hero{
+  border:0;border-radius:16px;padding:26px 28px;color:#fff;
+  background-color:var(--mx-cyan-900);
+  background-image:
+    linear-gradient(rgba(255,255,255,.045) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(255,255,255,.045) 1px,transparent 1px);
+  background-size:24px 24px;background-position:-1px -1px;
+}
+.mx-client .hero-title{font-size:24px;font-weight:700;letter-spacing:-.02em;color:#fff}
+.mx-client .hero-meta{font-size:13px;color:rgba(255,255,255,.72);gap:14px}
+.mx-client .hero-meta strong{color:#fff!important}
+.mx-client .progress-label{font-size:13px;color:rgba(255,255,255,.8);margin-bottom:8px}
+.mx-client .progress-label strong{color:#fff;font-size:15px}
+.mx-client .progress-bar{height:10px;background:rgba(255,255,255,.16);border-radius:6px}
+.mx-client .progress-fill{background:#fff;border-radius:6px}
+.mx-client .section-title{font-size:15px;font-weight:700;margin-bottom:10px}
+.mx-client .section-count{font-size:11.5px;background:var(--mx-blue-50);color:var(--mx-blue-700)}
+.mx-client .card{border-radius:14px}
+.mx-client .stage-tl{padding:14px 18px}
+.mx-client .stage-name{font-size:13.5px;font-weight:600}
+.mx-client .stage-pct{font-size:13px}
+.mx-client .stage-icon{width:24px;height:24px;font-size:11.5px}
+.mx-client .stage-icon.done{background:#1E7A4C}
+.mx-client .stage-icon.active{background:var(--mx-blue)}
+.mx-client .stage-icon.pending{background:var(--mx-line);color:var(--mx-ink-3)}
+.mx-client .stage-bar{height:6px;border-radius:4px;background:#E6EBF3;margin-left:34px}
+.mx-client .stage-bar-fill{background:var(--mx-blue);border-radius:4px}
+.mx-client .meeting-row,.mx-client .doc-row,.mx-client .inv-row{padding:14px 18px}
+.mx-client .mr-title,.mx-client .doc-name,.mx-client .inv-termin{font-size:13.5px;font-weight:650}
+.mx-client .mr-meta,.mx-client .doc-meta,.mx-client .inv-meta{font-size:12px}
+.mx-client .mr-content{font-size:13px;line-height:1.55}
+.mx-client .inv-amount{font-size:14px;font-weight:700}
+.mx-client .btn{min-height:32px;font-size:12.5px}
+.mx-client .btn-primary,.mx-client .chat-send{background:var(--mx-blue);border-color:var(--mx-blue);color:#fff}
+.mx-client .gallery-item{border-radius:10px;background:var(--mx-blue-50)}
+.mx-client .gallery-link{color:var(--mx-blue-700);font-weight:600}
+.mx-client .chat-box{border-radius:14px}
+.mx-client .msg.klien .msg-bubble{background:var(--mx-blue)}
+.mx-client .msg.tim .msg-bubble{background:var(--mx-head);border:1px solid var(--mx-line)}
+.mx-client .msg-bubble{font-size:13.5px;border-radius:12px}
+.mx-client .chat-field{font-size:14px;border-radius:10px;border-color:var(--mx-line-2)}
+.mx-client .chat-field:focus{border-color:var(--mx-blue);box-shadow:var(--mx-ring)}
+.mx-client .chat-send{border-radius:10px;padding:8px 16px;font-weight:600}
+.mx-client .loading-screen,.mx-client .error-screen{color:var(--mx-ink-2)}
+@media (max-width:640px){
+  .mx-client .header{padding:12px 14px}
+  .mx-client .brand-sub{display:none}
+  .mx-client .container{padding:16px 14px 64px}
+  .mx-client .hero{padding:20px}
+  .mx-client .hero-title{font-size:20px}
+  .mx-client .chat-field{font-size:16px}
+}
+
+/* ---------- Tambahan layar kecil ---------- */
+@media (max-width:960px){
+  /* tabel lebar: geser ke samping, jangan diperas */
+  div[style*="overflow-x:auto"]>table,.tablewrap>table,.table-wrap>table{min-width:820px}
+  /* jumlah sel ganjil: sel terakhir penuh */
+  .stats .stat:last-child:nth-child(odd){grid-column:1 / -1}
+}
+@media (max-width:480px){
+  .stats .stat{padding:14px 14px!important}
+  .mx-mod-finance .stat-val,.mx-mod-aset .stat-val{font-size:17px;letter-spacing:-.01em}
+}
+.ar-actions .btn-red{background:#fff;color:#B3262D;border-color:#F0C4C6}
+.ar-actions .btn-red:hover{background:#FCEBEC;color:#992026}
+.ar-actions .btn-green{background:#fff;color:#1E7A4C;border-color:#BFE0CF}
