@@ -3,99 +3,211 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Moona v2 — Login</title>
+<title>Masuk — Moona Hub</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<meta name="theme-color" content="#0F2A4F">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-:root{--bg:#f8f7f4;--card:#fff;--border:#e5e3dc;--border2:#d0cec7;--text:#1a1a18;--text2:#6b6a64;--text3:#9d9b94;--coral:#993C1D;--coral-mid:#D85A30;--red:#A32D2D;--red-bg:#FCEBEB;--radius:12px;--radius-sm:8px;--brand:#406EB6;--brand-bg:#E8F0FA;}
-body{background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:var(--text);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
-.wrap{width:100%;max-width:380px}
-.brand{text-align:center;margin-bottom:28px}
-.brand-logo{display:none}
-.brand-name{font-size:20px;font-weight:700;color:var(--text);letter-spacing:-.5px}
-.brand-ver{display:inline-block;font-size:10px;font-weight:600;background:var(--brand);color:#fff;padding:1px 6px;border-radius:4px;margin-left:4px;vertical-align:middle}
-.brand-sub{font-size:12px;color:var(--text3);margin-top:4px}
-.card{background:var(--card);border:0.5px solid var(--border);border-radius:var(--radius);padding:24px}
-.form-group{margin-bottom:14px}
-.form-label{font-size:11px;font-weight:500;color:var(--text2);margin-bottom:5px;display:block}
-.form-input{width:100%;padding:9px 11px;border:0.5px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;color:var(--text);background:var(--card);outline:none;transition:border .15s;font-family:inherit}
-.form-input:focus{border-color:var(--brand);border-width:1.5px}
-.btn-login{width:100%;padding:10px;border-radius:var(--radius-sm);border:none;background:var(--brand);color:#fff;font-size:13px;font-weight:600;cursor:pointer;transition:opacity .15s;margin-top:4px;font-family:inherit}
-.btn-login:hover{opacity:.9}
-.btn-login:disabled{opacity:.6;cursor:not-allowed}
-.error-msg{background:var(--red-bg);color:var(--red);font-size:11px;padding:7px 10px;border-radius:var(--radius-sm);margin-bottom:12px;display:none;line-height:1.5}
+body.lg-body{min-height:100vh;background:#fff;color:#13223A;font-family:"Plus Jakarta Sans","Inter",system-ui,-apple-system,"Segoe UI",sans-serif;-webkit-font-smoothing:antialiased}
+.lg{display:grid;grid-template-columns:minmax(440px,46%) 1fr;min-height:100vh}
+
+/* Panel cetak biru */
+.lg-panel{
+  position:relative;overflow:hidden;color:#fff;
+  background-color:#0F2A4F;
+  background-image:
+    linear-gradient(rgba(255,255,255,.05) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(255,255,255,.05) 1px,transparent 1px),
+    linear-gradient(rgba(255,255,255,.022) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(255,255,255,.022) 1px,transparent 1px);
+  background-size:120px 120px,120px 120px,24px 24px,24px 24px;
+  background-position:-1px -1px;
+  display:flex;flex-direction:column;padding:40px 48px 44px;
+}
+.lg-top{font-size:15px;font-weight:600;color:rgba(255,255,255,.7);display:flex;align-items:center;gap:10px}
+.lg-top img{height:20px;filter:brightness(0) invert(1)}
+.lg-art{flex:1;display:flex;flex-direction:column;justify-content:center;padding:32px 0}
+.lg-drawing{width:min(440px,100%);height:auto;display:block;overflow:visible}
+.lg-tagline{font-size:clamp(22px,2.1vw,30px);line-height:1.25;font-weight:600;letter-spacing:-.02em;max-width:15em;margin-top:36px}
+
+/* Title block seperti di lembar gambar kerja */
+.lg-tb{display:grid;grid-template-columns:1fr 1fr;border:1px solid rgba(255,255,255,.28);max-width:440px}
+.lg-tb div{padding:10px 14px;border-right:1px solid rgba(255,255,255,.28);border-bottom:1px solid rgba(255,255,255,.28)}
+.lg-tb div:nth-child(2n){border-right:0}
+.lg-tb div:nth-last-child(-n+2){border-bottom:0}
+.lg-tb dt{font-size:11.5px;color:rgba(255,255,255,.55);margin-bottom:2px}
+.lg-tb dd{font-size:13.5px;font-weight:600;color:#fff}
+
+/* Animasi: garis ukur → kontur logo → isi (sekali saat halaman dibuka) */
+.dim{stroke:rgba(255,255,255,.55);stroke-width:5;fill:none}
+.dim-t{fill:rgba(255,255,255,.7);font-size:62px;font-family:inherit;font-weight:500;letter-spacing:2px}
+.dims{opacity:0;animation:lg-fade .6s ease-out .1s forwards}
+.mark path{fill:#fff;fill-opacity:0;stroke:#fff;stroke-width:9;stroke-dasharray:1;stroke-dashoffset:1;animation:lg-draw 1.25s cubic-bezier(.5,0,.2,1) .25s forwards,lg-fill .55s ease-out 1.3s forwards}
+.mark path+path{animation-delay:.55s,1.45s}
+@keyframes lg-draw{to{stroke-dashoffset:0}}
+@keyframes lg-fill{to{fill-opacity:1;stroke-opacity:0}}
+@keyframes lg-fade{to{opacity:1}}
+
+/* Form */
+.lg-main{display:flex;align-items:center;justify-content:center;padding:48px 24px}
+.lg-form{width:100%;max-width:372px}
+.lg-form h1{font-size:28px;font-weight:700;letter-spacing:-.025em;line-height:1.2}
+.lg-sub{font-size:14.5px;color:#4D5C74;margin:8px 0 28px;line-height:1.5}
+.lg-field{margin-bottom:16px}
+.lg-field label{display:block;font-size:13px;font-weight:600;color:#4D5C74;margin-bottom:7px}
+.lg-input{width:100%;height:46px;padding:0 14px;border:1px solid #CCD5E3;border-radius:10px;font-size:15px;color:#13223A;background:#fff;font-family:inherit;transition:border-color .12s,box-shadow .12s}
+.lg-input:hover{border-color:#B6C2D4}
+.lg-input:focus{outline:none;border-color:#406EB6;box-shadow:0 0 0 3px rgba(64,110,182,.24)}
+.lg-pw{position:relative}
+.lg-pw .lg-input{padding-right:52px}
+.lg-eye{position:absolute;right:5px;top:5px;width:36px;height:36px;border:0;border-radius:8px;background:transparent;color:#7F8DA3;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.lg-eye:hover{background:#F3F6FA;color:#13223A}
+.lg-eye:focus-visible{outline:2px solid #406EB6;outline-offset:1px}
+.lg-eye svg{width:19px;height:19px}
+.btn-login{width:100%;height:46px;margin-top:8px;border:0;border-radius:10px;background:#406EB6;color:#fff;font-size:15px;font-weight:650;font-family:inherit;cursor:pointer;transition:background .12s,box-shadow .12s;display:flex;align-items:center;justify-content:center;gap:10px}
+.btn-login:hover{background:#3560A3}
+.btn-login:focus-visible{outline:none;box-shadow:0 0 0 3px rgba(64,110,182,.35)}
+.btn-login:disabled{opacity:.75;cursor:progress}
+.btn-login .spin{width:16px;height:16px;border-radius:50%;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;animation:lg-spin .8s linear infinite;display:none}
+.btn-login:disabled .spin{display:block}
+@keyframes lg-spin{to{transform:rotate(360deg)}}
+.error-msg{display:none;background:#FCEBEC;color:#992026;border:1px solid #F3C9CB;font-size:13.5px;padding:10px 12px;border-radius:10px;margin-bottom:16px;line-height:1.45}
 .error-msg.show{display:block}
-.footer{text-align:center;font-size:10px;color:var(--text3);margin-top:16px}
+.lg-help{font-size:13px;color:#7F8DA3;margin-top:22px;line-height:1.5}
+.lg-mobile-logo{display:none}
+
+@media (max-width:900px){
+  .lg{grid-template-columns:1fr;grid-template-rows:auto 1fr}
+  .lg-panel{padding:22px 22px 26px}
+  .lg-top{display:none}
+  .lg-art{padding:6px 0 0}
+  .lg-drawing{width:min(250px,64vw)}
+  .lg-tagline{font-size:19px;margin-top:20px;max-width:18em}
+  .lg-tb{display:none}
+  .lg-main{align-items:flex-start;padding:30px 22px 40px}
+  .lg-form h1{font-size:24px}
+  .lg-input{font-size:16px}
+}
+@media (prefers-reduced-motion:reduce){
+  .dims{animation:none;opacity:1}
+  .mark path{animation:none;stroke-dashoffset:0;fill-opacity:1;stroke-opacity:0}
+}
 </style>
 </head>
-<body>
-<div class="wrap">
-    <div class="brand">
-    <img src="data:image/svg+xml;base64,PHN2ZyB2aWV3Qm94PSIxODIgMTI3IDE4NTMgMTE5NCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTAgMCBDOTYuNjkgMCAxOTMuMzggMCAyOTMgMCBDMjkzIDk5LjY2IDI5MyAxOTkuMzIgMjkzIDMwMiBDODA3LjggMzAyIDEzMjIuNiAzMDIgMTg1MyAzMDIgQzE4NTMgNTk2LjM2IDE4NTMgODkwLjcyIDE4NTMgMTE5NCBDMTc1Ni45NyAxMTk0IDE2NjAuOTQgMTE5NCAxNTYyIDExOTQgQzE1NjIgOTk1LjY3IDE1NjIgNzk3LjM0IDE1NjIgNTkzIEMxNDAxLjYyIDU5MyAxMjQxLjI0IDU5MyAxMDc2IDU5MyBDMTA3NiA3OTAuNjcgMTA3NiA5ODguMzQgMTA3NiAxMTkyIEM5NzguOTggMTE5MiA4ODEuOTYgMTE5MiA3ODIgMTE5MiBDNzgyIDk5NC4zMyA3ODIgNzk2LjY2IDc4MiA1OTMgQzYyMS4yOSA1OTMgNDYwLjU4IDU5MyAyOTUgNTkzIEMyOTUgNzkxLjMzIDI5NSA5ODkuNjYgMjk1IDExOTQgQzUgMTE5NCA1IDExOTQgMCAxMTkyIEMwIDc5OC42NCAwIDQwNS4yOCAwIDAgWiIgZmlsbD0iIzQwNkVCNiIgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMTgyLDEyNykiLz4KPHBhdGggZD0iTTAgMCBDNTAuNTEzNDYzNjEgLTEuNjU5NTc5OTEgOTguNzA2NjAyODYgMTUuNzkxMTc0MTYgMTM1Ljg3MDExNzE5IDUwLjA3ODEyNSBDMTM2LjQ1MDAzNDE4IDUwLjYxMjc2MzY3IDEzNy4wMjk5NTExNyA1MS4xNDc0MDIzNCAxMzcuNjI3NDQxNDEgNTEuNjk4MjQyMTkgQzE3MS41NDMyODYgODMuMzc3OTgwMDYgMTkyLjg3ODY0OTg1IDEyOS4yMjAwODgyNiAxOTUuMDM0MTc5NjkgMTc1LjYwODg4NjcyIEMxOTYuNzI0NDQ4MTggMjI5LjY0ODE3ODk3IDE3OS40NjIxNDk2OSAyNzguMjk2Nzc5NDYgMTQyLjQzNjUyMzQ0IDMxNy43Njk1MzEyNSBDMTI5LjYwMTg0MTc2IDMzMS4xNTg3MjM1MyAxMTUuMTQ1NzU3NDQgMzQyLjE5NTQ4NzQ0IDk4Ljg3MDExNzE5IDM1MS4wNzgxMjUgQzk3LjkyOTY2NTUzIDM1MS41OTM2Njk0MyA5Ny45Mjk2NjU1MyAzNTEuNTkzNjY5NDMgOTYuOTcwMjE0ODQgMzUyLjExOTYyODkxIEM1My4zNjI3NjU3IDM3NS42OTkyOTc1NSAxLjkyNTkyNDcyIDM4MC40MDM3MzYwOSAtNDUuNTk4NjMyODEgMzY2LjgwMDc4MTI1IEMtODIuNTc4MTkzODYgMzU1LjU5OTc0NDUyIC0xMTUuMzE5OTc1NDEgMzMzLjUzNjI1MzMgLTEzOS4xMjk4ODI4MSAzMDMuMDc4MTI1IEMtMTM5LjU1MTQwNjI1IDMwMi41NDg5NjQ4NCAtMTM5Ljk3MjkyOTY5IDMwMi4wMTk4MDQ2OSAtMTQwLjQwNzIyNjU2IDMwMS40NzQ2MDkzOCBDLTE2NC44MTg5OTg5MiAyNzAuNjUyMDMwMzMgLTE3Ny42ODUzNzA3NyAyMzIuMTcwMjMyMTcgLTE3OS4xMjk4ODI4MSAxOTMuMDc4MTI1IEMtMTc5LjE5MTc1NzgxIDE5MS42ODIwNzAzMSAtMTc5LjE5MTc1NzgxIDE5MS42ODIwNzAzMSAtMTc5LjI1NDg4MjgxIDE5MC4yNTc4MTI1IEMtMTc5Ljk3NTQzNDMgMTU4LjY0MzYxNTkxIC0xNzIuMjg1MjcwODIgMTI2Ljc2NzA4MjgzIC0xNTcuMTI5ODgyODEgOTkuMDc4MTI1IEMtMTU2LjY2MzI0MjE5IDk4LjE0NzQyMTg3IC0xNTYuMTk2NjAxNTYgOTcuMjE2NzE4NzUgLTE1NS43MTU4MjAzMSA5Ni4yNTc4MTI1IEMtMTQ5LjEwNjcyMTQ0IDgzLjMxMDE2MjY2IC0xNDAuMDc4Mjg1OTUgNzEuNjA4MzA2MSAtMTMwLjEyOTg4MjgxIDYxLjA3ODEyNSBDLTEyOS4wMDAyNjA0OCA1OS43NDg3MDU1MiAtMTI3Ljg3NTA4OTY5IDU4LjQxNTQ4NzgyIC0xMjYuNzU0ODgyODEgNTcuMDc4MTI1IEMtOTcuMjE2ODU4OTIgMjMuNDM1NzI4NzcgLTUxLjg2MzQ2OCA0Ljg3NTk0MDM5IC04LjA2NzM4MjgxIDAuMzI4MTI1IEMtNS4zNzg2MzU2NCAwLjE3NDkyMDAzIC0yLjY5MTAzMjQ2IDAuMDk4NzA4MjEgMCAwIFoiIGZpbGw9IiM0MDZFQjYiIHRyYW5zZm9ybT0idHJhbnNsYXRlKDIzMDQuMTI5ODgyODEyNSw5NDYuOTIxODc1KSIvPgo8L3N2Zz4=" alt="Moona" style="height:50px;width:auto;display:block;margin:0 auto 10px">
-    <div class="brand-name">Moona<span class="brand-ver">v2</span></div>
-    <div class="brand-sub">Architect System · Internal</div>
-  </div>
-  <div class="card">
-    <div class="error-msg" id="err"></div>
-    <div class="form-group"><label class="form-label">Username</label><input id="username" class="form-input" placeholder="Masukkan username" autocomplete="username" onkeydown="if(event.key==='Enter')document.getElementById('password').focus()"></div>
-    <div class="form-group"><label class="form-label">Password</label><input id="password" class="form-input" type="password" placeholder="Masukkan password" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()"></div>
-    <button class="btn-login" id="login-btn" onclick="doLogin()">Masuk</button>
-  </div>
-  <div class="footer">Moona Architect · Sistem Internal v2</div>
-</div>
-<script src="moona-core.js"></script>
-<script>
-const API=MOONA_API;
+<body class="lg-body">
+<div class="lg">
+  <section class="lg-panel" aria-label="Moona Architect">
+    <div class="lg-top"><img src="moona-logo.svg" alt=""><span>Hub</span></div>
+    <div class="lg-art">
+      <svg class="lg-drawing" viewBox="-250 -40 2860 1760" role="img" aria-label="Logo Moona">
+        <g class="dims" aria-hidden="true">
+          <!-- garis ukur horizontal -->
+          <path class="dim" d="M182 1395 V1600 M2502 1395 V1600 M182 1530 H2502"/>
+          <path class="dim" d="M142 1570 L222 1490 M2462 1570 L2542 1490"/>
+          <text class="dim-t" x="1342" y="1500" text-anchor="middle">2320</text>
+          <!-- garis ukur vertikal -->
+          <path class="dim" d="M120 127 H-90 M120 1329 H-90 M-30 127 V1329"/>
+          <path class="dim" d="M-70 167 L10 87 M-70 1369 L10 1289"/>
+          <text class="dim-t" x="-80" y="728" text-anchor="middle" transform="rotate(-90 -80 728)">1202</text>
+        </g>
+        <g class="mark">
+          <path pathLength="1" d="M0 0 C96.69 0 193.38 0 293 0 C293 99.66 293 199.32 293 302 C807.8 302 1322.6 302 1853 302 C1853 596.36 1853 890.72 1853 1194 C1756.97 1194 1660.94 1194 1562 1194 C1562 995.67 1562 797.34 1562 593 C1401.62 593 1241.24 593 1076 593 C1076 790.67 1076 988.34 1076 1192 C978.98 1192 881.96 1192 782 1192 C782 994.33 782 796.66 782 593 C621.29 593 460.58 593 295 593 C295 791.33 295 989.66 295 1194 C5 1194 5 1194 0 1192 C0 798.64 0 405.28 0 0 Z" transform="translate(182,127)"/>
+          <path pathLength="1" d="M0 0 C50.51346361 -1.65957991 98.70660286 15.79117416 135.87011719 50.078125 C136.45003418 50.61276367 137.02995117 51.14740234 137.62744141 51.69824219 C171.543286 83.37798006 192.87864985 129.22008826 195.03417969 175.60888672 C196.72444818 229.64817897 179.46214969 278.29677946 142.43652344 317.76953125 C129.60184176 331.15872353 115.14575744 342.19548744 98.87011719 351.078125 C97.92966553 351.59366943 97.92966553 351.59366943 96.97021484 352.11962891 C53.3627657 375.69929755 1.92592472 380.40373609 -45.59863281 366.80078125 C-82.57819386 355.59974452 -115.31997541 333.5362533 -139.12988281 303.078125 C-139.55140625 302.54896484 -139.97292969 302.01980469 -140.40722656 301.47460938 C-164.81899892 270.65203033 -177.68537077 232.17023217 -179.12988281 193.078125 C-179.19175781 191.68207031 -179.19175781 191.68207031 -179.25488281 190.2578125 C-179.9754343 158.64361591 -172.28527082 126.76708283 -157.12988281 99.078125 C-156.66324219 98.14742187 -156.19660156 97.21671875 -155.71582031 96.2578125 C-149.10672144 83.31016266 -140.07828595 71.6083061 -130.12988281 61.078125 C-129.00026048 59.74870552 -127.87508969 58.41548782 -126.75488281 57.078125 C-97.21685892 23.43572877 -51.863468 4.87594039 -8.06738281 0.328125 C-5.37863564 0.17492003 -2.69103246 0.09870821 0 0 Z" transform="translate(2304.1298828125,946.921875)"/>
+        </g>
+      </svg>
+      <p class="lg-tagline">Satu tempat untuk proyek, tim, dan klien Moona.</p>
+    </div>
+    <dl class="lg-tb">
+      <div><dt>Studio</dt><dd>Moona Architect</dd></div>
+      <div><dt>Lokasi</dt><dd>Situbondo, Jawa Timur</dd></div>
+      <div><dt>Sistem</dt><dd>Moona Hub v2</dd></div>
+      <div><dt>Tanggal</dt><dd id="lg-date">–</dd></div>
+    </dl>
+  </section>
 
-// Auto-attribution untuk Log Aktivitas: sisipkan actorId & actorRole ke setiap POST tulis ke API
-(function(){
-  if (window.__moonaFetchWrapped) return; window.__moonaFetchWrapped = true;
-  var _f = window.fetch.bind(window);
-  window.fetch = function(url, opts){
-    try {
-      if (opts && opts.method === 'POST' && typeof url === 'string' && url.indexOf(API) === 0 && typeof opts.body === 'string') {
-        var s = JSON.parse(localStorage.getItem('moona_v2_session') || 'null');
-        if (s && s.id) {
-          var b = JSON.parse(opts.body);
-          if (b && b.action) {
-            if (b.actorId === undefined) b.actorId = s.id;
-            if (b.actorRole === undefined) b.actorRole = s.role;
-            opts = Object.assign({}, opts, { body: JSON.stringify(b) });
-          }
-        }
-      }
-    } catch(e){}
-    return _f(url, opts);
-  };
-})();
+  <main class="lg-main">
+    <form class="lg-form" id="lg-form" novalidate>
+      <h1>Masuk ke Moona Hub</h1>
+      <p class="lg-sub">Pakai username dan password yang diberikan admin.</p>
+      <div class="error-msg" id="err" role="alert" aria-live="assertive"></div>
+      <div class="lg-field">
+        <label for="username">Username</label>
+        <input id="username" class="lg-input" autocomplete="username" autocapitalize="none" spellcheck="false" required>
+      </div>
+      <div class="lg-field">
+        <label for="password">Password</label>
+        <div class="lg-pw">
+          <input id="password" class="lg-input" type="password" autocomplete="current-password" required>
+          <button type="button" class="lg-eye" id="eye" aria-label="Tampilkan password" aria-pressed="false"></button>
+        </div>
+      </div>
+      <button class="btn-login" id="login-btn" type="submit"><span class="spin" aria-hidden="true"></span><span id="login-label">Masuk</span></button>
+      <p class="lg-help">Lupa password? Minta admin menggantinya di User Management.</p>
+    </form>
+  </main>
+</div>
+
+<script src="moona-core.js?v=3"></script>
+<script>
+const API = MOONA_API;
+const EYE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="3"/></svg>';
+const EYE_OFF = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3l18 18"/><path d="M10.6 5.6A9.8 9.8 0 0 1 12 5.5c6 0 9.5 6.5 9.5 6.5a17 17 0 0 1-3.2 4M6.4 6.5C3.9 8.2 2.5 12 2.5 12S6 18.5 12 18.5c1.6 0 3-.4 4.2-1"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg>';
+
 function getSession(){try{return JSON.parse(localStorage.getItem('moona_v2_session'));}catch(e){return null;}}
-window.onload=()=>{const s=getSession();if(s)redirectByRole(s.role);}
 function redirectByRole(role){
   const map={
-    'Owner':'moona-v2-dashboard.html',
-    'OperasionalManager':'moona-v2-dashboard.html',
-    'StudioHead':'moona-v2-dashboard.html',
-    'Designer':'moona-v2-laporan-design-v4.html',
-    'Estimator':'moona-v2-projects.html',
-    'SiteEngineer':'moona-v2-laporan-build-v4.html',
-    'Sales':'moona-v2-crm.html',
-    'Marketing':'moona-v2-content.html',
-    'Finance':'moona-v2-finance.html'
+    'Owner':'moona-v2-dashboard.html','OperasionalManager':'moona-v2-dashboard.html','StudioHead':'moona-v2-dashboard.html',
+    'Designer':'moona-v2-laporan-design-v4.html','Estimator':'moona-v2-projects.html','SiteEngineer':'moona-v2-laporan-build-v4.html',
+    'Sales':'moona-v2-crm.html','Marketing':'moona-v2-content.html','Finance':'moona-v2-finance.html'
   };
   location.href=map[role]||'moona-v2-dashboard.html';
 }
+(function init(){
+  const s=getSession();
+  if(s){
+    let acc=null; try{acc=JSON.parse(localStorage.getItem('moona_v2_access'));}catch(e){}
+    if(acc&&acc.default){location.href=acc.default;}else{redirectByRole(s.role);}
+    return;
+  }
+  document.getElementById('lg-date').textContent=new Date().toLocaleDateString('id-ID',{day:'numeric',month:'long',year:'numeric'});
+  const eye=document.getElementById('eye'), pw=document.getElementById('password');
+  eye.innerHTML=EYE;
+  eye.addEventListener('click',()=>{
+    const show=pw.type==='password'; pw.type=show?'text':'password';
+    eye.innerHTML=show?EYE_OFF:EYE; eye.setAttribute('aria-pressed',show?'true':'false');
+    eye.setAttribute('aria-label',show?'Sembunyikan password':'Tampilkan password'); pw.focus();
+  });
+  document.getElementById('lg-form').addEventListener('submit',e=>{e.preventDefault();doLogin();});
+  document.getElementById('username').focus();
+})();
+
+function showErr(msg){const err=document.getElementById('err');err.textContent=msg;err.classList.add('show');}
 async function doLogin(){
   const u=document.getElementById('username').value.trim();
   const pw=document.getElementById('password').value.trim();
   const err=document.getElementById('err');
-  if(!u||!pw){err.textContent='Username dan password wajib diisi.';err.classList.add('show');return;}
-  const btn=document.getElementById('login-btn');btn.disabled=true;btn.textContent='Memeriksa...';
-  err.classList.remove('show');
+  if(!u||!pw){showErr('Isi username dan password dulu.');(u?document.getElementById('password'):document.getElementById('username')).focus();return;}
+  const btn=document.getElementById('login-btn'), lbl=document.getElementById('login-label');
+  btn.disabled=true; lbl.textContent='Memeriksa…'; err.classList.remove('show');
   try{
     const r=await fetch(`${API}?action=login&username=${encodeURIComponent(u)}&password=${encodeURIComponent(pw)}`);
     const d=await r.json();
-    if(d.status==='ok'){localStorage.setItem('moona_v2_session',JSON.stringify({id:d.id,nama:d.nama,role:d.role,username:d.username,jobTitle:d.jobTitle||''}));localStorage.setItem('moona_v2_access',JSON.stringify(d.access||null));if(d.access&&d.access.default){location.href=d.access.default;}else{redirectByRole(d.role);}}
-    else{err.textContent='Username atau password salah.';err.classList.add('show');btn.disabled=false;btn.textContent='Masuk';}
-  }catch(e){err.textContent='Gagal terhubung. Coba lagi.';err.classList.add('show');btn.disabled=false;btn.textContent='Masuk';}
+    if(d.status==='ok'){
+      localStorage.setItem('moona_v2_session',JSON.stringify({id:d.id,nama:d.nama,role:d.role,username:d.username,jobTitle:d.jobTitle||''}));
+      localStorage.setItem('moona_v2_access',JSON.stringify(d.access||null));
+      lbl.textContent='Berhasil, membuka…';
+      if(d.access&&d.access.default){location.href=d.access.default;}else{redirectByRole(d.role);}
+      return;
+    }
+    showErr('Username atau password salah. Cek lagi, atau minta admin mereset password.');
+    document.getElementById('password').select();
+  }catch(e){
+    showErr('Tidak bisa terhubung ke server. Periksa koneksi internet lalu coba lagi.');
+  }
+  btn.disabled=false; lbl.textContent='Masuk';
 }
 </script>
 </body>

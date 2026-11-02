@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Moona Architect — Portal Klien</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -129,16 +130,20 @@ body{background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI
   .gallery{grid-template-columns:repeat(auto-fill,minmax(110px,1fr))}
 }
 </style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="moona-ui.css?v=3">
 </head>
-<body>
+<body class="mx-client">
 
 <div id="loading-view" class="loading-screen">
-  <div style="font-size:16px;font-weight:600;color:var(--coral)">Moona Architect</div>
+  <img src="moona-logo.svg" alt="Moona Architect" style="height:34px;margin-bottom:6px">
   <div style="font-size:12px;color:var(--text3)">Memuat portal...</div>
 </div>
 
 <div id="error-view" class="error-screen" style="display:none">
-  <div style="font-size:32px">🔒</div>
+  <img src="moona-logo.svg" alt="Moona Architect" style="height:30px;margin-bottom:10px">
   <div style="font-size:16px;font-weight:600" id="error-title">Akses tidak valid</div>
   <div style="font-size:12px;color:var(--text3);max-width:300px" id="error-msg">Link yang Anda gunakan tidak ditemukan atau sudah dinonaktifkan. Hubungi tim Moona untuk link baru.</div>
 </div>
@@ -147,9 +152,10 @@ body{background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI
   <div class="header">
     <div class="header-inner">
       <div class="brand">
+        <img src="moona-logo.svg" alt="Moona Architect" class="brand-logo">
         <div>
           <div class="brand-name">Moona Architect <span class="brand-badge">Portal Klien</span></div>
-          <div class="brand-sub">Design-build residential &amp; commercial</div>
+          <div class="brand-sub">Design &amp; build · residensial dan komersial</div>
         </div>
       </div>
       <div class="user-pill">
@@ -170,7 +176,7 @@ body{background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI
 
 <div class="toast" id="toast"></div>
 
-<script src="moona-core.js"></script>
+<script src="moona-core.js?v=3"></script>
 <script>
 var API = MOONA_API;
 
@@ -210,8 +216,8 @@ function p(o) {
   return '';
 }
 function showToast(m) { var t = document.getElementById('toast'); t.textContent = m; t.classList.add('show'); setTimeout(function(){t.classList.remove('show');}, 2500); }
-function fmtDate(s) { if (!s) return '-'; try { return new Date(s).toLocaleDateString('id-ID',{day:'numeric',month:'short',year:'numeric'}); } catch(e) { return s; } }
-function fmtDT(s) { if (!s) return '-'; try { return new Date(s).toLocaleString('id-ID',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}); } catch(e) { return s; } }
+function fmtDate(s) { if (!s) return '-'; return moonaFmtDate(s) || String(s); }
+function fmtDT(s) { if (!s) return '-'; return moonaFmtDateTime(s) || String(s); }
 function rp(n) { return 'Rp ' + (parseFloat(n)||0).toLocaleString('id-ID'); }
 
 function showError(msg) {

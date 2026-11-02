@@ -77,6 +77,10 @@ body{background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI
 .loading{text-align:center;padding:18px;color:var(--text3);font-size:11px}
 @media(max-width:768px){.sidebar{display:none}.main{margin-left:0;padding:12px}.stats{grid-template-columns:1fr 1fr}.grid2{grid-template-columns:1fr}.module-grid{grid-template-columns:1fr 1fr}}
 </style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="moona-ui.css?v=3">
 </head>
 <body>
 <div class="app">
@@ -210,7 +214,7 @@ body{background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI
 </div>
 </div>
 
-<script src="moona-core.js"></script>
+<script src="moona-core.js?v=3"></script>
 <script>
 const API=MOONA_API;
 
@@ -249,7 +253,7 @@ else{
 document.getElementById('today-date').textContent=new Date().toLocaleDateString('id-ID',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
 
 function p(o,...ks){for(const k of ks){if(o[k]!==undefined&&o[k]!==null&&String(o[k]).trim()!='')return String(o[k]);}return '';}
-function fmtDate(s){if(!s)return'–';try{return new Date(s).toLocaleDateString('id-ID',{day:'numeric',month:'short'});}catch(e){return s;}}
+function fmtDate(s){if(!s)return'–';var d=moonaParseDate(s);return d?d.toLocaleDateString('id-ID',{day:'numeric',month:'short'}):String(s);}
 function rp(n){if(!n||isNaN(n))return'–';const v=parseFloat(n);if(v>=1e9)return'Rp '+(v/1e9).toFixed(1)+' M';if(v>=1e6)return'Rp '+Math.round(v/1e6)+' jt';return'Rp '+v.toLocaleString('id-ID');}
 
 window.onload=async()=>{
@@ -379,10 +383,10 @@ function renderActions(myItems){
       <div class="chk"></div>
       <div style="flex:1;min-width:0">
         <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
-          <span style="font-size:9px;font-weight:600;background:${it.sourceBg};color:${it.sourceColor};padding:1px 6px;border-radius:8px;letter-spacing:.02em">${it.source}</span>
-          <span style="font-size:11px;font-weight:500;color:var(--text)">${it.title}</span>
+          <span style="font-size:11px;font-weight:600;background:${it.sourceBg};color:${it.sourceColor};padding:1px 8px;border-radius:999px">${it.source}</span>
+          <span style="font-size:13.5px;font-weight:600;color:var(--text);line-height:1.4">${it.title}</span>
         </div>
-        <div style="font-size:10px;color:var(--text3);margin-top:3px">${it.sub?it.sub+' · ':''}<span style="color:${dlColor}">${dlText}</span></div>
+        <div style="font-size:12px;color:var(--text3);margin-top:4px">${it.sub?it.sub+' · ':''}<span style="color:${dlColor};font-weight:600">${dlText}</span></div>
       </div>
     </div></a>`;
   }).join('');
@@ -464,7 +468,7 @@ function renderMeetings(meetings){
   const el=document.getElementById('meeting-list');
   if(!recent.length){el.innerHTML='<div class="empty">Belum ada meeting.</div>';return;}
   el.innerHTML=recent.map(m=>`<div class="item-row">
-    <div class="item-main"><div class="item-title">${p(m,'Judul')}</div><div class="item-sub">${p(m,'Tanggal')||'–'}</div></div>
+    <div class="item-main"><div class="item-title">${p(m,'Judul')}</div><div class="item-sub">${(function(){var d=moonaParseDate(p(m,'TanggalMeeting')||p(m,'Tanggal'));return d?d.toLocaleDateString('id-ID',{weekday:'short',day:'numeric',month:'short',year:'numeric'}):'–';})()}</div></div>
     <span class="pill ${p(m,'Tipe')==='Internal'?'p-int':'p-client'}">${p(m,'Tipe')||'–'}</span>
   </div>`).join('');
 }

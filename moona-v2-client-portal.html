@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Moona v2 — Client Portal Management</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -121,6 +122,10 @@ textarea.form-input{resize:vertical;min-height:50px;line-height:1.5}
   .stats{grid-template-columns:1fr 1fr}.form-row{grid-template-columns:1fr}
 }
 </style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="moona-ui.css?v=3">
 </head>
 <body>
 <div class="app">
@@ -261,7 +266,7 @@ textarea.form-input{resize:vertical;min-height:50px;line-height:1.5}
 </div>
 
 <div class="toast" id="toast"></div>
-<script src="moona-core.js"></script>
+<script src="moona-core.js?v=3"></script>
 <script>
 var API = MOONA_API;
 
@@ -309,8 +314,8 @@ function p(o) {
 }
 function showToast(m) { var t = document.getElementById('toast'); t.textContent = m; t.classList.add('show'); setTimeout(function(){t.classList.remove('show');}, 2800); }
 function closeModal(id) { document.getElementById(id).classList.remove('open'); }
-function fmtDate(s) { if (!s) return '-'; try { return new Date(s).toLocaleDateString('id-ID',{day:'numeric',month:'short',year:'numeric'}); } catch(e) { return s; } }
-function fmtDT(s) { if (!s) return '-'; try { return new Date(s).toLocaleString('id-ID',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}); } catch(e) { return s; } }
+function fmtDate(s) { if (!s) return '-'; return moonaFmtDate(s) || String(s); }
+function fmtDT(s) { if (!s) return '-'; return moonaFmtDateTime(s) || String(s); }
 
 function switchTab(t, el) {
   currentTab = t;
