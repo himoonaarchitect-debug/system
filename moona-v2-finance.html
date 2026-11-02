@@ -66,6 +66,12 @@ body{background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI
 .fpill{padding:4px 11px;border-radius:20px;font-size:11px;font-weight:500;cursor:pointer;border:0.5px solid var(--border2);color:var(--text2);background:var(--card)}
 .fpill.active{background:var(--text);color:#fff;border-color:var(--text)}
 .fsep{width:1px;height:16px;background:var(--border2);margin:0 4px}
+.daterange{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:12px;padding:8px 10px;background:var(--card);border:0.5px solid var(--border);border-radius:var(--radius-sm)}
+.daterange label{font-size:11px;color:var(--text3)}
+.daterange input{padding:5px 8px;border:0.5px solid var(--border2);border-radius:var(--radius-sm);font-size:12px;font-family:inherit}
+.dr-chip{padding:3px 9px;border-radius:14px;font-size:11px;cursor:pointer;border:0.5px solid var(--border2);color:var(--text2);background:var(--bg)}
+.dr-chip.on{background:var(--amber);color:#fff;border-color:var(--amber)}
+.card-sum{font-size:11px;color:var(--text2)}
 
 .tabs{display:flex;border-bottom:0.5px solid var(--border);margin-bottom:14px}
 .tab{padding:8px 16px;font-size:12px;color:var(--text2);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-0.5px}
@@ -190,6 +196,17 @@ textarea.form-input{resize:vertical;min-height:50px;line-height:1.5}
 
   <!-- INVOICE TAB -->
   <div id="tab-invoice">
+    <div class="daterange" id="dr-inv">
+      <label>Tanggal</label>
+      <input type="date" id="inv-from" onchange="setRange('inv')">
+      <label>s/d</label>
+      <input type="date" id="inv-to" onchange="setRange('inv')">
+      <span class="fsep"></span>
+      <span class="dr-chip" data-p="bulan" onclick="presetRange('inv','bulan')">Bulan ini</span>
+      <span class="dr-chip" data-p="bulanlalu" onclick="presetRange('inv','bulanlalu')">Bulan lalu</span>
+      <span class="dr-chip" data-p="tahun" onclick="presetRange('inv','tahun')">Tahun ini</span>
+      <span class="dr-chip on" data-p="semua" onclick="presetRange('inv','semua')">Semua</span>
+    </div>
     <div class="filter-bar">
       <div class="fpill active" onclick="setInvFilter('',this)">Semua</div>
       <div class="fpill" onclick="setInvFilter('Menunggu',this)">Menunggu</div>
@@ -197,7 +214,7 @@ textarea.form-input{resize:vertical;min-height:50px;line-height:1.5}
       <div class="fpill" onclick="setInvFilter('Late',this)">Terlambat</div>
     </div>
     <div class="card">
-      <div class="card-header"><span class="card-title">Daftar invoice</span></div>
+      <div class="card-header"><span class="card-title">Daftar invoice</span><span class="card-sum" id="inv-sum"></span></div>
       <div style="overflow-x:auto">
         <table id="invoice-table">
           <thead><tr><th>Tanggal</th><th>Proyek</th><th>Termin</th><th class="td-right">Nominal</th><th>Tempo</th><th>Status</th><th></th></tr></thead>
@@ -209,8 +226,19 @@ textarea.form-input{resize:vertical;min-height:50px;line-height:1.5}
 
   <!-- CASHFLOW TAB -->
   <div id="tab-cashflow" style="display:none">
+    <div class="daterange" id="dr-cf">
+      <label>Tanggal</label>
+      <input type="date" id="cf-from" onchange="setRange('cf')">
+      <label>s/d</label>
+      <input type="date" id="cf-to" onchange="setRange('cf')">
+      <span class="fsep"></span>
+      <span class="dr-chip" data-p="bulan" onclick="presetRange('cf','bulan')">Bulan ini</span>
+      <span class="dr-chip" data-p="bulanlalu" onclick="presetRange('cf','bulanlalu')">Bulan lalu</span>
+      <span class="dr-chip" data-p="tahun" onclick="presetRange('cf','tahun')">Tahun ini</span>
+      <span class="dr-chip on" data-p="semua" onclick="presetRange('cf','semua')">Semua</span>
+    </div>
     <div class="card">
-      <div class="card-header"><span class="card-title">Daftar pengeluaran</span></div>
+      <div class="card-header"><span class="card-title">Daftar pengeluaran</span><span class="card-sum" id="cf-sum"></span></div>
       <div style="overflow-x:auto">
         <table id="cf-table">
           <thead><tr><th>Tanggal</th><th>Proyek</th><th>Periode</th><th class="td-right">Total</th><th></th></tr></thead>
@@ -321,6 +349,37 @@ var API = MOONA_API;
 })();
 var invoices = [], cashflows = [], projects = [], rabAll = [];
 var invFilter = '', cfFilter = '';
+// Filter rentang tanggal: { inv: {from,to}, cf: {from,to} } — format YYYY-MM-DD, kosong = tanpa batas
+var RANGE = { inv: { from: '', to: '' }, cf: { from: '', to: '' } };
+function inRange(v, k) {
+  var r = RANGE[k]; if (!r.from && !r.to) return true;
+  var d = moonaISODate(v); if (!d) return false;
+  return (!r.from || d >= r.from) && (!r.to || d <= r.to);
+}
+function setRange(k) {
+  RANGE[k].from = document.getElementById(k + '-from').value;
+  RANGE[k].to = document.getElementById(k + '-to').value;
+  if (RANGE[k].from && RANGE[k].to && RANGE[k].from > RANGE[k].to) { var t = RANGE[k].from; RANGE[k].from = RANGE[k].to; RANGE[k].to = t; }
+  syncRangeUI(k, '');
+  k === 'inv' ? renderInvoices() : renderCashflows();
+}
+function presetRange(k, p) {
+  var n = new Date(), y = n.getFullYear(), m = n.getMonth(), f = '', t = '';
+  if (p === 'bulan') { f = moonaISODate(new Date(y, m, 1)); t = moonaISODate(new Date(y, m + 1, 0)); }
+  if (p === 'bulanlalu') { f = moonaISODate(new Date(y, m - 1, 1)); t = moonaISODate(new Date(y, m, 0)); }
+  if (p === 'tahun') { f = y + '-01-01'; t = y + '-12-31'; }
+  RANGE[k] = { from: f, to: t };
+  syncRangeUI(k, p);
+  k === 'inv' ? renderInvoices() : renderCashflows();
+}
+function syncRangeUI(k, p) {
+  document.getElementById(k + '-from').value = RANGE[k].from;
+  document.getElementById(k + '-to').value = RANGE[k].to;
+  if (!RANGE[k].from && !RANGE[k].to) p = 'semua';
+  var chips = document.querySelectorAll('#dr-' + k + ' .dr-chip');
+  for (var i = 0; i < chips.length; i++) chips[i].classList.toggle('on', chips[i].getAttribute('data-p') === p);
+}
+function rangeLabel(k) { var r = RANGE[k]; if (!r.from && !r.to) return ''; return ' · ' + (r.from ? fmtDate(r.from) : '…') + ' – ' + (r.to ? fmtDate(r.to) : '…'); }
 
 function getSession() { try { return JSON.parse(localStorage.getItem('moona_v2_session')); } catch(e) { return null; } }
 function logout() { localStorage.removeItem('moona_v2_session'); location.href = 'moona-v2-login.html'; }
@@ -340,7 +399,7 @@ function p(o) {
 }
 function showToast(m) { var t = document.getElementById('toast'); t.textContent = m; t.classList.add('show'); setTimeout(function(){t.classList.remove('show');}, 2800); }
 function closeModal(id) { document.getElementById(id).classList.remove('open'); }
-function fmtDate(s) { if (!s) return '-'; try { return new Date(s).toLocaleDateString('id-ID',{day:'numeric',month:'short',year:'numeric'}); } catch(e) { return s; } }
+function fmtDate(s) { if (!s) return '-'; return moonaFmtDate(s) || String(s); }
 // Angka selalu ditampilkan penuh (tidak disingkat jt/M/rb) supaya digit kecil tetap terlihat.
 function rp(n) {
   var v = parseFloat(n);
@@ -436,10 +495,13 @@ function renderInvoices() {
     var status = p(inv,'StatusBayar') || 'Menunggu';
     var tempo = p(inv,'JatuhTempo');
     var isLate = tempo && new Date(tempo) < today && status !== 'Lunas';
+    if (!inRange(p(inv,'TanggalKirim'), 'inv')) continue;
     if (invFilter === 'Late') { if (isLate) f.push(inv); }
     else if (!invFilter || status === invFilter) f.push(inv);
   }
-  if (!f.length) { el.innerHTML = '<tr><td colspan="7" class="empty">Belum ada invoice.</td></tr>'; return; }
+  var sumInv = 0; for (var si = 0; si < f.length; si++) sumInv += parseFloat(p(f[si],'Nominal') || 0);
+  document.getElementById('inv-sum').textContent = f.length + ' invoice · ' + rpFull(sumInv) + rangeLabel('inv');
+  if (!f.length) { el.innerHTML = '<tr><td colspan="7" class="empty">' + (RANGE.inv.from || RANGE.inv.to ? 'Tidak ada invoice di rentang tanggal ini.' : 'Belum ada invoice.') + '</td></tr>'; return; }
   var sorted = f.slice().sort(function(a,b){
     return new Date(p(b,'TanggalKirim')) - new Date(p(a,'TanggalKirim'));
   });
@@ -473,9 +535,12 @@ function renderCashflows() {
   var el = document.getElementById('cf-rows');
   var f = [];
   for (var i = 0; i < cashflows.length; i++) {
+    if (!inRange(p(cashflows[i],'Tanggal'), 'cf')) continue;
     f.push(cashflows[i]);
   }
-  if (!f.length) { el.innerHTML = '<tr><td colspan="6" class="empty">Belum ada pengeluaran.</td></tr>'; return; }
+  var sumCf = 0; for (var si = 0; si < f.length; si++) sumCf += parseFloat(p(f[si],'Keluar') || 0);
+  document.getElementById('cf-sum').textContent = f.length + ' catatan · ' + rpFull(sumCf) + rangeLabel('cf');
+  if (!f.length) { el.innerHTML = '<tr><td colspan="6" class="empty">' + (RANGE.cf.from || RANGE.cf.to ? 'Tidak ada pengeluaran di rentang tanggal ini.' : 'Belum ada pengeluaran.') + '</td></tr>'; return; }
   var sorted = f.slice().sort(function(a,b){ return new Date(p(b,'Tanggal')) - new Date(p(a,'Tanggal')); });
   var parts = [];
   for (var k = 0; k < sorted.length; k++) {
