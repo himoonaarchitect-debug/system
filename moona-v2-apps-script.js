@@ -115,7 +115,9 @@ function doGet(e) {
     // Aksi publik untuk portal klien (pakai token portal klien)
     if (action === 'validateClientToken') return validateClientToken(e.parameter);
     if (action === 'getClientData') return getClientData(e.parameter);
-    var u = mxAuth_(e.parameter.sid);
+    // Kunci sesi di URL bernama "sesi". Nama "sid" TIDAK bisa dipakai: server Google
+    // memblokir permintaan yang membawa parameter sid (fetch gagal sebelum script jalan).
+    var u = mxAuth_(e.parameter.sesi || e.parameter.sid);
     if (action === 'getClientChat' && !u) return getClientChatPublic_(e.parameter);
     if (!u) return mxDenied_('AUTH');
     if (!mxCan_(u, action, false)) return mxDenied_('FORBIDDEN');

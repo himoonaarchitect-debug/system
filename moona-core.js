@@ -122,8 +122,9 @@ function moonaSessionExpired() {
           if (s && s.id) { if (b.actorId === undefined) b.actorId = s.id; if (b.actorRole === undefined) b.actorRole = s.role; }
           opts = Object.assign({}, opts, { body: JSON.stringify(b) });
         }
-      } else if (method === 'GET' && sid && !/[?&]sid=/.test(url)) {
-        url += (url.indexOf('?') >= 0 ? '&' : '?') + 'sid=' + encodeURIComponent(sid);
+      } else if (method === 'GET' && sid && !/[?&]sesi=/.test(url)) {
+        // Di URL pakai nama "sesi" — parameter bernama "sid" diblokir server Google.
+        url += (url.indexOf('?') >= 0 ? '&' : '?') + 'sesi=' + encodeURIComponent(sid);
       }
     } catch (e) {}
     return _f(url, opts).then(function (res) {
