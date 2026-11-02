@@ -159,7 +159,7 @@ tbody tr:hover td{background:#fcfbf9}
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap">
-<link rel="stylesheet" href="moona-ui.css?v=3">
+<link rel="stylesheet" href="moona-ui.css?v=4">
 </head>
 <body>
 <div class="app">
@@ -326,7 +326,7 @@ tbody tr:hover td{background:#fcfbf9}
 </div>
 
 <div class="toast" id="toast"></div>
-<script src="moona-core.js?v=3"></script>
+<script src="moona-core.js?v=4"></script>
 <script>
 var API = MOONA_API;
 
@@ -353,7 +353,7 @@ var API = MOONA_API;
 })();
 
 function getSession(){ return moonaSession(); }
-function logout(){ localStorage.removeItem('moona_v2_session'); localStorage.removeItem('moona_v2_access'); location.href='moona-v2-login.html'; }
+function logout() { moonaLogout(); }
 if(!moonaRequireAccess('usermgmt')) throw new Error('Akses ditolak');
 
 function go(u){ location.href=u; }

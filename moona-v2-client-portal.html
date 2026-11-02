@@ -125,7 +125,7 @@ textarea.form-input{resize:vertical;min-height:50px;line-height:1.5}
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap">
-<link rel="stylesheet" href="moona-ui.css?v=3">
+<link rel="stylesheet" href="moona-ui.css?v=4">
 </head>
 <body>
 <div class="app">
@@ -266,7 +266,7 @@ textarea.form-input{resize:vertical;min-height:50px;line-height:1.5}
 </div>
 
 <div class="toast" id="toast"></div>
-<script src="moona-core.js?v=3"></script>
+<script src="moona-core.js?v=4"></script>
 <script>
 var API = MOONA_API;
 
@@ -297,7 +297,7 @@ var accesses = [], projects = [], files = [], chats = [];
 var currentTab = 'access';
 
 function getSession() { try { return JSON.parse(localStorage.getItem('moona_v2_session')); } catch(e) { return null; } }
-function logout() { localStorage.removeItem('moona_v2_session'); location.href = 'moona-v2-login.html'; }
+function logout() { moonaLogout(); }
 if (!moonaRequireAccess('client-portal')) throw new Error('Akses ditolak');
 
 function go(u) { location.href = u; }
@@ -473,8 +473,8 @@ function renderChat() {
     for (var m = 0; m < msgs.length; m++) { if (p(msgs[m],'Role') === 'Klien' && p(msgs[m],'DibacaOlehTim') !== 'Yes') unread++; }
     html += '<div class="access-row">';
     html += '<div class="ar-head"><div>';
-    html += '<div class="ar-name">' + klien + (unread > 0 ? ' <span style="font-size:10px;background:var(--red);color:#fff;padding:1px 6px;border-radius:8px;margin-left:5px">' + unread + ' baru</span>' : '') + '</div>';
-    html += '<div class="ar-meta">' + msgs.length + ' pesan · Terakhir: ' + fmtDT(p(latest,'Tanggal')) + '</div>';
+    html += '<div class="ar-name">' + moonaEsc(klien) + (unread > 0 ? ' <span style="font-size:10px;background:var(--red);color:#fff;padding:1px 6px;border-radius:8px;margin-left:5px">' + unread + ' baru</span>' : '') + '</div>';
+    html += '<div class="ar-meta">' + msgs.length + ' pesan · Terakhir: ' + moonaEsc(fmtDT(p(latest,'Tanggal'))) + '</div>';
     html += '</div></div>';
     html += '<div style="margin-top:6px;max-height:200px;overflow-y:auto;border:0.5px solid var(--border);border-radius:var(--radius-sm);padding:8px;background:var(--bg)">';
     // Reverse back to chronological for display
@@ -483,13 +483,13 @@ function renderChat() {
       var msg = displayMsgs[d];
       var isKlien = p(msg,'Role') === 'Klien';
       html += '<div style="margin-bottom:6px;padding:6px 9px;background:' + (isKlien ? 'var(--blue-bg)' : 'var(--card)') + ';border-radius:var(--radius-sm);max-width:80%;' + (isKlien ? '' : 'margin-left:auto;') + '">';
-      html += '<div style="font-size:9px;font-weight:600;color:' + (isKlien ? 'var(--blue)' : 'var(--text2)') + ';margin-bottom:2px">' + p(msg,'Pengirim') + (isKlien ? ' (Klien)' : ' (Tim Moona)') + '</div>';
-      html += '<div style="font-size:11px;line-height:1.4;white-space:pre-wrap">' + p(msg,'Pesan') + '</div>';
-      html += '<div style="font-size:9px;color:var(--text3);margin-top:3px">' + fmtDT(p(msg,'Tanggal')) + '</div>';
+      html += '<div style="font-size:9px;font-weight:600;color:' + (isKlien ? 'var(--blue)' : 'var(--text2)') + ';margin-bottom:2px">' + moonaEsc(p(msg,'Pengirim')) + (isKlien ? ' (Klien)' : ' (Tim Moona)') + '</div>';
+      html += '<div style="font-size:11px;line-height:1.4;white-space:pre-wrap">' + moonaEsc(p(msg,'Pesan')) + '</div>';
+      html += '<div style="font-size:9px;color:var(--text3);margin-top:3px">' + moonaEsc(fmtDT(p(msg,'Tanggal'))) + '</div>';
       html += '</div>';
     }
     html += '</div>';
-    if (unread > 0) html += '<button class="btn btn-sm" style="margin-top:6px" onclick="markAllRead(\'' + tok + '\')">Tandai sudah dibaca</button>';
+    if (unread > 0) html += '<button class="btn btn-sm" style="margin-top:6px" onclick="markAllRead(\'' + moonaEsc(String(tok).replace(/[^\w-]/g, '')) + '\')">Tandai sudah dibaca</button>';
     html += '</div>';
   }
   el.innerHTML = html;

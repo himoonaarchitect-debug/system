@@ -76,6 +76,7 @@ body.lg-body{min-height:100vh;background:#fff;color:#13223A;font-family:"Plus Ja
 @keyframes lg-spin{to{transform:rotate(360deg)}}
 .error-msg{display:none;background:#FCEBEC;color:#992026;border:1px solid #F3C9CB;font-size:13.5px;padding:10px 12px;border-radius:10px;margin-bottom:16px;line-height:1.45}
 .error-msg.show{display:block}
+.error-msg.info{background:#EEF3FB;color:#1E3F73;border-color:#CFDDF2}
 .lg-help{font-size:13px;color:#7F8DA3;margin-top:22px;line-height:1.5}
 .lg-mobile-logo{display:none}
 
@@ -150,7 +151,7 @@ body.lg-body{min-height:100vh;background:#fff;color:#13223A;font-family:"Plus Ja
   </main>
 </div>
 
-<script src="moona-core.js?v=3"></script>
+<script src="moona-core.js?v=4"></script>
 <script>
 const API = MOONA_API;
 const EYE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="3"/></svg>';
@@ -167,7 +168,7 @@ function redirectByRole(role){
 }
 (function init(){
   const s=getSession();
-  if(s){
+  if(s && new URLSearchParams(location.search).get('expired')!=='1'){
     let acc=null; try{acc=JSON.parse(localStorage.getItem('moona_v2_access'));}catch(e){}
     if(acc&&acc.default){location.href=acc.default;}else{redirectByRole(s.role);}
     return;
@@ -181,10 +182,24 @@ function redirectByRole(role){
     eye.setAttribute('aria-label',show?'Sembunyikan password':'Tampilkan password'); pw.focus();
   });
   document.getElementById('lg-form').addEventListener('submit',e=>{e.preventDefault();doLogin();});
+  if(new URLSearchParams(location.search).get('expired')==='1'){
+    showErr('Sesi kamu sudah berakhir (atau password baru saja diganti). Silakan masuk lagi.', true);
+  }
   document.getElementById('username').focus();
 })();
 
-function showErr(msg){const err=document.getElementById('err');err.textContent=msg;err.classList.add('show');}
+function showErr(msg,info){const err=document.getElementById('err');err.textContent=msg;err.classList.toggle('info',!!info);err.classList.add('show');}
+// Login lewat POST supaya password tidak pernah muncul di alamat (URL).
+// Kalau backend masih versi lama (belum kenal login POST), otomatis pakai cara lama.
+async function apiLogin(u,pw){
+  const r=await fetch(API,{method:'POST',body:JSON.stringify({action:'login',username:u,password:pw})});
+  const d=await r.json();
+  if(d&&d.status==='error'&&/tidak dikenal/i.test(d.message||'')){
+    const r2=await fetch(`${API}?action=login&username=${encodeURIComponent(u)}&password=${encodeURIComponent(pw)}`);
+    return r2.json();
+  }
+  return d;
+}
 async function doLogin(){
   const u=document.getElementById('username').value.trim();
   const pw=document.getElementById('password').value.trim();
@@ -193,16 +208,17 @@ async function doLogin(){
   const btn=document.getElementById('login-btn'), lbl=document.getElementById('login-label');
   btn.disabled=true; lbl.textContent='Memeriksa…'; err.classList.remove('show');
   try{
-    const r=await fetch(`${API}?action=login&username=${encodeURIComponent(u)}&password=${encodeURIComponent(pw)}`);
-    const d=await r.json();
+    const d=await apiLogin(u,pw);
     if(d.status==='ok'){
       localStorage.setItem('moona_v2_session',JSON.stringify({id:d.id,nama:d.nama,role:d.role,username:d.username,jobTitle:d.jobTitle||''}));
       localStorage.setItem('moona_v2_access',JSON.stringify(d.access||null));
+      if(d.sid) localStorage.setItem('moona_v2_sid',d.sid); else localStorage.removeItem('moona_v2_sid');
       lbl.textContent='Berhasil, membuka…';
       if(d.access&&d.access.default){location.href=d.access.default;}else{redirectByRole(d.role);}
       return;
     }
-    showErr('Username atau password salah. Cek lagi, atau minta admin mereset password.');
+    if(d.code==='LOCKED') showErr(d.message);
+    else showErr('Username atau password salah. Cek lagi, atau minta admin mereset password.');
     document.getElementById('password').select();
   }catch(e){
     showErr('Tidak bisa terhubung ke server. Periksa koneksi internet lalu coba lagi.');
