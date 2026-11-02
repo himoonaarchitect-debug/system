@@ -38,6 +38,31 @@ var MOONA_FALLBACK_ACCESS = {
   Finance:            ['dashboard','client-portal','aset','finance','meetings','playbook','sop']
 };
 
+// ── TANGGAL ──
+// Ubah nilai tanggal apa pun (Date, "2026-09-25", "25/9/2026", "Thu Sep 25 2026 00:00:00 GMT+0700")
+// jadi "YYYY-MM-DD" menurut jam lokal (WIB). Dipakai untuk <input type="date">.
+// Jangan pakai toISOString() untuk ini: hasilnya UTC, jadi di WIB tanggalnya mundur 1 hari.
+function moonaISODate(v) {
+  if (v === null || v === undefined || v === '') return '';
+  var d;
+  if (v instanceof Date) d = v;
+  else {
+    var s = String(v).trim();
+    var m = s.match(/^(\d{4})-(\d{2})-(\d{2})/); if (m) return m[1] + '-' + m[2] + '-' + m[3];
+    m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/); if (m) return m[3] + '-' + ('0' + m[2]).slice(-2) + '-' + ('0' + m[1]).slice(-2);
+    d = new Date(s);
+  }
+  if (isNaN(d)) return '';
+  return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2);
+}
+function moonaToday() { return moonaISODate(new Date()); }
+// Tampilan tanggal ringkas: "25 Sep 2026"
+function moonaFmtDate(v) {
+  var iso = moonaISODate(v); if (!iso) return v ? String(v) : '';
+  var p = iso.split('-');
+  return new Date(+p[0], +p[1] - 1, +p[2]).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
 function moonaSession() { try { return JSON.parse(localStorage.getItem('moona_v2_session')); } catch (e) { return null; } }
 function moonaAccess() {
   var acc = null; try { acc = JSON.parse(localStorage.getItem('moona_v2_access')); } catch (e) {}

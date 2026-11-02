@@ -313,7 +313,10 @@ var editingAssetId = null, editingAgendaId = null;
 var JENIS_AGENDA = ['Servis','Pajak / STNK','Perpanjangan Lisensi','Garansi','Kalibrasi','Peminjaman','Lainnya'];
 var ULANG = ['Tidak berulang','1 bulan','3 bulan','6 bulan','1 tahun'];
 
-var KATEGORI = ['Mesin Workshop','Kendaraan','Alat Ukur & Instalasi','IT & Komputer','Lisensi Software','Gear Konten','Furnitur','Lainnya'];
+var KATEGORI = ['Mesin Workshop','Kendaraan','Alat Ukur & Perkakas','Peralatan Kantor','Peralatan Lapangan','Alat Pelindung Diri (APD)','IT & Komputer','Lisensi Software','Gear Konten','Furnitur','Lainnya'];
+// Nama kategori lama → nama baru (data lama otomatis tampil & tersimpan dengan nama baru)
+var KATEGORI_RENAME = { 'Alat Ukur & Instalasi': 'Alat Ukur & Perkakas' };
+function normKategori(list){ (list||[]).forEach(function(a){ var k=a && a.Kategori; if(k && KATEGORI_RENAME[k]) a.Kategori=KATEGORI_RENAME[k]; }); return list; }
 var LOKASI = ['Kantor Situbondo','Kantor Malang','Workshop','Proyek'];
 var KONDISI = ['Baik','Perlu Perhatian','Rusak'];
 var STATUS = ['Aktif','Dipinjam','Perbaikan','Nonaktif'];
@@ -394,7 +397,7 @@ function loadProjects(){
 function loadAssets(){
   return fetch(API + '?action=getAssets').then(function(r){return r.json();}).then(function(d){
     if (d.status === 'ok') {
-      assets = d.data; renderAssets(); updateStats(); renderNilai();
+      assets = normKategori(d.data); renderAssets(); updateStats(); renderNilai();
       var html = '<option value="">Pilih aset</option>';
       var sorted = [].concat(assets).sort(function(x,y){return p(x,'NamaAset').localeCompare(p(y,'NamaAset'));});
       for (var i=0;i<sorted.length;i++) html += '<option value="'+esc(p(sorted[i],'ID'))+'">'+esc(p(sorted[i],'NamaAset'))+(p(sorted[i],'KodeAset')?' ('+esc(p(sorted[i],'KodeAset'))+')':'')+'</option>';
@@ -529,7 +532,7 @@ function openEditAsset(id){
   document.getElementById('a-kondisi').value = p(a,'Kondisi') || 'Baik';
   document.getElementById('a-status').value = p(a,'Status') || 'Aktif';
   document.getElementById('a-catatan').value = p(a,'Catatan');
-  document.getElementById('a-tglbeli').value = p(a,'TanggalBeli');
+  document.getElementById('a-tglbeli').value = moonaISODate(p(a,'TanggalBeli'));
   document.getElementById('a-nilai').value = p(a,'NilaiBeli');
   document.getElementById('a-umur').value = p(a,'UmurEkonomisTahun');
   document.getElementById('a-residu').value = p(a,'NilaiResidu');
@@ -598,7 +601,7 @@ function dueText(a){
   var cls = st==='Terlewat'?'due-terlewat':(st==='Segera'?'due-segera':'');
   var sub = '';
   if (st!=='Selesai' && du!==null){ sub = du<0 ? ' (lewat '+(-du)+'h)' : (du===0?' (hari ini)':' ('+du+'h lagi)'); }
-  return '<span class="'+cls+'">'+esc(p(a,'TanggalJatuhTempo')||'–')+'</span><span style="color:var(--text3);font-size:10px">'+sub+'</span>';
+  return '<span class="'+cls+'">'+esc(moonaFmtDate(p(a,'TanggalJatuhTempo'))||'–')+'</span><span style="color:var(--text3);font-size:10px">'+sub+'</span>';
 }
 
 function filteredAgenda(){
@@ -667,7 +670,7 @@ function openEditAgenda(id){
   document.getElementById('a-ag-asset').value = p(a,'Asset_ID');
   document.getElementById('a-ag-jenis').value = p(a,'JenisAgenda');
   document.getElementById('a-ag-judul').value = p(a,'Judul');
-  document.getElementById('a-ag-tempo').value = p(a,'TanggalJatuhTempo');
+  document.getElementById('a-ag-tempo').value = moonaISODate(p(a,'TanggalJatuhTempo'));
   document.getElementById('a-ag-ulang').value = p(a,'UlangTiap') || 'Tidak berulang';
   document.getElementById('a-ag-pic').value = p(a,'PIC_ID');
   document.getElementById('a-ag-biaya').value = p(a,'Biaya');
@@ -703,7 +706,7 @@ async function markAgendaDone(id){
   var a = agenda.find(function(x){ return p(x,'ID')===id; });
   var recur = a && p(a,'UlangTiap') && p(a,'UlangTiap')!=='Tidak berulang';
   if (!confirm('Tandai agenda "'+(a?p(a,'Judul'):'')+'" sebagai selesai?'+(recur?'\nAgenda berikutnya akan dibuat otomatis ('+p(a,'UlangTiap')+').':''))) return;
-  var today = new Date().toISOString().split('T')[0];
+  var today = moonaToday();
   try{
     var r = await fetch(API, { method:'POST', body: JSON.stringify({ action:'updateAgenda', id:id, status:'Selesai', tglSelesai:today }) });
     var d = await r.json();
@@ -765,7 +768,7 @@ function renderNilai(){
     html += '<tr>';
     html += '<td style="font-weight:500">'+esc(p(a,'NamaAset'))+'</td>';
     html += '<td>'+esc(p(a,'Kategori')||'–')+'</td>';
-    html += '<td>'+esc(p(a,'TanggalBeli')||'–')+'</td>';
+    html += '<td>'+esc(moonaFmtDate(p(a,'TanggalBeli'))||'–')+'</td>';
     html += '<td>'+(c.lengkap ? (c.umurJalan.toFixed(1)+' / '+c.umur+' th') : '<span style="color:var(--text3)">data kurang</span>')+'</td>';
     html += '<td class="td-right td-amount">'+rpFull(c.beli)+'</td>';
     html += '<td class="td-right td-amount">'+(c.lengkap ? rpFull(Math.round(c.perThn)) : '–')+'</td>';

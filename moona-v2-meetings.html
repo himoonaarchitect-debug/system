@@ -350,7 +350,7 @@ window.onload = function() {
   Promise.all([loadMeetings(), loadActions(), loadProjects(), loadUsers()]).then(function(){
     handleDeepLink();
   });
-  document.getElementById('mf-tanggal').value = new Date().toISOString().split('T')[0];
+  document.getElementById('mf-tanggal').value = moonaToday();
 };
 // Buka meeting tertentu jika URL ada ?action=<actionId>, lalu scroll & highlight action item
 function handleDeepLink() {
@@ -577,7 +577,7 @@ function openMeetingForm(id) {
   var ids = ['mf-judul','mf-tipe','mf-tanggal','mf-lokasi','mf-project','mf-keputusan','mf-catatan'];
   for (var i = 0; i < ids.length; i++) { var el = document.getElementById(ids[i]); if (el) el.value = ''; }
   document.getElementById('mf-visible').checked = false;
-  document.getElementById('mf-tanggal').value = new Date().toISOString().split('T')[0];
+  document.getElementById('mf-tanggal').value = moonaToday();
   renderPesertaList();
   document.getElementById('mf-hadir-wrap').style.display = 'none';
   
@@ -588,7 +588,7 @@ function openMeetingForm(id) {
       document.getElementById('mf-judul').value = p(m,'Judul');
       document.getElementById('mf-tipe').value = p(m,'Tipe');
       var tgl = p(m,'TanggalMeeting');
-      if (tgl) try { document.getElementById('mf-tanggal').value = new Date(tgl).toISOString().split('T')[0]; } catch(e){}
+      if (tgl) try { document.getElementById('mf-tanggal').value = moonaISODate(tgl); } catch(e){}
       document.getElementById('mf-lokasi').value = p(m,'Lokasi');
       document.getElementById('mf-project').value = p(m,'Project_ID');
       document.getElementById('mf-keputusan').value = p(m,'Keputusan');
@@ -699,7 +699,7 @@ function rescheduleMeeting(id) {
   document.getElementById('rs-id').value = id;
   document.getElementById('rs-judul').textContent = p(m,'Judul');
   var tgl = p(m,'TanggalMeeting');
-  try { document.getElementById('rs-tanggal').value = new Date(tgl).toISOString().split('T')[0]; } catch(e) { document.getElementById('rs-tanggal').value = ''; }
+  try { document.getElementById('rs-tanggal').value = moonaISODate(tgl); } catch(e) { document.getElementById('rs-tanggal').value = ''; }
   // Extract time
   try {
     var d = new Date(tgl);

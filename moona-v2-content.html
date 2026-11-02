@@ -553,7 +553,7 @@ function editMetric(id) {
   if (tgl) {
     var s = String(tgl).trim();
     if (/^\d{4}-\d{2}-\d{2}/.test(s)) iso = s.substring(0,10);
-    else { var dd = new Date(s); if (!isNaN(dd)) iso = dd.toISOString().split('T')[0]; }
+    else { var dd = new Date(s); if (!isNaN(dd)) iso = moonaISODate(dd); }
   }
   document.getElementById('mf-tanggal').value = iso;
   var platform = p(m,'Platform');
@@ -574,8 +574,8 @@ function editMetric(id) {
 }
 
 window.onload = function() {
-  document.getElementById('cf-tanggal').value = new Date().toISOString().split('T')[0];
-  document.getElementById('mf-tanggal').value = new Date().toISOString().split('T')[0];
+  document.getElementById('cf-tanggal').value = moonaToday();
+  document.getElementById('mf-tanggal').value = moonaToday();
   Promise.all([loadContents(), loadMetrics(), loadUsers()]).then(function(){
     // Deep-link: kalau URL ada ?content=<id>, langsung buka form edit konten tsb
     var qp = new URLSearchParams(location.search);
@@ -950,7 +950,7 @@ function openContentForm(id) {
   var ids = ['cf-judul','cf-jenis','cf-tipe','cf-brief','cf-copy','cf-caption','cf-ref','cf-file','cf-linkpost','cf-pic','cf-catatan'];
   for (var i = 0; i < ids.length; i++) document.getElementById(ids[i]).value = '';
   var pce = document.querySelectorAll('.cf-plat-chk'); for (var i=0; i<pce.length; i++) pce[i].checked = false;
-  document.getElementById('cf-tanggal').value = new Date().toISOString().split('T')[0];
+  document.getElementById('cf-tanggal').value = moonaToday();
   currentStatus = 'Idea';
   var spBtns = document.querySelectorAll('.sp-btn');
   for (var s = 0; s < spBtns.length; s++) spBtns[s].classList.remove('active');
@@ -976,7 +976,7 @@ function openContentForm(id) {
       document.getElementById('cf-linkpost').value = p(c,'LinkPost');
       document.getElementById('cf-pic').value = p(c,'PIC');
       document.getElementById('cf-catatan').value = p(c,'Catatan');
-      try { document.getElementById('cf-tanggal').value = new Date(p(c,'Tanggal')).toISOString().split('T')[0]; } catch(e){}
+      try { document.getElementById('cf-tanggal').value = moonaISODate(p(c,'Tanggal')); } catch(e){}
       currentStatus = p(c,'StatusKonten') || 'Idea';
       for (var sp = 0; sp < spBtns.length; sp++) spBtns[sp].classList.remove('active');
       var statusIdx = ['Idea','On Progress','Review','Approved','Posted'].indexOf(currentStatus);
@@ -1077,7 +1077,7 @@ function openMetricsForm() {
   window._metricEditDraft = null;
   document.getElementById('mf-platform').value = '';
   document.getElementById('mf-catatan').value = '';
-  document.getElementById('mf-tanggal').value = new Date().toISOString().split('T')[0];
+  document.getElementById('mf-tanggal').value = moonaToday();
   renderMetricFields();
   document.getElementById('modal-metrics').classList.add('open');
 }

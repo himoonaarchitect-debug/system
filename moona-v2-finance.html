@@ -365,8 +365,8 @@ function setInvFilter(v, el) { invFilter = v; var pills = el.parentNode.querySel
 
 window.onload = function() {
   if (!S) return;
-  document.getElementById('if-kirim').value = new Date().toISOString().split('T')[0];
-  document.getElementById('cf-tgl').value = new Date().toISOString().split('T')[0];
+  document.getElementById('if-kirim').value = moonaToday();
+  document.getElementById('cf-tgl').value = moonaToday();
   Promise.all([loadInvoices(), loadCashflows(), loadProjects(), loadRAB()]);
 };
 
@@ -551,7 +551,7 @@ function renderProyek() {
 function openInvoiceForm() {
   var ids = ['if-project','if-termin','if-nominal','if-catatan','if-tempo'];
   for (var i = 0; i < ids.length; i++) document.getElementById(ids[i]).value = '';
-  document.getElementById('if-kirim').value = new Date().toISOString().split('T')[0];
+  document.getElementById('if-kirim').value = moonaToday();
   document.getElementById('modal-inv').classList.add('open');
 }
 function saveInvoice() {
@@ -578,7 +578,7 @@ function saveInvoice() {
 }
 function markLunas(id) {
   if (!confirm('Tandai invoice ini sebagai Lunas?')) return;
-  fetch(API, { method: 'POST', body: JSON.stringify({ action: 'updateInvoiceLunas', id: id, tgl: new Date().toISOString().split('T')[0] }) })
+  fetch(API, { method: 'POST', body: JSON.stringify({ action: 'updateInvoiceLunas', id: id, tgl: moonaToday() }) })
     .then(function(r){return r.json();})
     .then(function(d){ if (d.status === 'ok') { showToast('Invoice lunas'); loadInvoices(); } });
 }
@@ -592,7 +592,7 @@ function deleteInv(id) {
 // CASHFLOW
 function openCashflowForm() {
   ['cf-project','cf-keluar','cf-ket','cf-periode'].forEach(function(id){ document.getElementById(id).value = ''; });
-  document.getElementById('cf-tgl').value = new Date().toISOString().split('T')[0];
+  document.getElementById('cf-tgl').value = moonaToday();
   document.getElementById('modal-cf').classList.add('open');
 }
 function saveCashflow() {

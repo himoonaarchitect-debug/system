@@ -643,7 +643,7 @@ function renderView(){renderPipeline();if(document.getElementById('tab-list').st
 // LOAD
 window.onload=async()=>{
   if(!CAN_ADD_LEAD){var b=document.getElementById('btn-add-lead');if(b)b.style.display='none';}
-  document.getElementById('f-followup').value=new Date().toISOString().split('T')[0];
+  document.getElementById('f-followup').value=moonaToday();
   await Promise.all([loadLeads(),loadLogs(),loadUsers()]);
 };
 async function loadLeads(){
@@ -840,7 +840,7 @@ function openLeadForm(){
   if(!CAN_ADD_LEAD){showToast('Tidak punya akses tambah lead');return;}
   ['f-nama','f-wa','f-alamat','f-nilai'].forEach(id=>document.getElementById(id).value='');
   ['f-sumber','f-layanan','f-proyek'].forEach(id=>document.getElementById(id).value='');
-  const today=new Date().toISOString().split('T')[0];
+  const today=moonaToday();
   document.getElementById('f-followup').value=today;
   document.getElementById('f-tglmasuk').value=today;
   document.getElementById('f-stage-selector').innerHTML='<div style="font-size:11px;color:var(--text3)">Pilih tipe layanan dulu</div>';
@@ -869,7 +869,7 @@ async function saveLead(){
 // FOLLOW UP FORM
 function openFollowUpForm(){
   document.getElementById('fu-catatan').value='';
-  document.getElementById('fu-next').value=new Date().toISOString().split('T')[0];
+  document.getElementById('fu-next').value=moonaToday();
   document.getElementById('modal-fu').classList.add('open');
 }
 async function saveFollowUp(){
@@ -987,7 +987,7 @@ function openMeetingFromCRM(){
   // Pre-fill nama klien
   document.getElementById('crm-mtg-klien').value = p(lead,'NamaKlien');
   document.getElementById('crm-mtg-judul').value = 'Meeting ' + p(lead,'NamaKlien');
-  document.getElementById('crm-mtg-tanggal').value = new Date().toISOString().split('T')[0];
+  document.getElementById('crm-mtg-tanggal').value = moonaToday();
   document.getElementById('crm-mtg-jam').value = '';
   document.getElementById('crm-mtg-lokasi').value = '';
   document.getElementById('crm-mtg-catatan').value = '';
