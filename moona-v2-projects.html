@@ -66,6 +66,44 @@ body{background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI
 .tabs{display:flex;border-bottom:0.5px solid var(--border);margin-bottom:14px}
 .tab{padding:7px 14px;font-size:12px;color:var(--text2);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-0.5px}
 .tab.active{color:var(--teal);border-bottom-color:var(--teal);font-weight:500}
+/* STATISTIK */
+.st-grid{display:grid;grid-template-columns:1fr;gap:10px}
+.st-card{background:var(--card);border:0.5px solid var(--border);border-radius:var(--radius);padding:14px 16px}
+.st-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.st-title{font-size:13px;font-weight:600}
+.st-sub{font-size:11px;color:var(--text3);margin-top:2px}
+.st-kpis{display:flex;gap:18px;flex-wrap:wrap}
+.st-kpi .v{font-size:18px;font-weight:600;font-variant-numeric:tabular-nums}
+.st-kpi .l{font-size:10px;color:var(--text3)}
+.st-legend{display:flex;gap:12px;flex-wrap:wrap;font-size:11px;color:var(--text2);margin-bottom:8px}
+.st-legend span{display:inline-flex;align-items:center;gap:5px}
+.st-legend i{width:10px;height:10px;border-radius:3px;display:inline-block}
+.mchart{position:relative;display:flex;align-items:flex-end;gap:8px;height:190px;padding:18px 0 0;border-bottom:1px solid var(--border2)}
+.mcol{flex:1;height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;cursor:default;position:relative}
+.mcol:hover{background:rgba(0,0,0,.025);border-radius:6px 6px 0 0}
+.mval{font-size:11px;font-weight:600;color:var(--text);margin-bottom:3px;font-variant-numeric:tabular-nums}
+.mstack{width:68%;max-width:38px;display:flex;flex-direction:column-reverse;gap:2px;border-radius:4px 4px 0 0;overflow:hidden}
+.mstack div{width:100%}
+.mlabels{display:flex;gap:8px;margin-top:5px}
+.mlabels div{flex:1;text-align:center;font-size:10px;color:var(--text3);line-height:1.3}
+.st-tip{position:absolute;pointer-events:none;background:var(--text);color:#fff;font-size:11px;line-height:1.5;padding:7px 10px;border-radius:6px;z-index:5;white-space:nowrap;display:none;box-shadow:0 4px 12px rgba(0,0,0,.15)}
+.st-tip i{width:8px;height:8px;border-radius:2px;display:inline-block;margin-right:5px}
+.st-table{width:100%;border-collapse:collapse;font-size:11px;margin-top:12px}
+.st-table th{text-align:right;font-size:10px;font-weight:600;color:var(--text3);padding:6px 8px;border-bottom:0.5px solid var(--border);text-transform:uppercase;letter-spacing:.03em}
+.st-table th:first-child,.st-table td:first-child{text-align:left}
+.st-table td{text-align:right;padding:6px 8px;border-bottom:0.5px solid var(--border);font-variant-numeric:tabular-nums}
+.st-toggle{font-size:11px;color:var(--blue);cursor:pointer;margin-top:8px;display:inline-block}
+.wl-row{display:grid;grid-template-columns:150px 1fr 90px;gap:12px;align-items:center;padding:9px 0;border-bottom:0.5px solid var(--border)}
+.wl-row:last-child{border-bottom:none}
+.wl-name{font-size:12px;font-weight:500}
+.wl-name small{display:block;font-size:10px;color:var(--text3);font-weight:400}
+.wl-bar{display:flex;gap:2px;height:14px}
+.wl-bar div{height:100%}
+.wl-bar div:last-child{border-radius:0 4px 4px 0}
+.wl-num{font-size:11px;color:var(--text2);text-align:right;font-variant-numeric:tabular-nums}
+.wl-num strong{font-size:13px;color:var(--text)}
+.wl-proj{grid-column:2 / 4;font-size:10.5px;color:var(--text3);margin-top:-4px;line-height:1.5}
+@media(max-width:768px){.wl-row{grid-template-columns:110px 1fr 70px}.mchart{gap:3px}.mlabels{gap:3px}}
 
 /* PROJECT GRID */
 .proj-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
@@ -254,10 +292,36 @@ textarea.form-input{resize:vertical;min-height:60px;line-height:1.5}
   <div class="tabs">
     <div class="tab active" onclick="switchTab('board',this)">Board Proyek</div>
     <div class="tab" onclick="switchTab('list',this)">Daftar</div>
+    <div class="tab" onclick="switchTab('stats',this)">Statistik</div>
   </div>
 
   <div id="tab-board">
     <div class="proj-grid" id="proj-grid"><div class="loading" style="grid-column:1/-1">Memuat proyek...</div></div>
+  </div>
+  <div id="tab-stats" style="display:none">
+    <div class="st-grid">
+      <div class="st-card">
+        <div class="st-head">
+          <div><div class="st-title">Proyek masuk per bulan</div><div class="st-sub">12 bulan terakhir · berdasarkan tanggal mulai proyek · mengikuti filter tipe &amp; layanan di atas</div></div>
+          <div class="st-kpis" id="st-kpis"></div>
+        </div>
+        <div class="st-legend" id="st-legend"></div>
+        <div style="position:relative">
+          <div class="mchart" id="st-chart"></div>
+          <div class="mlabels" id="st-mlabels"></div>
+          <div class="st-tip" id="st-tip"></div>
+        </div>
+        <span class="st-toggle" onclick="toggleStTable()" id="st-toggle">Lihat tabel ▾</span>
+        <div id="st-table" style="display:none"></div>
+      </div>
+      <div class="st-card">
+        <div class="st-head">
+          <div><div class="st-title">Workload tim — proyek aktif per PIC</div><div class="st-sub">Dihitung dari PIC proyek berstatus Aktif · mengikuti filter tipe &amp; layanan di atas</div></div>
+        </div>
+        <div class="st-legend" id="wl-legend"></div>
+        <div id="st-workload"></div>
+      </div>
+    </div>
   </div>
   <div id="tab-list" style="display:none">
     <div class="card">
@@ -490,7 +554,80 @@ function showToast(m){const t=document.getElementById('toast');t.textContent=m;t
 function fmtDate(s){if(!s)return'–';try{return new Date(s).toLocaleDateString('id-ID',{day:'numeric',month:'short',year:'numeric'});}catch(e){return s;}}
 function rp(n){if(!n||isNaN(n))return'–';const v=parseFloat(n);if(v>=1e9)return'Rp '+(v/1e9).toFixed(1)+' M';if(v>=1e6)return'Rp '+Math.round(v/1e6)+' jt';if(v>=1e3)return'Rp '+Math.round(v/1e3)+'rb';return'Rp '+v.toLocaleString('id-ID');}
 function closeModal(id){document.getElementById(id).classList.remove('open');}
-function switchTab(t,el){document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));el.classList.add('active');document.getElementById('tab-board').style.display=t==='board'?'block':'none';document.getElementById('tab-list').style.display=t==='list'?'block':'none';if(t==='list')renderList();}
+var currentMainTab='board';
+function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function switchTab(t,el){currentMainTab=t;document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));el.classList.add('active');['board','list','stats'].forEach(k=>document.getElementById('tab-'+k).style.display=t===k?'block':'none');if(t==='list')renderList();if(t==='stats')renderStats();}
+
+// ── STATISTIK ──
+// Warna per tipe proyek (lolos cek buta warna). Urutan tetap.
+const TIPE_ORDER=['Design','Build','Design+Build'];
+const TIPE_COLOR={'Design':'#534AB7','Build':'#1D9E75','Design+Build':'#406EB6'};
+function tipeOf(pr){const t=p(pr,'TipeProyek');return TIPE_ORDER.indexOf(t)>=0?t:'Design';}
+function statsBase(){let f=[...projects];if(filterTipe)f=f.filter(x=>p(x,'TipeProyek')===filterTipe);if(filterLayanan)f=f.filter(x=>p(x,'TipeLayanan')===filterLayanan);return f;}
+function legendHtml(types){return types.map(t=>'<span><i style="background:'+TIPE_COLOR[t]+'"></i>'+t+'</span>').join('');}
+function rpFullSt(n){return 'Rp '+Math.round(n||0).toLocaleString('id-ID');}
+var stMonths=[];
+function renderStats(){
+  const base=statsBase();
+  const now=new Date();stMonths=[];
+  for(let i=11;i>=0;i--){const d=new Date(now.getFullYear(),now.getMonth()-i,1);stMonths.push({key:d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'),d:d,counts:{},total:0,nilai:0,names:[]});}
+  base.forEach(pr=>{const iso=moonaISODate(p(pr,'TanggalMulai'));if(!iso)return;const m=stMonths.find(x=>x.key===iso.slice(0,7));if(!m)return;const t=tipeOf(pr);m.counts[t]=(m.counts[t]||0)+1;m.total++;m.nilai+=parseFloat(p(pr,'NilaiKontrak')||0);m.names.push(p(pr,'NamaProyek'));});
+  const used=TIPE_ORDER.filter(t=>stMonths.some(m=>m.counts[t]));
+  const max=Math.max(1,...stMonths.map(m=>m.total));
+  const sum=stMonths.reduce((s,m)=>s+m.total,0), cur=stMonths[11].total, prev=stMonths[10].total;
+  document.getElementById('st-kpis').innerHTML=
+    '<div class="st-kpi"><div class="v">'+cur+'</div><div class="l">Bulan ini</div></div>'+
+    '<div class="st-kpi"><div class="v">'+prev+'</div><div class="l">Bulan lalu</div></div>'+
+    '<div class="st-kpi"><div class="v">'+(sum/12).toFixed(1).replace('.',',')+'</div><div class="l">Rata-rata / bulan</div></div>'+
+    '<div class="st-kpi"><div class="v">'+sum+'</div><div class="l">Total 12 bulan</div></div>';
+  document.getElementById('st-legend').innerHTML=used.length>1?legendHtml(used):'';
+  document.getElementById('st-chart').innerHTML=stMonths.map((m,i)=>{
+    const segs=TIPE_ORDER.filter(t=>m.counts[t]).map(t=>'<div style="height:'+(m.counts[t]/max*150)+'px;background:'+TIPE_COLOR[t]+'"></div>').join('');
+    return '<div class="mcol" onmouseenter="stTip('+i+',this)" onmouseleave="stTipHide()">'+(m.total?'<div class="mval">'+m.total+'</div>':'')+'<div class="mstack">'+segs+'</div></div>';
+  }).join('');
+  document.getElementById('st-mlabels').innerHTML=stMonths.map((m,i)=>'<div>'+m.d.toLocaleDateString('id-ID',{month:'short'})+((i===0||m.d.getMonth()===0)?'<br>'+m.d.getFullYear():'')+'</div>').join('');
+  // tabel
+  let tb='<table class="st-table"><thead><tr><th>Bulan</th>'+TIPE_ORDER.map(t=>'<th>'+t+'</th>').join('')+'<th>Total</th><th>Nilai kontrak</th></tr></thead><tbody>';
+  [...stMonths].reverse().forEach(m=>{tb+='<tr><td>'+m.d.toLocaleDateString('id-ID',{month:'long',year:'numeric'})+'</td>'+TIPE_ORDER.map(t=>'<td>'+(m.counts[t]||0)+'</td>').join('')+'<td><strong>'+m.total+'</strong></td><td>'+rpFullSt(m.nilai)+'</td></tr>';});
+  document.getElementById('st-table').innerHTML=tb+'</tbody></table>';
+  renderWorkload(base);
+}
+function stTip(i,el){
+  const m=stMonths[i],tip=document.getElementById('st-tip');
+  let h='<strong>'+m.d.toLocaleDateString('id-ID',{month:'long',year:'numeric'})+'</strong> · '+m.total+' proyek';
+  TIPE_ORDER.forEach(t=>{if(m.counts[t])h+='<br><i style="background:'+TIPE_COLOR[t]+'"></i>'+t+': '+m.counts[t];});
+  if(m.nilai)h+='<br>Nilai kontrak: '+rpFullSt(m.nilai);
+  if(m.names.length)h+='<br><span style="opacity:.75">'+m.names.slice(0,6).map(n=>esc(n)).join('<br>')+(m.names.length>6?'<br>+'+(m.names.length-6)+' lainnya':'')+'</span>';
+  tip.innerHTML=h;tip.style.display='block';
+  const wrap=el.parentNode.parentNode.getBoundingClientRect(),r=el.getBoundingClientRect();
+  let left=r.left-wrap.left+r.width/2-tip.offsetWidth/2;left=Math.max(0,Math.min(left,wrap.width-tip.offsetWidth));
+  tip.style.left=left+'px';tip.style.top=Math.max(0,el.querySelector('.mstack').getBoundingClientRect().top-wrap.top-tip.offsetHeight-8)+'px';
+}
+function stTipHide(){document.getElementById('st-tip').style.display='none';}
+function toggleStTable(){const t=document.getElementById('st-table'),on=t.style.display==='none';t.style.display=on?'block':'none';document.getElementById('st-toggle').textContent=on?'Sembunyikan tabel ▴':'Lihat tabel ▾';}
+function renderWorkload(base){
+  const byPic={};
+  base.forEach(pr=>{
+    const st=p(pr,'StatusProyek')||'Aktif';const pic=p(pr,'PIC')||'(Belum ada PIC)';
+    if(!byPic[pic])byPic[pic]={aktif:0,hold:0,counts:{},names:[]};
+    if(st==='Aktif'){byPic[pic].aktif++;const t=tipeOf(pr);byPic[pic].counts[t]=(byPic[pic].counts[t]||0)+1;byPic[pic].names.push(p(pr,'NamaProyek'));}
+    else if(st==='Hold')byPic[pic].hold++;
+  });
+  const rows=Object.keys(byPic).map(k=>Object.assign({pic:k},byPic[k])).filter(r=>r.aktif||r.hold).sort((a,b)=>b.aktif-a.aktif||b.hold-a.hold);
+  const el=document.getElementById('st-workload');
+  if(!rows.length){el.innerHTML='<div class="empty">Tidak ada proyek aktif.</div>';document.getElementById('wl-legend').innerHTML='';return;}
+  const max=Math.max(1,...rows.map(r=>r.aktif));
+  const used=TIPE_ORDER.filter(t=>rows.some(r=>r.counts[t]));
+  document.getElementById('wl-legend').innerHTML=used.length>1?legendHtml(used):'';
+  const role={};(users||[]).forEach(u=>{role[u.nama]=u.jobTitle||u.role;});
+  el.innerHTML=rows.map(r=>{
+    const segs=TIPE_ORDER.filter(t=>r.counts[t]).map(t=>'<div title="'+t+': '+r.counts[t]+'" style="width:'+(r.counts[t]/max*100)+'%;background:'+TIPE_COLOR[t]+'"></div>').join('');
+    return '<div class="wl-row"><div class="wl-name">'+esc(r.pic)+(role[r.pic]?'<small>'+esc(role[r.pic])+'</small>':'')+'</div>'
+      +'<div class="wl-bar">'+(segs||'<div style="width:2px;background:var(--border2)"></div>')+'</div>'
+      +'<div class="wl-num"><strong>'+r.aktif+'</strong> aktif'+(r.hold?'<br>'+r.hold+' hold':'')+'</div>'
+      +(r.names.length?'<div class="wl-proj">'+r.names.map(n=>esc(n)).join(' · ')+'</div>':'')+'</div>';
+  }).join('');
+}
 function switchDTab(t,el){
   document.querySelectorAll('.dtab').forEach(x=>x.classList.remove('active'));
   el.classList.add('active');
@@ -1390,6 +1527,8 @@ function setF(type,val,el){
   if(type==='tipe'){filterTipe=val;document.querySelectorAll('.fpill').forEach(x=>{if(['Semua tipe','Design','Build','Design+Build'].includes(x.textContent))x.classList.remove('active');});}
   if(type==='layanan'){filterLayanan=val;document.querySelectorAll('.fpill').forEach(x=>{if(['Semua layanan','Interior','Eksterior'].includes(x.textContent))x.classList.remove('active');});}
   el.classList.add('active');renderBoard();
+  if(currentMainTab==='list')renderList();
+  if(currentMainTab==='stats')renderStats();
 }
 
 function getFiltered(){
